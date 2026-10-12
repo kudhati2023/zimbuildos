@@ -715,4 +715,64 @@ def test_iso_27001_subresource_integrity_attributes():
         assert "font-awesome/6.4.0" in content
 
 
+# ==============================================================================
+# COMPREHENSIVE ERP MODULES FUNCTIONAL TESTS
+# ==============================================================================
+
+def test_api_crm_pipeline_and_inquiries():
+    """CRM: Pipeline metrics, digital inquiries, and channels CX endpoints."""
+    # Pipeline summary for CEO
+    req = urllib.request.Request(f"{BASE_URL}/api/crm/pipeline", headers={"X-User-Role": "ceo"})
+    with urllib.request.urlopen(req) as resp:
+        assert resp.status == 200
+        data = json.loads(resp.read().decode())
+        assert "total_deals_count" in data
+        assert "total_pipeline_value_usd" in data
+
+    # Digital channels metrics
+    req2 = urllib.request.Request(f"{BASE_URL}/api/crm/channels/metrics", headers={"X-User-Role": "ceo"})
+    with urllib.request.urlopen(req2) as resp:
+        assert resp.status == 200
+        data2 = json.loads(resp.read().decode())
+        assert isinstance(data2, dict)
+
+
+def test_api_supply_chain_wms_stock_and_mrp():
+    """Supply Chain: WMS inventory stock, warehouse locations, and MRP BOM explosion."""
+    req = urllib.request.Request(f"{BASE_URL}/api/supplychain/wms/stock", headers={"X-User-Role": "ceo"})
+    with urllib.request.urlopen(req) as resp:
+        assert resp.status == 200
+        data = json.loads(resp.read().decode())
+        assert "stock" in data
+        assert "locations" in data
+
+    # MRP Explosion
+    req2 = urllib.request.Request(
+        f"{BASE_URL}/api/supplychain/mfg/explode?code=PREFAB-WALL-STD&qty=20",
+        headers={"X-User-Role": "ceo"}
+    )
+    with urllib.request.urlopen(req2) as resp:
+        assert resp.status == 200
+        data2 = json.loads(resp.read().decode())
+        assert data2.get("success") is True
+        assert data2.get("product_code") == "PREFAB-WALL-STD"
+
+
+def test_api_fleet_and_field_service_summary():
+    """Fleet & Field Service: Equipment appraisal and work orders overview."""
+    req = urllib.request.Request(f"{BASE_URL}/api/fleet/summary", headers={"X-User-Role": "ceo"})
+    with urllib.request.urlopen(req) as resp:
+        assert resp.status == 200
+        data = json.loads(resp.read().decode())
+        assert "total_fleet_assets" in data
+        assert "total_net_book_value_usd" in data
+
+    req2 = urllib.request.Request(f"{BASE_URL}/api/fieldservice/summary", headers={"X-User-Role": "ceo"})
+    with urllib.request.urlopen(req2) as resp:
+        assert resp.status == 200
+        data2 = json.loads(resp.read().decode())
+        assert isinstance(data2, dict)
+
+
+
 
