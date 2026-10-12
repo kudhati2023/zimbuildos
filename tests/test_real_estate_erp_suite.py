@@ -486,3 +486,40 @@ def test_api_endpoints_integration(client):
         }
     )
     assert unauth_resp.status_code == 403
+
+
+def test_async_background_jobs(client):
+    import time
+    # Test Enqueueing pro-forma stress calculation
+    enqueue_resp = client.post(
+        "/api/v1/erp/jobs/enqueue",
+        json={
+            "task_name": "CALCULATE_PROFORMA_STRESS",
+            "payload": {
+                "base_request": {
+                    "gross_realization_value": 3000000.0,
+                    "hard_costs": 1500000.0,
+                    "soft_costs": 300000.0,
+                    "finance_costs": 150000.0,
+                    "target_developer_margin_pct": 15.0
+                },
+                "cost_variation_pcts": [-10.0, 10.0],
+                "lease_up_speed_factors": [1.0],
+                "exit_cap_rates": [0.08]
+            }
+        }
+    )
+    assert enqueue_resp.status_code == 200
+    job_id = enqueue_resp.json()["job_id"]
+    assert job_id.startswith("job-")
+
+    # Allow worker thread to execute
+    time.sleep(0.5)
+
+    status_resp = client.get(f"/api/v1/erp/jobs/{job_id}/status")
+    assert status_resp.status_code == 200
+    data = status_resp.json()
+    assert data["status"] in ["PROCESSING", "COMPLETED"]
+    if data["status"] == "COMPLETED":
+        assert data["result"]["scenarios_calculated"] == 2
+
