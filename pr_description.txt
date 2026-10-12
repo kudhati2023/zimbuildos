@@ -1,0 +1,12 @@
+🎯 **What:**
+The `GeoJsonUploaderModal` component lacked unit tests.
+
+📊 **Coverage:**
+- Proper conditional rendering based on `isOpen`
+- Tab switching logic (upload vs developer guide)
+- Valid GeoJSON upload simulations (typing input or actual file objects)
+- Validating the rejection of improperly formatted GeoJSON
+- Detailed handling of multiple `ApiError` shapes, displaying line-by-line cadastre validation details.
+
+✨ **Result:**
+The modal's behavior is now fully covered under vitest/jsdom tests using `@testing-library/react`. This improves robustness against UI refactors.
