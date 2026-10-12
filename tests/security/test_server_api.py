@@ -587,3 +587,95 @@ def test_api_mortgage_and_permits_endpoints():
         sign_res = json.loads(resp.read().decode())
         assert sign_res["status"] == "PASSED"
         assert "hmac_signature" in sign_res
+
+
+# ==============================================================================
+# ISO/IEC 27001:2022 ANNEX A CRITICAL SECURITY REGRESSION SUITE
+# ==============================================================================
+
+def test_iso_27001_unauthenticated_request_blocked():
+    """ISO A.8.26: Protected endpoints must return 401 when X-User-Role is missing."""
+    req = urllib.request.Request(f"{BASE_URL}/api/portfolio")
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        urllib.request.urlopen(req)
+    assert exc.value.code == 401
+    body = json.loads(exc.value.read().decode())
+    assert body["security_status"] == "AUTHENTICATION_REQUIRED"
+
+
+def test_iso_27001_pii_redaction_and_access_control():
+    """ISO A.8.12: Citizen PII (National ID, Phone, Email) must be masked in API output."""
+    # Unauthenticated request blocked
+    req_unauth = urllib.request.Request(f"{BASE_URL}/api/youth/applicants")
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        urllib.request.urlopen(req_unauth)
+    assert exc.value.code == 401
+
+    # Authenticated request returns masked PII
+    req = urllib.request.Request(
+        f"{BASE_URL}/api/youth/applicants",
+        headers={"X-User-Role": "sales"}
+    )
+    with urllib.request.urlopen(req) as resp:
+        assert resp.status == 200
+        data = json.loads(resp.read().decode())
+        assert len(data["applicants"]) > 0
+        for app in data["applicants"]:
+            assert "******" in app["national_id"], f"Unmasked National ID found: {app['national_id']}"
+            assert "****" in app["phone"], f"Unmasked Phone found: {app['phone']}"
+            assert "***@" in app["email"], f"Unmasked Email found: {app['email']}"
+
+
+def test_iso_27001_allocations_and_messaging_pii_masked():
+    """ISO A.8.12: Buyer phone numbers in allocations and outbox must be masked."""
+    # Allocations
+    req = urllib.request.Request(
+        f"{BASE_URL}/api/allocations/register",
+        headers={"X-User-Role": "sales"}
+    )
+    with urllib.request.urlopen(req) as resp:
+        assert resp.status == 200
+        data = json.loads(resp.read().decode())
+        for a in data["allocations"]:
+            assert "****" in a["buyer_phone"], f"Unmasked phone: {a['buyer_phone']}"
+
+    # Messaging outbox
+    req_msg = urllib.request.Request(
+        f"{BASE_URL}/api/messaging/outbox",
+        headers={"X-User-Role": "sysadmin"}
+    )
+    with urllib.request.urlopen(req_msg) as resp:
+        assert resp.status == 200
+        data = json.loads(resp.read().decode())
+        for m in data["messages"]:
+            assert "****" in m["recipient"], f"Unmasked recipient: {m['recipient']}"
+
+
+def test_iso_27001_source_code_disclosure_blocked():
+    """ISO A.8.28: Direct requests for .py, .json, and config files must be blocked (403)."""
+    prohibited_paths = [
+        "/server.py",
+        "/main.py",
+        "/package.json",
+        "/requirements.txt",
+        "/tests/conftest.py",
+        "/.git/config",
+        "/.env"
+    ]
+    for path in prohibited_paths:
+        req = urllib.request.Request(f"{BASE_URL}{path}")
+        with pytest.raises(urllib.error.HTTPError) as exc:
+            urllib.request.urlopen(req)
+        assert exc.value.code == 403, f"Path {path} did not return 403 (got {exc.value.code})"
+        body = json.loads(exc.value.read().decode())
+        assert body["security_status"] in ("SOURCE_CODE_ACCESS_BLOCKED", "PATH_TRAVERSAL_BLOCKED")
+
+
+def test_iso_27001_public_static_assets_allowed():
+    """ISO A.8.28: Legitimate public assets like index.html must remain accessible."""
+    req = urllib.request.Request(f"{BASE_URL}/index.html")
+    with urllib.request.urlopen(req) as resp:
+        assert resp.status == 200
+        content = resp.read().decode("utf-8", errors="ignore")
+        assert "<!DOCTYPE html>" in content
+

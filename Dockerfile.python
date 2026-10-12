@@ -1,0 +1,30 @@
+# Python 3.11 Hardened Enterprise ERP Container
+FROM python:3.11-slim
+
+# System dependencies for GIS/spatial & compilation
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    libgeos-dev \
+    libproj-dev \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+# Create non-root user
+RUN useradd -u 10001 -m zhmsuser && \
+    mkdir -p /var/log/zhms && \
+    chown -R zhmsuser:zhmsuser /app /var/log/zhms
+
+USER zhmsuser
+
+EXPOSE 8000
+
+ENV PYTHONUNBUFFERED=1
+
+CMD ["python", "server.py"]

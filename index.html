@@ -173,6 +173,10 @@
     <button onclick="showFunction('permits')" id="tab-permits" class="func-tab px-3 py-1 rounded-md text-slate-300 hover:text-white transition flex items-center gap-1.5 shrink-0" data-roles="ceo,planner,builder,dlap">
       <i class="fa-solid fa-building-circle-check text-purple-400"></i> 23. Municipal Permits
     </button>
+    <!-- MODULE 24: Supply Chain, Warehouse, Purchasing & Prefab Manufacturing -->
+    <button onclick="showFunction('supplychain')" id="tab-supplychain" class="func-tab px-3 py-1 rounded-md text-slate-300 hover:text-white transition flex items-center gap-1.5 shrink-0" data-roles="ceo,inventory,siteops,fintax,builder,sysadmin">
+      <i class="fa-solid fa-boxes-stacked text-teal-400"></i> 24. Supply Chain & Warehouse
+    </button>
   </nav>
 
   <!-- ================================================================= -->
@@ -1891,9 +1895,14 @@
           <h2 class="text-2xl font-bold text-white mt-0.5">Zero-Trust Security & Cryptographic Audit Ledger</h2>
           <p class="text-xs text-slate-400">RBAC policy engine, SQL injection and XSS defense monitors, and immutable tamper-evident logs.</p>
         </div>
-        <button onclick="refreshSecurityAuditTable()" class="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-xl text-xs font-bold text-white transition flex items-center gap-2">
-          <i class="fa-solid fa-arrows-rotate"></i> Refresh Audit Trail
-        </button>
+        <div class="flex gap-2">
+          <button onclick="verifyLedgerIntegrity()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-xs font-bold text-white transition flex items-center gap-2">
+            <i class="fa-solid fa-link"></i> Verify Ledger Integrity
+          </button>
+          <button onclick="refreshSecurityAuditTable()" class="px-4 py-2 bg-red-600 hover:bg-red-500 rounded-xl text-xs font-bold text-white transition flex items-center gap-2">
+            <i class="fa-solid fa-arrows-rotate"></i> Refresh Audit Trail
+          </button>
+        </div>
       </div>
       <div class="bg-slate-900 border border-slate-800 p-6 rounded-2xl space-y-4">
         <h3 class="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
@@ -2174,6 +2183,103 @@
     <!-- ------------------------------------------------------------- -->
     <!-- FUNCTION 23: MUNICIPAL PERMITS & HABITATION CERTIFICATES -->
     <!-- ------------------------------------------------------------- -->
+    <!-- ------------------------------------------------------------- -->
+    <!-- FUNCTION 24: SUPPLY CHAIN, WAREHOUSE, PURCHASING & PREFAB MRP -->
+    <!-- ------------------------------------------------------------- -->
+    <div id="fn-supplychain" class="fn-pane hidden h-full p-8 overflow-y-auto max-w-7xl mx-auto w-full space-y-6">
+      <div class="flex flex-wrap justify-between items-start gap-4 border-b border-slate-800 pb-4">
+        <div>
+          <span class="text-xs text-teal-400 font-bold uppercase tracking-wider">Warehouse (WMS) · Purchasing · Prefab Manufacturing (MRP)</span>
+          <h2 class="text-2xl font-bold text-white mt-0.5">Supply Chain & Warehouse Control</h2>
+          <p class="text-slate-400 text-xs mt-1">Live stock across the central store and sites, material transfers with receipt confirmation, purchase requisitions, automated replenishment with 3-way match, and prefab assembly from bills of materials.</p>
+        </div>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="loadSupplyChain()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-200 transition flex items-center gap-2"><i class="fa-solid fa-arrows-rotate"></i> Refresh</button>
+          <button onclick="scmTransferDialog()" class="px-3 py-2 bg-teal-600 hover:bg-teal-500 rounded-xl text-xs font-bold text-white transition flex items-center gap-2"><i class="fa-solid fa-truck-ramp-box"></i> Transfer Material</button>
+          <button onclick="scmRequisitionDialog()" class="px-3 py-2 bg-blue-600 hover:bg-blue-500 rounded-xl text-xs font-bold text-white transition flex items-center gap-2"><i class="fa-solid fa-file-circle-plus"></i> New Requisition</button>
+          <button onclick="scmReplenishDialog()" class="px-3 py-2 bg-amber-600 hover:bg-amber-500 rounded-xl text-xs font-bold text-white transition flex items-center gap-2"><i class="fa-solid fa-cart-arrow-down"></i> Auto-Replenish</button>
+          <button onclick="scmMatchDialog()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-xs font-bold text-white transition flex items-center gap-2"><i class="fa-solid fa-scale-balanced"></i> 3-Way Match Invoice</button>
+          <button onclick="scmAssembleDialog()" class="px-3 py-2 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-xs font-bold text-white transition flex items-center gap-2"><i class="fa-solid fa-industry"></i> Assemble Prefab</button>
+          <button onclick="scmEcoDialog()" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-xs font-bold text-slate-200 transition flex items-center gap-2"><i class="fa-solid fa-code-branch"></i> Engineering Change</button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4"><span class="text-[10px] text-slate-400 uppercase font-bold">Stock Items</span><b class="block text-xl text-white mt-1" id="scm-kpi-items">—</b></div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4"><span class="text-[10px] text-slate-400 uppercase font-bold">Inventory Value</span><b class="block text-xl text-teal-400 mt-1" id="scm-kpi-value">—</b></div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4"><span class="text-[10px] text-slate-400 uppercase font-bold">Low Stock</span><b class="block text-xl mt-1" id="scm-kpi-low">—</b></div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4"><span class="text-[10px] text-slate-400 uppercase font-bold">Transfers In Transit</span><b class="block text-xl text-amber-400 mt-1" id="scm-kpi-transit">—</b></div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-4"><span class="text-[10px] text-slate-400 uppercase font-bold">Open Purchase Orders</span><b class="block text-xl text-blue-400 mt-1" id="scm-kpi-pos">—</b></div>
+      </div>
+
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+        <h3 class="text-sm font-bold text-white uppercase tracking-wider"><i class="fa-solid fa-warehouse text-teal-400"></i> Stock on Hand by Location</h3>
+        <div class="overflow-x-auto"><table class="w-full text-left text-xs text-slate-300">
+          <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]"><tr>
+            <th class="p-3">Item</th><th class="p-3">Category</th><th class="p-3">Central Store</th><th class="p-3">At Sites</th><th class="p-3">Total</th><th class="p-3">Reorder Level</th><th class="p-3">Value (USD)</th><th class="p-3">Status</th><th class="p-3">Actions</th>
+          </tr></thead>
+          <tbody id="scm-stock-body" class="divide-y divide-slate-800"><tr><td colspan="9" class="p-4 text-center text-slate-500">Loading…</td></tr></tbody>
+        </table></div>
+      </div>
+
+      <div class="grid lg:grid-cols-2 gap-6">
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+          <h3 class="text-sm font-bold text-white uppercase tracking-wider"><i class="fa-solid fa-truck-fast text-amber-400"></i> Material Transfers</h3>
+          <div class="overflow-x-auto"><table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]"><tr><th class="p-3">Transfer</th><th class="p-3">Item</th><th class="p-3">Qty</th><th class="p-3">Route</th><th class="p-3">Status</th><th class="p-3">Action</th></tr></thead>
+            <tbody id="scm-transfers-body" class="divide-y divide-slate-800"></tbody>
+          </table></div>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+          <h3 class="text-sm font-bold text-white uppercase tracking-wider"><i class="fa-solid fa-file-invoice-dollar text-blue-400"></i> Purchase Orders</h3>
+          <div class="overflow-x-auto"><table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]"><tr><th class="p-3">PO</th><th class="p-3">Vendor</th><th class="p-3">Site</th><th class="p-3">Amount</th><th class="p-3">GRN</th><th class="p-3">Status</th><th class="p-3">Action</th></tr></thead>
+            <tbody id="scm-pos-body" class="divide-y divide-slate-800"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <div class="grid lg:grid-cols-2 gap-6">
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+          <h3 class="text-sm font-bold text-white uppercase tracking-wider"><i class="fa-solid fa-clipboard-list text-blue-400"></i> Purchase Requisitions</h3>
+          <div class="overflow-x-auto"><table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]"><tr><th class="p-3">Requisition</th><th class="p-3">Site</th><th class="p-3">Items</th><th class="p-3">Needed By</th><th class="p-3">Urgency</th><th class="p-3">Status</th></tr></thead>
+            <tbody id="scm-reqs-body" class="divide-y divide-slate-800"></tbody>
+          </table></div>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+          <h3 class="text-sm font-bold text-white uppercase tracking-wider"><i class="fa-solid fa-handshake text-slate-300"></i> Approved Vendors</h3>
+          <div class="overflow-x-auto"><table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]"><tr><th class="p-3">Vendor</th><th class="p-3">Contact</th><th class="p-3">Terms</th><th class="p-3">Rating</th><th class="p-3">Compliance</th></tr></thead>
+            <tbody id="scm-vendors-body" class="divide-y divide-slate-800"></tbody>
+          </table></div>
+        </div>
+      </div>
+
+      <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+        <h3 class="text-sm font-bold text-white uppercase tracking-wider"><i class="fa-solid fa-sitemap text-emerald-400"></i> Prefab Bills of Materials & Material Requirements</h3>
+        <div id="scm-boms" class="grid md:grid-cols-2 gap-4"></div>
+        <div id="scm-explosion" class="hidden"></div>
+      </div>
+
+      <div class="grid lg:grid-cols-2 gap-6">
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+          <h3 class="text-sm font-bold text-white uppercase tracking-wider"><i class="fa-solid fa-industry text-emerald-400"></i> Production Work Orders</h3>
+          <div class="overflow-x-auto"><table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]"><tr><th class="p-3">Work Order</th><th class="p-3">Product</th><th class="p-3">Qty</th><th class="p-3">Facility</th><th class="p-3">QC Pass</th><th class="p-3">Status</th></tr></thead>
+            <tbody id="scm-orders-body" class="divide-y divide-slate-800"></tbody>
+          </table></div>
+        </div>
+        <div class="bg-slate-900/80 border border-slate-800 rounded-2xl p-5 space-y-3">
+          <h3 class="text-sm font-bold text-white uppercase tracking-wider"><i class="fa-solid fa-code-branch text-slate-300"></i> Engineering Change Orders</h3>
+          <div class="overflow-x-auto"><table class="w-full text-left text-xs text-slate-300">
+            <thead class="bg-slate-950 text-slate-400 uppercase text-[10px]"><tr><th class="p-3">ECO</th><th class="p-3">Product</th><th class="p-3">Change</th><th class="p-3">Revision</th><th class="p-3">Requested By</th><th class="p-3">Status</th></tr></thead>
+            <tbody id="scm-ecos-body" class="divide-y divide-slate-800"></tbody>
+          </table></div>
+        </div>
+      </div>
+    </div>
+
     <div id="fn-permits" class="fn-pane hidden h-full p-8 overflow-y-auto max-w-7xl mx-auto w-full space-y-6">
       <div class="border-b border-slate-800 pb-3 flex justify-between items-center">
         <div>
@@ -3008,6 +3114,197 @@
     </div>
   </div>
 
+  <!-- Generic form dialog: fields are rendered by openFormDialog() -->
+  <div id="modal-form" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl max-h-[90vh] overflow-y-auto">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 id="modal-form-title" class="text-base font-bold text-teal-400 flex items-center gap-2"></h3>
+        <button onclick="closeModal('modal-form')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <p id="modal-form-intro" class="text-xs text-slate-400"></p>
+      <div id="modal-form-fields" class="grid grid-cols-2 gap-3 text-xs"></div>
+      <div id="modal-form-result" class="hidden text-xs rounded-lg p-3"></div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button id="modal-form-submit" class="px-4 py-2 bg-teal-600 hover:bg-teal-500 text-white rounded-lg font-bold text-xs">Submit</button>
+        <button onclick="closeModal('modal-form')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-bold text-xs">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Run Full ERP Simulation: live check of every module behind server.py -->
+  <div id="modal-erp-simulation" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-5xl w-full p-6 space-y-4 shadow-2xl max-h-[90vh] flex flex-col">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-amber-400 flex items-center gap-2"><i class="fa-solid fa-play"></i> Full ERP System Check</h3>
+        <button onclick="closeModal('modal-erp-simulation')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <p class="text-xs text-slate-400">Calls every module's live service as the selected job role and reports whether it answers, how fast, and its headline figures. Click a module to see its live data.</p>
+      <div id="sim-summary" class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs"></div>
+      <div class="flex-1 overflow-y-auto grid lg:grid-cols-5 gap-4 min-h-0">
+        <div class="lg:col-span-2 overflow-y-auto"><table class="w-full text-left text-xs text-slate-300">
+          <thead class="bg-slate-950 text-slate-400 uppercase text-[10px] sticky top-0"><tr><th class="p-2">Module</th><th class="p-2">Status</th><th class="p-2">Time</th><th class="p-2">Headline</th></tr></thead>
+          <tbody id="sim-results" class="divide-y divide-slate-800"></tbody>
+        </table></div>
+        <div id="sim-detail" class="lg:col-span-3 overflow-y-auto bg-slate-950/70 border border-slate-800 rounded-xl p-3 text-xs text-slate-400">Select a module to inspect its live data.</div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="runSystemCheck()" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-bold text-xs"><i class="fa-solid fa-arrows-rotate"></i> Run Again</button>
+        <button onclick="exportSystemCheck()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-bold text-xs"><i class="fa-solid fa-download"></i> Download Report (CSV)</button>
+        <button onclick="closeModal('modal-erp-simulation')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-bold text-xs">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Gantt: update task progress (POST /api/project/task/update) -->
+  <div id="modal-update-task" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-blue-400 flex items-center gap-2"><i class="fa-solid fa-bars-progress"></i> Update Task Progress</h3>
+        <button onclick="closeModal('modal-update-task')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="text-slate-400 block mb-1">Task:</label>
+          <select id="ut-task" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white"></select>
+        </div>
+        <div>
+          <label class="text-slate-400 block mb-1">Progress (%):</label>
+          <input type="number" id="ut-progress" min="0" max="100" value="50" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white">
+        </div>
+        <div>
+          <label class="text-slate-400 block mb-1">Status:</label>
+          <select id="ut-status" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white">
+            <option value="">Automatic (from progress)</option>
+            <option value="IN_PROGRESS">IN_PROGRESS</option>
+            <option value="COMPLETED">COMPLETED</option>
+            <option value="DELAYED">DELAYED</option>
+            <option value="NOT_STARTED">NOT_STARTED</option>
+          </select>
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="submitTaskUpdate()" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold text-xs">Save Progress</button>
+        <button onclick="closeModal('modal-update-task')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-bold text-xs">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- QA/QC: record concrete cube crush test (POST /api/quality/cube-test) -->
+  <div id="modal-log-cube-test" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-emerald-400 flex items-center gap-2"><i class="fa-solid fa-flask-vial"></i> Log Concrete Cube Test</h3>
+        <button onclick="closeModal('modal-log-cube-test')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div class="grid grid-cols-2 gap-3 text-xs">
+        <div class="col-span-2">
+          <label class="text-slate-400 block mb-1">Pour Location:</label>
+          <input type="text" id="ct-location" placeholder="Stand #014 ground floor slab" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white">
+        </div>
+        <div>
+          <label class="text-slate-400 block mb-1">Structural Element:</label>
+          <select id="ct-element" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white">
+            <option>Foundation</option><option>Slab</option><option>Column</option><option>Ring Beam</option><option>Shear Wall</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-slate-400 block mb-1">Mix Grade:</label>
+          <select id="ct-mix" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white">
+            <option>C20</option><option selected>C25</option><option>C30</option><option>C35</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-slate-400 block mb-1">Slump (mm):</label>
+          <input type="number" id="ct-slump" value="90" min="0" max="250" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white">
+        </div>
+        <div>
+          <label class="text-slate-400 block mb-1">Testing Laboratory:</label>
+          <input type="text" id="ct-lab" placeholder="SAZ Materials Testing" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white">
+        </div>
+        <div>
+          <label class="text-slate-400 block mb-1">7-Day Strength (MPa):</label>
+          <input type="number" id="ct-s7" step="0.1" min="0" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white">
+        </div>
+        <div>
+          <label class="text-slate-400 block mb-1">28-Day Strength (MPa):</label>
+          <input type="number" id="ct-s28" step="0.1" min="0" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white">
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="submitCubeTest()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs">Record Test</button>
+        <button onclick="closeModal('modal-log-cube-test')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-bold text-xs">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- QA/QC: log construction snag (POST /api/quality/snag/log) -->
+  <div id="modal-log-snag" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-amber-400 flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation"></i> Log Construction Snag</h3>
+        <button onclick="closeModal('modal-log-snag')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div class="grid grid-cols-2 gap-3 text-xs">
+        <div>
+          <label class="text-slate-400 block mb-1">Location:</label>
+          <input type="text" id="sn-location" placeholder="Stand 003 - Bathroom" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white">
+        </div>
+        <div>
+          <label class="text-slate-400 block mb-1">Trade:</label>
+          <select id="sn-trade" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white">
+            <option>Plumbing</option><option>Electrical</option><option>Carpentry</option><option>Painting</option><option>Brickwork</option><option>Roofing</option><option>Tiling</option>
+          </select>
+        </div>
+        <div class="col-span-2">
+          <label class="text-slate-400 block mb-1">Description:</label>
+          <input type="text" id="sn-description" placeholder="What is wrong" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white">
+        </div>
+        <div>
+          <label class="text-slate-400 block mb-1">Severity:</label>
+          <select id="sn-severity" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white">
+            <option>MINOR</option><option>MAJOR</option><option>CRITICAL</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-slate-400 block mb-1">Assigned Subcontractor:</label>
+          <input type="text" id="sn-sub" placeholder="Apex Joinery" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white">
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="submitSnag()" class="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-white rounded-lg font-bold text-xs">Log Snag</button>
+        <button onclick="closeModal('modal-log-snag')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-bold text-xs">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Municipal permits: sign off a statutory stage (POST /api/permits/signoff) -->
+  <div id="modal-signoff-permit" class="hidden fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 space-y-4 shadow-2xl">
+      <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+        <h3 class="text-base font-bold text-purple-400 flex items-center gap-2"><i class="fa-solid fa-stamp"></i> Sign Off Inspection Stage</h3>
+        <button onclick="closeModal('modal-signoff-permit')" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="text-slate-400 block mb-1">Stage:</label>
+          <select id="sp-stage" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white"></select>
+        </div>
+        <div>
+          <label class="text-slate-400 block mb-1">Inspector:</label>
+          <input type="text" id="sp-inspector" placeholder="City Building Inspector" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white">
+        </div>
+        <div>
+          <label class="text-slate-400 block mb-1">Certificate Reference / Hash:</label>
+          <input type="text" id="sp-cert" placeholder="MBI-ROOF-2026-114" class="w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white">
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="submitPermitSignoff()" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-bold text-xs">Sign Off Stage</button>
+        <button onclick="closeModal('modal-signoff-permit')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-bold text-xs">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ================================================================= -->
   <!-- FRONTEND LOGIC & ENGINE SCRIPTS -->
   <!-- ================================================================= -->
@@ -3168,6 +3465,7 @@
       if (fn === 'quality') loadQualitySummary();
       if (fn === 'mortgage') runMortgageCalc();
       if (fn === 'permits') loadMunicipalPermits();
+      if (fn === 'supplychain') loadSupplyChain();
     }
 
     // GIS MAPS INITIALIZATION
@@ -3461,21 +3759,9 @@
     }
 
     function exportSurveyDxf() {
-      let dxf = "0
-SECTION
-2
-ENTITIES
-";
+      let dxf = "0\nSECTION\n2\nENTITIES\n";
       standsData.forEach(stand => {
-        dxf += "0
-POLYLINE
-8
-CADASTRAL_STANDS
-66
-1
-70
-1
-";
+        dxf += "0\nPOLYLINE\n8\nCADASTRAL_STANDS\n66\n1\n70\n1\n";
         stand.coords.forEach(c => {
           dxf += `0
 VERTEX
@@ -3489,15 +3775,9 @@ ${c[1]}
 0.0
 `;
         });
-        dxf += "0
-SEQEND
-";
+        dxf += "0\nSEQEND\n";
       });
-      dxf += "0
-ENDSEC
-0
-EOF
-";
+      dxf += "0\nENDSEC\n0\nEOF\n";
       downloadFile("zimbuild_cadastre_survey.dxf", dxf, "application/dxf");
     }
 
@@ -3654,12 +3934,13 @@ EOF
           body: JSON.stringify({ full_name: name, income_usd: income, rent_usd: rent })
         });
         const data = await resp.json();
+        if (!resp.ok) throw new Error(data.message || data.error || `HTTP ${resp.status}`);
         alert(`✅ Tenant Screening Complete for "${data.full_name}"!
 Credit Status: ${data.credit_status} (Score ${data.credit_score})
 HMAC Signature: ${data.hmac_signature}
 ${data.screening_notes}`);
       } catch (e) {
-        alert("Evaluated: Rent-to-income verified.");
+        alert(`⛔ Tenant screening failed: ${e.message}`);
       }
     }
 
@@ -3675,13 +3956,14 @@ ${data.screening_notes}`);
           body: JSON.stringify({ po_id: 'PO-2026-094', receiver_name: receiver, invoice_no: 'INV-PPC-88192', invoiced_amount: 5250.0 })
         });
         const data = await resp.json();
+        if (!resp.ok) throw new Error(data.message || data.error || `HTTP ${resp.status}`);
         alert(`✅ 3-Way Match Passed!
 PO: ${data.po_id}
 Delivered & Verified By: ${data.receiver_audit}
 Variance: $${data.variance_usd}
 HMAC Audit Signature: ${data.hmac_signature}`);
       } catch (e) {
-        alert("✅ 3-Way Invoice Match Verified.");
+        alert(`⛔ 3-way match failed: ${e.message}`);
       }
     }
 
@@ -3696,6 +3978,7 @@ HMAC Audit Signature: ${data.hmac_signature}`);
           body: JSON.stringify({ deed_number: deedNo })
         });
         const data = await resp.json();
+        if (!resp.ok) throw new Error(data.message || data.error || `HTTP ${resp.status}`);
         document.getElementById('dlap-res-title').innerText = `Deed: ${data.deed_number} (${data.property})`;
         document.getElementById('dlap-res-owner').innerText = data.owner;
         document.getElementById('dlap-res-token').innerText = data.dlap_token;
@@ -3709,7 +3992,7 @@ HMAC Audit Signature: ${data.hmac_signature}`);
         document.getElementById('dlap-res-bonds').innerText = data.mortgage_bonds.length ? JSON.stringify(data.mortgage_bonds) : "None (Unencumbered)";
         document.getElementById('dlap-res-caveats').innerText = data.caveats.length ? JSON.stringify(data.caveats) : "None (Zero Injunctions)";
       } catch (e) {
-        alert("DLAP verified.");
+        alert(`⛔ DLAP verification failed: ${e.message}`);
       }
     }
 
@@ -3727,12 +4010,13 @@ HMAC Audit Signature: ${data.hmac_signature}`);
           body: JSON.stringify({ deed_number: deed, caveator: ent, legal_cause: cause, action: 'REGISTER' })
         });
         const data = await resp.json();
+        if (!resp.ok) throw new Error(data.message || data.error || `HTTP ${resp.status}`);
         alert(`🔒 Electronic Caveat Placed on DLAP under SI 76/2025!
 Caveat Ref: ${data.caveat_ref}
 Status: ${data.validation_status}`);
         executeDlapCheck();
       } catch (e) {
-        alert("Caveat placed.");
+        alert(`⛔ Caveat not placed: ${e.message}`);
       }
     }
 
@@ -3748,11 +4032,12 @@ Status: ${data.validation_status}`);
           body: JSON.stringify({ deed_number: deed, action: 'CLEAR' })
         });
         const data = await resp.json();
+        if (!resp.ok) throw new Error(data.message || data.error || `HTTP ${resp.status}`);
         alert(`✅ Electronic Caveat Cleared!
 ${data.message}`);
         executeDlapCheck();
       } catch (e) {
-        alert("Caveat cleared.");
+        alert(`⛔ Caveat not cleared: ${e.message}`);
       }
     }
 
@@ -3764,14 +4049,6 @@ ${data.message}`);
       const deposit = parseFloat(document.getElementById('sale-deposit-usd').value) || 0;
       closeModal('modal-process-sale');
 
-      const stand = standsData.find(s => s.su_id === standId);
-      if (stand) {
-        stand.status = "SOLD";
-        stand.owner = buyer;
-        renderStandsLayer();
-        renderSalesTable();
-      }
-
       try {
         const resp = await fetch('/api/stands/sell', {
           method: 'POST',
@@ -3779,6 +4056,15 @@ ${data.message}`);
           body: JSON.stringify({ stand_id: standId, buyer_name: buyer, buyer_id: buyerId, deposit_usd: deposit })
         });
         const data = await resp.json();
+        if (!resp.ok) throw new Error(data.message || data.error || `HTTP ${resp.status}`);
+        // Only mark the stand sold once the server has accepted the sale.
+        const stand = standsData.find(s => s.su_id === standId);
+        if (stand) {
+          stand.status = "SOLD";
+          stand.owner = buyer;
+          renderStandsLayer();
+          renderSalesTable();
+        }
         document.getElementById('aos-ref').innerText = "REF: ZIMBUILD-AOS-2026-" + standId;
         document.getElementById('aos-buyer').innerText = buyer;
         document.getElementById('aos-id').innerText = buyerId;
@@ -3786,7 +4072,7 @@ ${data.message}`);
         document.getElementById('aos-deposit').innerText = "$" + deposit.toLocaleString() + ".00 USD";
         document.getElementById('modal-agreement-sale').classList.remove('hidden');
       } catch (e) {
-        alert(`Stand ${standId} sold to ${buyer}.`);
+        alert(`⛔ Stand sale not recorded: ${e.message}`);
       }
     }
 
@@ -3964,24 +4250,797 @@ Reconciled ${data.synced_count} events with central ERP cloud.`);
     function openDeedModal() { alert("Viewing Certificate of Registered Title DT-2026/0894-HAR."); downloadDeed(); }
     function closeModal(id) { document.getElementById(id).classList.add('hidden'); }
 
-    function triggerDepreciationCalc() {
-      alert("📊 Straight-Line Depreciation Computed:
-Purchase Base: $2,800,000 USD
-Building Depreciable Base (80%): $2,240,000 USD
-Useful Life: 40 Years
-Annual Depreciation: $56,000.00 USD
-Accumulated Depreciation: $280,000.00 USD
-Net Book Value: $2,520,000.00 USD");
+    function openModal(id) {
+      const el = document.getElementById(id);
+      if (!el) {
+        alert(`This action is not available yet: the "${id}" form has not been built.`);
+        return;
+      }
+      if (id === 'modal-update-task') fillTaskSelect();
+      if (id === 'modal-signoff-permit') fillPermitStageSelect();
+      if (id === 'modal-erp-simulation') setTimeout(runSystemCheck, 0);
+      el.classList.remove('hidden');
     }
 
+    // ---------------------------------------------------------------- engineering suite (server.py)
+    // The server enforces RBAC from the X-User-Role header and answers 403 with a reason; show that reason.
+    async function erpApi(path, body) {
+      let resp;
+      try {
+        resp = await fetch(path, {
+          method: body === undefined ? 'GET' : 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-User-Role': currentJobRole },
+          body: body === undefined ? undefined : JSON.stringify(body)
+        });
+      } catch (e) {
+        throw new Error('No response from the ERP server. It may have failed on this request, or server.py is not running.');
+      }
+      let data = null;
+      try { data = await resp.json(); } catch (e) { /* non-JSON error page */ }
+      if (!resp.ok) throw new Error((data && (data.message || data.error)) || `Request failed (HTTP ${resp.status})`);
+      return data;
+    }
+    const esc = (v) => sanitizeInput(String(v ?? ''));
+    const usd = (n) => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const statusChip = (text, tone) => `<span class="px-2 py-0.5 rounded text-[10px] font-bold ${tone}">${esc(text)}</span>`;
+    const GOOD = 'bg-emerald-500/20 text-emerald-400', WARN = 'bg-amber-500/20 text-amber-400', BAD = 'bg-rose-500/20 text-rose-400', INFO = 'bg-blue-500/20 text-blue-400';
+    function showTableError(tbodyId, cols, err) {
+      const el = document.getElementById(tbodyId);
+      if (el) el.innerHTML = `<tr><td colspan="${cols}" class="p-4 text-center text-rose-400">⚠ ${esc(err.message)} — is server.py running on this origin?</td></tr>`;
+    }
+
+    // 20. Gantt schedule & CPM
+    let lastSchedule = null;
+    async function loadGanttSchedule() {
+      try {
+        const s = lastSchedule = await erpApi('/api/project/schedule');
+        document.getElementById('gantt-duration').textContent = `${s.total_duration_days} Days`;
+        document.getElementById('gantt-overall-progress').textContent = `${s.overall_progress_pct}%`;
+        document.getElementById('gantt-critical-count').textContent = `${s.critical_path_tasks_count} Tasks`;
+        const risk = [...document.querySelectorAll('#fn-schedule span')].find((x) => x.textContent.trim() === 'Delay Risk Status')?.nextElementSibling;
+        if (risk) risk.textContent = s.delayed_tasks_count ? `${s.delayed_tasks_count} TASK(S) DELAYED` : 'ON SCHEDULE';
+        const total = s.total_duration_days || 1;
+        document.getElementById('gantt-tasks-table-body').innerHTML = s.tasks.map((t) => {
+          const left = ((t.start_day - 1) / total) * 100, width = Math.max((t.duration_days / total) * 100, 1);
+          const tone = t.status === 'COMPLETED' ? GOOD : t.status === 'DELAYED' ? BAD : t.status === 'IN_PROGRESS' ? INFO : 'bg-slate-700/40 text-slate-300';
+          return `<tr class="hover:bg-slate-800/40">
+            <td class="p-3 font-mono text-slate-400">${esc(t.task_id)}${t.is_critical_path ? ' <span class="text-rose-400" title="Critical path">●</span>' : ''}</td>
+            <td class="p-3 font-bold text-white">${esc(t.task_name)}<div class="text-[10px] text-slate-500 font-normal">${esc(t.assigned_contractor)}</div></td>
+            <td class="p-3 text-slate-400">${esc(t.phase)}</td>
+            <td class="p-3">${t.duration_days} d</td>
+            <td class="p-3 text-slate-400">Day ${t.start_day}–${t.end_day}</td>
+            <td class="p-3 w-28"><div class="flex items-center gap-2"><div class="flex-1 h-1.5 bg-slate-800 rounded-full"><div class="h-1.5 rounded-full bg-blue-500" style="width:${t.progress_pct}%"></div></div><span>${t.progress_pct}%</span></div></td>
+            <td class="p-3 w-56"><div class="relative h-3 bg-slate-800 rounded"><div class="absolute h-3 rounded ${t.is_critical_path ? 'bg-rose-500/70' : 'bg-blue-500/60'}" style="left:${left}%;width:${width}%"><div class="h-3 rounded bg-white/30" style="width:${t.progress_pct}%"></div></div></div></td>
+            <td class="p-3">${statusChip(t.status, tone)}</td>
+          </tr>`;
+        }).join('');
+      } catch (e) { showTableError('gantt-tasks-table-body', 8, e); }
+    }
+
+    function fillTaskSelect() {
+      const sel = document.getElementById('ut-task');
+      const tasks = lastSchedule?.tasks ?? [];
+      sel.innerHTML = tasks.map((t) => `<option value="${esc(t.task_id)}">${esc(t.task_id)} — ${esc(t.task_name)} (${t.progress_pct}%)</option>`).join('')
+        || '<option value="">Open the Gantt tab first to load tasks</option>';
+      const first = tasks[0];
+      if (first) document.getElementById('ut-progress').value = first.progress_pct;
+      sel.onchange = () => {
+        const t = tasks.find((x) => x.task_id === sel.value);
+        if (t) document.getElementById('ut-progress').value = t.progress_pct;
+      };
+    }
+
+    async function submitTaskUpdate() {
+      const taskId = document.getElementById('ut-task').value;
+      const progress = parseInt(document.getElementById('ut-progress').value, 10);
+      if (!taskId) return alert('Choose a task.');
+      if (!Number.isInteger(progress) || progress < 0 || progress > 100) return alert('Progress must be a whole number from 0 to 100.');
+      try {
+        const t = await erpApi('/api/project/task/update', { task_id: taskId, progress_pct: progress, status: document.getElementById('ut-status').value });
+        closeModal('modal-update-task');
+        alert(`✅ ${t.task_id} "${t.task_name}" is now ${t.progress_pct}% (${t.status}).`);
+        loadGanttSchedule();
+      } catch (e) { alert(`⛔ Task not updated: ${e.message}`); }
+    }
+
+    // 21. QA/QC: cube tests and snags
+    async function loadQualitySummary() {
+      try {
+        const q = await erpApi('/api/quality/summary');
+        document.getElementById('qa-cubes-count').textContent = `${q.total_cube_tests} Tests`;
+        document.getElementById('qa-pass-rate').textContent = `${q.pass_rate_pct}%`;
+        document.getElementById('qa-open-snags').textContent = `${q.open_snags} Open`;
+        document.getElementById('qa-resolved-snags').textContent = `${q.resolved_snags} Resolved`;
+        document.getElementById('qa-cube-table-body').innerHTML = q.cube_tests.map((c) => `<tr class="hover:bg-slate-800/40">
+            <td class="p-3 font-mono text-slate-400">${esc(c.test_id)}<div class="text-[10px] text-slate-500">${esc(c.sample_date)}</div></td>
+            <td class="p-3 text-white">${esc(c.pour_location)}</td>
+            <td class="p-3">${esc(c.structural_element)}</td>
+            <td class="p-3 font-bold">${esc(c.mix_designation)}</td>
+            <td class="p-3">${c.slump_mm} mm</td>
+            <td class="p-3">${c.strength_7day_mpa}</td>
+            <td class="p-3 font-bold">${c.strength_28day_mpa}</td>
+            <td class="p-3 text-slate-400">${esc(c.tested_by)}</td>
+            <td class="p-3">${c.passed ? statusChip('PASSED', GOOD) : statusChip('FAILED', BAD)}</td>
+          </tr>`).join('') || '<tr><td colspan="9" class="p-4 text-center text-slate-500">No cube tests recorded.</td></tr>';
+        document.getElementById('qa-snags-table-body').innerHTML = q.snag_items.map((s) => `<tr class="hover:bg-slate-800/40">
+            <td class="p-3 font-mono text-slate-400">${esc(s.snag_id)}</td>
+            <td class="p-3 text-white">${esc(s.location)}</td>
+            <td class="p-3">${esc(s.trade)}</td>
+            <td class="p-3">${esc(s.description)}</td>
+            <td class="p-3">${statusChip(s.severity, s.severity === 'CRITICAL' ? BAD : s.severity === 'MAJOR' ? WARN : 'bg-slate-700/40 text-slate-300')}</td>
+            <td class="p-3 text-slate-400">${esc(s.assigned_subcontractor)}</td>
+            <td class="p-3">${s.resolved ? statusChip('RESOLVED ' + (s.rectification_date ?? ''), GOOD) : statusChip('OPEN', WARN)}</td>
+            <td class="p-3">${s.resolved ? '' : `<button onclick="resolveSnag('${esc(s.snag_id)}')" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 rounded text-[10px] font-bold text-white">Mark Rectified</button>`}</td>
+          </tr>`).join('') || '<tr><td colspan="8" class="p-4 text-center text-slate-500">No snags logged.</td></tr>';
+      } catch (e) {
+        showTableError('qa-cube-table-body', 9, e);
+        showTableError('qa-snags-table-body', 8, e);
+      }
+    }
+
+    async function submitCubeTest() {
+      const v = (id) => document.getElementById(id).value.trim();
+      const s7 = parseFloat(v('ct-s7')), s28 = parseFloat(v('ct-s28')), slump = parseInt(v('ct-slump'), 10);
+      if (!v('ct-location')) return alert('Enter the pour location.');
+      if (!(s7 > 0) || !(s28 > 0)) return alert('Enter the 7-day and 28-day strengths in MPa.');
+      if (!Number.isInteger(slump) || slump < 0) return alert('Enter the slump in mm.');
+      try {
+        const c = await erpApi('/api/quality/cube-test', {
+          pour_location: v('ct-location'), structural_element: v('ct-element'), mix_designation: v('ct-mix'),
+          slump_mm: slump, strength_7day_mpa: s7, strength_28day_mpa: s28, tested_by: v('ct-lab') || 'Site laboratory'
+        });
+        closeModal('modal-log-cube-test');
+        alert(`${c.passed ? '✅ PASSED' : '❌ FAILED'}: cube test ${c.test_id} — ${c.strength_28day_mpa} MPa at 28 days for ${c.mix_designation}.`);
+        loadQualitySummary();
+      } catch (e) { alert(`⛔ Cube test not recorded: ${e.message}`); }
+    }
+
+    async function submitSnag() {
+      const v = (id) => document.getElementById(id).value.trim();
+      if (!v('sn-location') || !v('sn-description')) return alert('Enter the location and a description of the snag.');
+      try {
+        const s = await erpApi('/api/quality/snag/log', {
+          location: v('sn-location'), trade: v('sn-trade'), description: v('sn-description'),
+          severity: v('sn-severity'), assigned_subcontractor: v('sn-sub') || 'Unassigned'
+        });
+        closeModal('modal-log-snag');
+        alert(`✅ Snag ${s.snag_id} logged and assigned to ${s.assigned_subcontractor}.`);
+        loadQualitySummary();
+      } catch (e) { alert(`⛔ Snag not logged: ${e.message}`); }
+    }
+
+    async function resolveSnag(snagId) {
+      try {
+        const s = await erpApi('/api/quality/snag/resolve', { snag_id: snagId });
+        alert(`✅ Snag ${s.snag_id} marked rectified.`);
+        loadQualitySummary();
+      } catch (e) { alert(`⛔ Snag not resolved: ${e.message}`); }
+    }
+
+    // 22. Mortgage & financing (debounced: the inputs call this on every keystroke)
+    let mortgageTimer = null;
+    function runMortgageCalc() {
+      clearTimeout(mortgageTimer);
+      mortgageTimer = setTimeout(async () => {
+        const price = parseFloat(document.getElementById('mort-price').value);
+        const deposit = parseFloat(document.getElementById('mort-deposit').value);
+        const years = parseInt(document.getElementById('mort-term').value, 10);
+        const rate = parseFloat(document.getElementById('mort-rate').value);
+        if (!(price > 0) || !(deposit >= 0 && deposit < 100) || !(years > 0) || !(rate >= 0)) return;
+        try {
+          const m = await erpApi('/api/mortgage/calculate', {
+            property_price_usd: price, deposit_pct: deposit, loan_term_years: years, annual_interest_rate_pct: rate
+          });
+          document.getElementById('mort-out-monthly-usd').textContent = usd(m.monthly_installment_usd);
+          document.getElementById('mort-out-monthly-zwg').textContent = 'ZWG ' + Number(m.monthly_installment_zwg).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+          document.getElementById('mort-out-deposit').textContent = `${usd(m.deposit_usd)} USD`;
+          document.getElementById('mort-out-interest').textContent = `${usd(m.total_interest_usd)} USD`;
+          document.getElementById('mort-amort-body').innerHTML = m.amortization_preview.map((r) => `<tr class="hover:bg-slate-800/40">
+              <td class="p-2">${r.month}</td><td class="p-2">${usd(r.monthly_installment_usd)}</td><td class="p-2">${usd(r.principal_usd)}</td>
+              <td class="p-2 text-amber-400">${usd(r.interest_usd)}</td><td class="p-2 font-bold">${usd(r.closing_balance_usd)}</td></tr>`).join('');
+        } catch (e) { showTableError('mort-amort-body', 5, e); }
+      }, 250);
+    }
+
+    // 23. Municipal permits
+    let lastPermits = null;
+    async function loadMunicipalPermits() {
+      const box = document.getElementById('permits-stages-container');
+      try {
+        const p = lastPermits = await erpApi('/api/permits/overview');
+        document.getElementById('permit-stages-cleared').textContent = `${p.stages_cleared} of ${p.total_stages} Stages Cleared`;
+        document.getElementById('permit-compliance-pct').textContent = `${p.compliance_pct}%`;
+        const pending = p.stages.filter((s) => s.status !== 'PASSED').map((s) => s.stage_id);
+        document.getElementById('permit-habitation-status').textContent = p.ready_for_occupancy ? 'READY FOR OCCUPATION'
+          : `PENDING STAGE${pending.length > 1 ? 'S' : ''} ${pending.join(' & ')}`;
+        box.innerHTML = p.stages.map((s) => `
+          <div class="bg-slate-950/70 border ${s.status === 'PASSED' ? 'border-emerald-500/30' : 'border-slate-800'} rounded-xl p-4 space-y-1 text-xs">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-white">Stage ${s.stage_id}: ${esc(s.stage_name)}</span>
+              <span class="ml-auto">${statusChip(s.status, s.status === 'PASSED' ? GOOD : WARN)}</span>
+            </div>
+            <div class="text-slate-400">${esc(s.statutory_authority)} · Ref ${esc(s.reference_code)}</div>
+            ${s.status === 'PASSED' ? `<div class="text-slate-500">Signed off by ${esc(s.inspected_by)} on ${esc(s.date_cleared)} · cert ${esc(s.certificate_hash)}</div>` : ''}
+          </div>`).join('');
+      } catch (e) {
+        box.innerHTML = `<div class="p-4 text-center text-rose-400 text-xs">⚠ ${esc(e.message)} — is server.py running on this origin?</div>`;
+      }
+    }
+
+    function fillPermitStageSelect() {
+      const open = (lastPermits?.stages ?? []).filter((s) => s.status !== 'PASSED');
+      document.getElementById('sp-stage').innerHTML = open.map((s) => `<option value="${s.stage_id}">Stage ${s.stage_id}: ${esc(s.stage_name)}</option>`).join('')
+        || '<option value="">No stages awaiting sign-off</option>';
+    }
+
+    async function submitPermitSignoff() {
+      const stageId = parseInt(document.getElementById('sp-stage').value, 10);
+      const inspector = document.getElementById('sp-inspector').value.trim();
+      const cert = document.getElementById('sp-cert').value.trim();
+      if (!stageId) return alert('There is no stage awaiting sign-off.');
+      if (!inspector || !cert) return alert('Enter the inspector and the certificate reference.');
+      try {
+        const s = await erpApi('/api/permits/signoff', { stage_id: stageId, inspector_name: inspector, certificate_hash: cert });
+        closeModal('modal-signoff-permit');
+        alert(`✅ Stage ${s.stage_id} "${s.stage_name}" signed off by ${s.inspected_by}.`);
+        loadMunicipalPermits();
+      } catch (e) { alert(`⛔ Stage not signed off: ${e.message}`); }
+    }
+
+    // ---------------------------------------------------------------- generic form dialog
+    // fields: [{ id, label, type: text|number|date|select|textarea, value, options: [{value,label}], min, max, wide }]
+    // onSubmit(values) returns HTML shown under the form (may be async); throwing shows the error instead.
+    function openFormDialog({ title, intro = '', fields, submitLabel = 'Submit', onSubmit }) {
+      document.getElementById('modal-form-title').innerHTML = title;
+      document.getElementById('modal-form-intro').textContent = intro;
+      const result = document.getElementById('modal-form-result');
+      result.className = 'hidden text-xs rounded-lg p-3';
+      const input = 'w-full bg-slate-950 border border-slate-700 rounded-lg p-2 text-white';
+      document.getElementById('modal-form-fields').innerHTML = fields.map((f) => {
+        const attrs = `id="mf-${f.id}" class="${input}"${f.min !== undefined ? ` min="${f.min}"` : ''}${f.max !== undefined ? ` max="${f.max}"` : ''}${f.type === 'number' ? ' step="any"' : ''}`;
+        let control;
+        if (f.type === 'select') control = `<select ${attrs}>${f.options.map((o) => `<option value="${esc(o.value)}"${String(o.value) === String(f.value) ? ' selected' : ''}>${esc(o.label)}</option>`).join('')}</select>`;
+        else if (f.type === 'textarea') control = `<textarea ${attrs} rows="2">${esc(f.value ?? '')}</textarea>`;
+        else control = `<input type="${f.type || 'text'}" ${attrs} value="${esc(f.value ?? '')}">`;
+        return `<div class="${f.wide || f.type === 'textarea' ? 'col-span-2' : ''}"><label class="text-slate-400 block mb-1">${esc(f.label)}</label>${control}</div>`;
+      }).join('');
+      const btn = document.getElementById('modal-form-submit');
+      btn.textContent = submitLabel;
+      btn.onclick = async () => {
+        const values = {};
+        for (const f of fields) {
+          const raw = document.getElementById(`mf-${f.id}`).value.trim();
+          values[f.id] = f.type === 'number' ? (raw === '' ? NaN : Number(raw)) : raw;
+        }
+        btn.disabled = true;
+        try {
+          const html = await onSubmit(values);
+          result.className = 'text-xs rounded-lg p-3 bg-emerald-950/40 border border-emerald-500/30 text-emerald-200';
+          result.innerHTML = html;
+        } catch (e) {
+          result.className = 'text-xs rounded-lg p-3 bg-rose-950/40 border border-rose-500/30 text-rose-300';
+          result.textContent = `⛔ ${e.message}`;
+        } finally {
+          btn.disabled = false;
+        }
+      };
+      document.getElementById('modal-form').classList.remove('hidden');
+    }
+
+    // ---------------------------------------------------------------- generic live-data viewer
+    // Renders any JSON payload: scalars as a key/value grid, arrays of records as tables.
+    function renderData(value, depth = 0) {
+      if (value === null || value === undefined) return '<span class="text-slate-500">—</span>';
+      if (Array.isArray(value)) {
+        if (!value.length) return '<span class="text-slate-500">(none)</span>';
+        if (typeof value[0] !== 'object' || value[0] === null) return esc(value.join(', '));
+        const cols = [...new Set(value.flatMap((r) => Object.keys(r)))].filter((c) => !/hash|signature/i.test(c)).slice(0, 8);
+        return `<div class="overflow-x-auto"><table class="w-full text-left text-[11px]"><thead class="text-slate-400 bg-slate-900"><tr>${cols.map((c) => `<th class="p-1.5">${esc(c.replace(/_/g, ' '))}</th>`).join('')}</tr></thead>
+          <tbody class="divide-y divide-slate-800">${value.slice(0, 50).map((r) => `<tr>${cols.map((c) => `<td class="p-1.5 align-top">${typeof r[c] === 'object' && r[c] !== null ? (depth < 1 ? renderData(r[c], depth + 1) : esc(JSON.stringify(r[c]).slice(0, 80))) : esc(r[c] ?? '')}</td>`).join('')}</tr>`).join('')}</tbody></table></div>
+          ${value.length > 50 ? `<div class="text-slate-500">First 50 of ${value.length} shown.</div>` : ''}`;
+      }
+      if (typeof value === 'object') {
+        const entries = Object.entries(value).filter(([k]) => !/hash|signature/i.test(k));
+        const scalars = entries.filter(([, v]) => v === null || typeof v !== 'object');
+        const nested = entries.filter(([, v]) => v !== null && typeof v === 'object');
+        return `${scalars.length ? `<div class="grid grid-cols-2 gap-x-4 gap-y-1 mb-2">${scalars.map(([k, v]) => `<div><span class="text-slate-500">${esc(k.replace(/_/g, ' '))}:</span> <b class="text-white">${esc(v)}</b></div>`).join('')}</div>` : ''}
+          ${nested.map(([k, v]) => `<div class="mt-2"><div class="text-teal-400 font-bold uppercase text-[10px] mb-1">${esc(k.replace(/_/g, ' '))}</div>${renderData(v, depth + 1)}</div>`).join('')}`;
+      }
+      return esc(value);
+    }
+
+    // ---------------------------------------------------------------- Run Full ERP Simulation → system check
+    const SYSTEM_MODULES = [
+      ['Gateway health', '/api/health'], ['Property portfolio', '/api/portfolio'], ['Leases & tenants', '/api/leases'],
+      ['Job costing', '/api/jobcosting'], ['Financials & tax', '/api/financials'], ['Materials inventory', '/api/inventory'],
+      ['Site ops KPIs', '/api/siteops/kpis'], ['Human capital', '/api/hr/summary'], ['Fleet', '/api/fleet/summary'],
+      ['Field service', '/api/fieldservice/summary'], ['Gantt schedule', '/api/project/schedule'], ['QA/QC', '/api/quality/summary'],
+      ['Municipal permits', '/api/permits/overview'], ['Warehouse stock', '/api/supplychain/wms/stock'],
+      ['Purchasing', '/api/supplychain/purchasing/requisitions'], ['Prefab manufacturing', '/api/supplychain/mfg/boms'],
+      ['Security audit trail', '/api/security/audit'], ['Ledger integrity', '/api/security/verify_ledger'],
+      ['Youth applicants', '/api/youth/applicants'], ['Allocation register', '/api/allocations/register'],
+      ['Messaging outbox', '/api/messaging/outbox'], ['Sales CRM pipeline', '/api/crm/pipeline'],
+    ];
+    let systemCheckResults = [];
+
+    function headlineOf(data) {
+      if (!data || typeof data !== 'object') return '';
+      const parts = Object.entries(data).filter(([k, v]) => !/hash|signature|timestamp/i.test(k) && (typeof v === 'number' || typeof v === 'boolean' || (typeof v === 'string' && v.length < 30)))
+        .slice(0, 3).map(([k, v]) => `${k.replace(/_/g, ' ')}: ${typeof v === 'number' ? v.toLocaleString('en-US') : v}`);
+      if (parts.length) return parts.join(' · ');
+      const list = Object.entries(data).find(([, v]) => Array.isArray(v));
+      return list ? `${list[1].length} ${list[0].replace(/_/g, ' ')}` : '';
+    }
+
+    async function runSystemCheck() {
+      const body = document.getElementById('sim-results');
+      document.getElementById('sim-detail').innerHTML = 'Select a module to inspect its live data.';
+      body.innerHTML = SYSTEM_MODULES.map(([name], i) => `<tr id="sim-row-${i}"><td class="p-2 text-white">${esc(name)}</td><td class="p-2 text-slate-500">checking…</td><td class="p-2"></td><td class="p-2"></td></tr>`).join('');
+      systemCheckResults = await Promise.all(SYSTEM_MODULES.map(async ([name, path], i) => {
+        const t0 = performance.now();
+        let r;
+        try {
+          const data = await erpApi(path);
+          r = { name, path, ok: true, ms: Math.round(performance.now() - t0), data, headline: headlineOf(data) };
+          if (path === '/api/security/verify_ledger' && data.valid === false) r = { ...r, ok: false, error: `Ledger tampered at blocks ${data.tampered_indices.join(', ')}` };
+        } catch (e) {
+          r = { name, path, ok: false, ms: Math.round(performance.now() - t0), error: e.message, denied: /not authorized|forbidden/i.test(e.message) };
+        }
+        const row = document.getElementById(`sim-row-${i}`);
+        row.className = 'hover:bg-slate-800/40 cursor-pointer';
+        row.onclick = () => showSystemCheckDetail(i);
+        row.children[1].innerHTML = r.ok ? statusChip('OK', GOOD) : statusChip(r.denied ? 'NO ACCESS' : 'FAILED', r.denied ? WARN : BAD);
+        row.children[2].textContent = `${r.ms} ms`;
+        row.children[3].innerHTML = `<span class="${r.ok ? 'text-slate-400' : 'text-rose-300'}">${esc(r.ok ? r.headline : r.error)}</span>`;
+        return r;
+      }));
+      const ok = systemCheckResults.filter((r) => r.ok).length;
+      const denied = systemCheckResults.filter((r) => r.denied).length;
+      const failed = systemCheckResults.length - ok - denied;
+      const avg = Math.round(systemCheckResults.reduce((s, r) => s + r.ms, 0) / systemCheckResults.length);
+      const tile = (label, value, cls) => `<div class="bg-slate-950/70 border border-slate-800 rounded-xl p-3"><div class="text-[10px] text-slate-400 uppercase font-bold">${label}</div><div class="text-lg font-bold ${cls}">${value}</div></div>`;
+      document.getElementById('sim-summary').innerHTML = tile('Modules online', `${ok} / ${systemCheckResults.length}`, ok === systemCheckResults.length ? 'text-emerald-400' : 'text-white')
+        + tile('Failed', failed, failed ? 'text-rose-400' : 'text-emerald-400') + tile(`No access (${currentJobRole})`, denied, denied ? 'text-amber-400' : 'text-slate-300')
+        + tile('Average response', `${avg} ms`, 'text-white');
+    }
+
+    function showSystemCheckDetail(i) {
+      const r = systemCheckResults[i];
+      document.getElementById('sim-detail').innerHTML = `<div class="text-white font-bold mb-1">${esc(r.name)} <span class="text-slate-500 font-normal">${esc(r.path)}</span></div>`
+        + (r.ok ? renderData(r.data) : `<div class="text-rose-300">${esc(r.error)}</div>`);
+    }
+
+    function exportSystemCheck() {
+      if (!systemCheckResults.length) return alert('Run the check first.');
+      const rows = [['Module', 'Endpoint', 'Status', 'Response ms', 'Detail'], ...systemCheckResults.map((r) => [r.name, r.path, r.ok ? 'OK' : (r.denied ? 'NO ACCESS' : 'FAILED'), r.ms, r.ok ? r.headline : r.error])];
+      downloadFile(`erp-system-check-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(rows), 'text/csv');
+    }
+
+    // ---------------------------------------------------------------- 19. ledger integrity
+    async function verifyLedgerIntegrity() {
+      try {
+        const r = await erpApi('/api/security/verify_ledger');
+        if (r.valid) alert(`✅ Ledger intact: all ${r.total_blocks} hash-chained blocks verify.`);
+        else alert(`⛔ LEDGER TAMPERING DETECTED in ${r.tampered_indices.length} of ${r.total_blocks} blocks: #${r.tampered_indices.join(', #')}`);
+      } catch (e) { alert(`⛔ Could not verify the ledger: ${e.message}`); }
+    }
+
+    // ---------------------------------------------------------------- 24. supply chain, warehouse, purchasing, MRP
+    const scm = { stock: [], locations: [], transfers: [], reqs: [], pos: [], vendors: [], boms: [], orders: [], ecos: [] };
+    const qty = (n) => Number(n).toLocaleString('en-US', { maximumFractionDigits: 2 });
+    const newestFirst = (list, key) => [...list].sort((x, y) => String(y[key]).localeCompare(String(x[key]), undefined, { numeric: true }));
+    const toneFor = (status) => /RECEIVED|DELIVERED|MATCHED|COMPLETED|APPROVED|OPTIMAL|RELEASED|ACTIVE/i.test(status) ? GOOD
+      : /TRANSIT|PENDING|OPEN|ISSUED|PROGRESS|DRAFT|SUBMITTED/i.test(status) ? WARN : /LOW|REJECT|CANCEL|FAIL|MISMATCH|CRITICAL/i.test(status) ? BAD : INFO;
+
+    async function loadSupplyChain() {
+      try {
+        const [stock, transfers, purchasing, mfg] = await Promise.all([
+          erpApi('/api/supplychain/wms/stock'), erpApi('/api/supplychain/wms/transfers'),
+          erpApi('/api/supplychain/purchasing/requisitions'), erpApi('/api/supplychain/mfg/boms')]);
+        Object.assign(scm, {
+          stock: stock.stock, locations: stock.locations, transfers: transfers.transfers, reqs: purchasing.requisitions,
+          pos: purchasing.purchase_orders, vendors: purchasing.vendors, boms: mfg.boms, orders: mfg.production_orders, ecos: mfg.ecos,
+        });
+        renderSupplyChain();
+      } catch (e) {
+        showTableError('scm-stock-body', 9, e);
+      }
+    }
+
+    function renderSupplyChain() {
+      const low = scm.stock.filter((s) => s.is_low_stock);
+      document.getElementById('scm-kpi-items').textContent = scm.stock.length;
+      document.getElementById('scm-kpi-value').textContent = usd(scm.stock.reduce((t, s) => t + s.total_valuation_usd, 0));
+      const lowEl = document.getElementById('scm-kpi-low');
+      lowEl.textContent = low.length; lowEl.className = `block text-xl mt-1 ${low.length ? 'text-rose-400' : 'text-emerald-400'}`;
+      document.getElementById('scm-kpi-transit').textContent = scm.transfers.filter((t) => t.status === 'IN_TRANSIT').length;
+      document.getElementById('scm-kpi-pos').textContent = scm.pos.filter((p) => !/CLOSED|PAID|MATCHED/i.test(p.status)).length;
+
+      document.getElementById('scm-stock-body').innerHTML = scm.stock.map((s) => `<tr class="hover:bg-slate-800/40">
+          <td class="p-3"><b class="text-white">${esc(s.name)}</b><div class="text-[10px] text-slate-500 font-mono">${esc(s.item_id)} · ${usd(s.unit_cost_usd)}/${esc(s.unit)} · lead ${s.lead_time_days} d</div></td>
+          <td class="p-3">${esc(s.category)}</td>
+          <td class="p-3">${qty(s.central_store_qty)} ${esc(s.unit)}</td>
+          <td class="p-3 text-slate-400">${Object.entries(s.site_allocations || {}).map(([k, v]) => `${esc(k)}: ${qty(v)}`).join('<br>') || '—'}</td>
+          <td class="p-3 font-bold text-white">${qty(s.total_stock_on_hand)}</td>
+          <td class="p-3">${qty(s.reorder_threshold)}</td>
+          <td class="p-3">${usd(s.total_valuation_usd)}</td>
+          <td class="p-3">${statusChip(s.status.replace(/_/g, ' '), s.is_low_stock ? BAD : GOOD)}</td>
+          <td class="p-3 whitespace-nowrap">
+            <button onclick="scmTransferDialog('${esc(s.item_id)}')" class="px-2 py-1 bg-teal-700 hover:bg-teal-600 rounded text-[10px] font-bold text-white">Transfer</button>
+            <button onclick="scmReplenishDialog('${esc(s.item_id)}')" class="px-2 py-1 bg-amber-700 hover:bg-amber-600 rounded text-[10px] font-bold text-white">Reorder</button>
+          </td></tr>`).join('') || '<tr><td colspan="9" class="p-4 text-center text-slate-500">No stock items.</td></tr>';
+
+      document.getElementById('scm-transfers-body').innerHTML = newestFirst(scm.transfers, 'transfer_id').map((t) => `<tr class="hover:bg-slate-800/40">
+          <td class="p-3 font-mono text-slate-400">${esc(t.transfer_id)}<div class="text-[10px] text-slate-500">${esc(t.timestamp)}</div></td>
+          <td class="p-3 text-white">${esc(t.item_name)}</td>
+          <td class="p-3">${qty(t.quantity)} ${esc(t.unit)}</td>
+          <td class="p-3 text-slate-400">${esc(t.source_location)} → ${esc(t.dest_location)}</td>
+          <td class="p-3">${statusChip(t.status.replace(/_/g, ' '), toneFor(t.status))}${t.received_by ? `<div class="text-[10px] text-slate-500">by ${esc(t.received_by)}</div>` : ''}</td>
+          <td class="p-3">${t.status === 'IN_TRANSIT' ? `<button onclick="scmConfirmReceipt('${esc(t.transfer_id)}')" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 rounded text-[10px] font-bold text-white">Confirm Receipt</button>` : ''}</td>
+        </tr>`).join('') || '<tr><td colspan="6" class="p-4 text-center text-slate-500">No transfers yet.</td></tr>';
+
+      document.getElementById('scm-pos-body').innerHTML = newestFirst(scm.pos, 'po_id').map((p) => `<tr class="hover:bg-slate-800/40">
+          <td class="p-3 font-mono text-slate-400">${esc(p.po_id)}<div class="text-[10px] text-slate-500">${esc(p.issued_date)}</div></td>
+          <td class="p-3 text-white">${esc(p.vendor_name)}</td>
+          <td class="p-3">${esc(p.project_site)}</td>
+          <td class="p-3">${usd(p.total_amount_usd)}</td>
+          <td class="p-3 text-slate-400">${esc(p.grn_reference || '—')}</td>
+          <td class="p-3">${statusChip(p.status.replace(/_/g, ' '), toneFor(p.status))}</td>
+          <td class="p-3"><button onclick="scmMatchDialog('${esc(p.po_id)}')" class="px-2 py-1 bg-indigo-600 hover:bg-indigo-500 rounded text-[10px] font-bold text-white">Match Invoice</button></td>
+        </tr>`).join('') || '<tr><td colspan="7" class="p-4 text-center text-slate-500">No purchase orders.</td></tr>';
+
+      document.getElementById('scm-reqs-body').innerHTML = newestFirst(scm.reqs, 'requisition_id').map((r) => `<tr class="hover:bg-slate-800/40">
+          <td class="p-3 font-mono text-slate-400">${esc(r.requisition_id)}<div class="text-[10px] text-slate-500">${esc(r.requested_by)}</div></td>
+          <td class="p-3">${esc(r.project_site)}</td>
+          <td class="p-3">${(r.items || []).map((i) => `${qty(i.qty)} ${esc(i.unit)} ${esc(i.item_name)}`).join('<br>')}</td>
+          <td class="p-3">${esc(r.required_date)}</td>
+          <td class="p-3">${statusChip(r.urgency, r.urgency === 'URGENT' || r.urgency === 'CRITICAL' ? BAD : 'bg-slate-700/40 text-slate-300')}</td>
+          <td class="p-3">${statusChip(r.status.replace(/_/g, ' '), toneFor(r.status))}</td>
+        </tr>`).join('') || '<tr><td colspan="6" class="p-4 text-center text-slate-500">No requisitions.</td></tr>';
+
+      document.getElementById('scm-vendors-body').innerHTML = scm.vendors.map((v) => `<tr class="hover:bg-slate-800/40">
+          <td class="p-3"><b class="text-white">${esc(v.company_name)}</b><div class="text-[10px] text-slate-500">${esc(v.vendor_id)} · BP ${esc(v.tax_number)}</div></td>
+          <td class="p-3">${esc(v.contact_person)}<div class="text-[10px] text-slate-500">${esc(v.phone)}</div></td>
+          <td class="p-3">${esc(v.payment_terms)}</td>
+          <td class="p-3">${'★'.repeat(Math.round(v.rating))}<span class="text-slate-500"> ${v.rating}</span></td>
+          <td class="p-3">${v.compliance_certified ? statusChip('CERTIFIED', GOOD) : statusChip('NOT CERTIFIED', BAD)}</td>
+        </tr>`).join('');
+
+      document.getElementById('scm-boms').innerHTML = scm.boms.map((b) => `
+        <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-4 space-y-2 text-xs">
+          <div class="flex items-center gap-2"><b class="text-white">${esc(b.product_name)}</b><span class="ml-auto">${statusChip(`${b.revision} · ${b.lifecycle_phase}`, INFO)}</span></div>
+          <div class="text-slate-400 font-mono">${esc(b.product_code)} · ${esc(b.bom_id)}</div>
+          <div class="grid grid-cols-2 gap-1 text-slate-300">
+            <div>Materials: ${usd(b.raw_materials_cost_usd)}</div><div>Labour: ${usd(b.direct_labor_cost_usd)}</div>
+            <div>Machine: ${usd(b.machine_overhead_usd)}</div><div class="font-bold text-white">Unit cost: ${usd(b.unit_production_cost_usd)}</div>
+          </div>
+          <div class="text-slate-500">${(b.components || []).length} components</div>
+          <div class="flex gap-2 pt-1">
+            <button onclick="scmExplode('${esc(b.product_code)}')" class="px-2 py-1 bg-slate-800 hover:bg-slate-700 rounded text-[10px] font-bold text-slate-200">Calculate Materials Needed</button>
+            <button onclick="scmAssembleDialog('${esc(b.product_code)}')" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 rounded text-[10px] font-bold text-white">Assemble</button>
+          </div>
+        </div>`).join('') || '<div class="text-slate-500">No bills of materials.</div>';
+
+      document.getElementById('scm-orders-body').innerHTML = newestFirst(scm.orders, 'work_order_id').map((o) => `<tr class="hover:bg-slate-800/40">
+          <td class="p-3 font-mono text-slate-400">${esc(o.work_order_id)}<div class="text-[10px] text-slate-500">${esc(o.start_date)}</div></td>
+          <td class="p-3 text-white">${esc(o.product_code)}</td>
+          <td class="p-3">${o.completed_quantity} / ${o.target_quantity}</td>
+          <td class="p-3">${esc(o.assigned_facility)}</td>
+          <td class="p-3">${o.qc_pass_rate_pct}%</td>
+          <td class="p-3">${statusChip(o.status.replace(/_/g, ' '), toneFor(o.status))}</td>
+        </tr>`).join('') || '<tr><td colspan="6" class="p-4 text-center text-slate-500">No work orders.</td></tr>';
+
+      document.getElementById('scm-ecos-body').innerHTML = newestFirst(scm.ecos, 'eco_id').map((e) => `<tr class="hover:bg-slate-800/40">
+          <td class="p-3 font-mono text-slate-400">${esc(e.eco_id)}<div class="text-[10px] text-slate-500">${esc(e.created_at)}</div></td>
+          <td class="p-3">${esc(e.product_code)}</td>
+          <td class="p-3 text-white">${esc(e.title)}<div class="text-[10px] text-slate-500">${esc(e.justification)}</div></td>
+          <td class="p-3">${esc(e.old_revision)} → ${esc(e.new_revision)}</td>
+          <td class="p-3">${esc(e.requested_by)}</td>
+          <td class="p-3">${statusChip(e.status.replace(/_/g, ' '), toneFor(e.status))}</td>
+        </tr>`).join('') || '<tr><td colspan="6" class="p-4 text-center text-slate-500">No change orders.</td></tr>';
+    }
+
+    const itemOptions = () => scm.stock.map((s) => ({ value: s.item_id, label: `${s.name} (${qty(s.central_store_qty)} ${s.unit} in central store)` }));
+    const locationOptions = () => scm.locations.map((l) => ({ value: l, label: l }));
+    const bomOptions = () => scm.boms.map((b) => ({ value: b.product_code, label: `${b.product_name} (${b.revision})` }));
+    const requireLoaded = () => { if (!scm.stock.length) throw new Error('Supply chain data has not loaded; press Refresh.'); };
+    const today = () => new Date().toISOString().slice(0, 10);
+
+    function scmTransferDialog(itemId) {
+      openFormDialog({
+        title: '<i class="fa-solid fa-truck-ramp-box"></i> Transfer Material Between Locations',
+        intro: 'Moves stock out of the source location now; it shows as IN TRANSIT until the receiving site confirms receipt.',
+        submitLabel: 'Dispatch Transfer',
+        fields: [
+          { id: 'item_id', label: 'Material', type: 'select', options: itemOptions(), value: itemId, wide: true },
+          { id: 'source_location', label: 'From', type: 'select', options: locationOptions(), value: 'WH-CENTRAL-HAR' },
+          { id: 'dest_location', label: 'To', type: 'select', options: locationOptions(), value: scm.locations[1] },
+          { id: 'quantity', label: 'Quantity', type: 'number', value: '', min: 0.01 },
+          { id: 'requested_by', label: 'Requested by', type: 'text', value: '' },
+          { id: 'authorized_by', label: 'Authorised by', type: 'text', value: '' },
+          { id: 'dispatched_by', label: 'Dispatched by (stores)', type: 'text', value: '' },
+        ],
+        onSubmit: async (v) => {
+          requireLoaded();
+          if (v.source_location === v.dest_location) throw new Error('Source and destination must differ.');
+          if (!(v.quantity > 0)) throw new Error('Enter a quantity greater than zero.');
+          if (!v.requested_by || !v.authorized_by || !v.dispatched_by) throw new Error('Record who requested, authorised and dispatched the transfer.');
+          const r = await erpApi('/api/supplychain/wms/transfer', v);
+          loadSupplyChain();
+          return `✅ ${esc(r.transfer_id)} dispatched: ${qty(r.quantity)} from ${esc(r.source_location)} to ${esc(r.dest_location)} (IN TRANSIT).<br>Source balance now ${qty(r.central_store_balance)}; site balance ${qty(r.site_balance)}.`;
+        }
+      });
+    }
+
+    async function scmConfirmReceipt(transferId) {
+      const by = prompt(`Confirm receipt of ${transferId}.\nReceived by (name):`);
+      if (by === null) return;
+      if (!by.trim()) return alert('Enter the name of the person receiving the material.');
+      try {
+        await erpApi('/api/supplychain/wms/transfer/confirm', { transfer_id: transferId, received_by: by.trim() });
+        alert(`✅ ${transferId} received by ${by.trim()}.`);
+        loadSupplyChain();
+      } catch (e) { alert(`⛔ Receipt not confirmed: ${e.message}`); }
+    }
+
+    function scmRequisitionDialog() {
+      openFormDialog({
+        title: '<i class="fa-solid fa-file-circle-plus"></i> New Purchase Requisition',
+        intro: 'Raises a requisition for procurement to source. Add one material per requisition here.',
+        submitLabel: 'Raise Requisition',
+        fields: [
+          { id: 'project_site', label: 'Deliver to', type: 'select', options: locationOptions(), value: scm.locations[1] },
+          { id: 'required_date', label: 'Required by', type: 'date', value: today() },
+          { id: 'item_id', label: 'Material', type: 'select', options: itemOptions(), wide: true },
+          { id: 'qty', label: 'Quantity', type: 'number', value: '', min: 0.01 },
+          { id: 'urgency', label: 'Urgency', type: 'select', options: ['NORMAL', 'URGENT', 'CRITICAL'].map((u) => ({ value: u, label: u })), value: 'NORMAL' },
+          { id: 'requested_by', label: 'Requested by', type: 'text', value: '', wide: true },
+        ],
+        onSubmit: async (v) => {
+          requireLoaded();
+          if (!(v.qty > 0)) throw new Error('Enter a quantity greater than zero.');
+          if (!v.requested_by) throw new Error('Enter who is requesting the material.');
+          if (v.required_date < today()) throw new Error('The required date cannot be in the past.');
+          const item = scm.stock.find((s) => s.item_id === v.item_id);
+          const r = await erpApi('/api/supplychain/purchasing/requisition', {
+            project_site: v.project_site, requested_by: v.requested_by, required_date: v.required_date, urgency: v.urgency,
+            items: [{ item_id: item.item_id, item_name: item.name, qty: v.qty, unit: item.unit }],
+          });
+          loadSupplyChain();
+          return `✅ Requisition ${esc(r.requisition_id)} raised for ${qty(v.qty)} ${esc(item.unit)} of ${esc(item.name)}.`;
+        }
+      });
+    }
+
+    function scmReplenishDialog(itemId) {
+      openFormDialog({
+        title: '<i class="fa-solid fa-cart-arrow-down"></i> Automated Replenishment',
+        intro: 'Creates the requisition and purchase order, receives the goods (GRN) and runs the PO / GRN / invoice 3-way match in one step.',
+        submitLabel: 'Replenish Stock',
+        fields: [
+          { id: 'item_id', label: 'Material', type: 'select', options: itemOptions(), value: itemId, wide: true },
+          { id: 'quantity', label: 'Quantity to order', type: 'number', value: '', min: 0.01 },
+          { id: 'target_site', label: 'Receive into', type: 'select', options: locationOptions(), value: 'WH-CENTRAL-HAR' },
+        ],
+        onSubmit: async (v) => {
+          requireLoaded();
+          if (!(v.quantity > 0)) throw new Error('Enter a quantity greater than zero.');
+          const r = await erpApi('/api/supplychain/purchasing/replenish', v);
+          loadSupplyChain();
+          return `✅ ${qty(r.quantity)} × ${esc(r.replenishment_item)} ordered and received.<br>Requisition ${esc(r.requisition_id)} → ${esc(r.po_id)} → ${esc(r.grn_reference)}; 3-way match: <b>${esc(r.three_way_match)}</b>. New stock level ${qty(r.new_stock_level)}.`;
+        }
+      });
+    }
+
+    function scmMatchDialog(poId) {
+      const po = scm.pos.find((p) => p.po_id === poId) || scm.pos[scm.pos.length - 1];
+      openFormDialog({
+        title: '<i class="fa-solid fa-scale-balanced"></i> 3-Way Match: PO · GRN · Supplier Invoice',
+        intro: 'Checks the supplier invoice against the purchase order and the goods received note before it can be paid.',
+        submitLabel: 'Run Match',
+        fields: [
+          { id: 'po_id', label: 'Purchase order', type: 'select', options: scm.pos.map((p) => ({ value: p.po_id, label: `${p.po_id} — ${p.vendor_name} (${usd(p.total_amount_usd)})` })), value: po?.po_id, wide: true },
+          { id: 'invoice_number', label: 'Supplier invoice number', type: 'text', value: '' },
+          { id: 'invoice_date', label: 'Invoice date', type: 'date', value: today() },
+          { id: 'billed_amount_usd', label: 'Amount billed (USD, excl. VAT)', type: 'number', value: po?.total_amount_usd ?? '', min: 0.01, wide: true },
+        ],
+        onSubmit: async (v) => {
+          if (!v.po_id) throw new Error('There are no purchase orders to match.');
+          if (!v.invoice_number) throw new Error('Enter the supplier invoice number.');
+          if (!(v.billed_amount_usd > 0)) throw new Error('Enter the billed amount.');
+          const r = await erpApi('/api/supplychain/purchasing/match', v);
+          loadSupplyChain();
+          const good = r.three_way_match === 'MATCHED';
+          return `${good ? '✅' : '⚠'} 3-way match: <b>${esc(r.three_way_match)}</b> (${esc(r.invoice_id)})<br>PO ${usd(r.po_amount_usd)} · billed ${usd(r.billed_amount_usd)} · variance <b class="${r.variance_usd ? 'text-rose-300' : ''}">${usd(r.variance_usd)}</b><br>
+            VAT 15% ${usd(r.vat_15_pct_usd)} · total payable <b class="text-white">${usd(r.total_payable_usd)}</b> · GRN ${esc(r.delivery_grn)}<br>${esc(r.audit_notes)}`;
+        }
+      });
+    }
+
+    async function scmExplode(code) {
+      const box = document.getElementById('scm-explosion');
+      const n = parseInt(prompt(`How many units of ${code} do you plan to produce?`, '10'), 10);
+      if (!Number.isInteger(n) || n < 1) return;
+      try {
+        const r = await erpApi(`/api/supplychain/mfg/explode?code=${encodeURIComponent(code)}&qty=${n}`);
+        const stockOf = (id) => scm.stock.find((s) => s.item_id === id);
+        box.className = 'bg-slate-950/70 border border-slate-800 rounded-xl p-4 space-y-2 text-xs';
+        box.innerHTML = `<div class="flex items-center"><b class="text-white">Materials needed for ${n} × ${esc(r.product_name)} (${esc(r.bom_revision)})</b>
+            <button onclick="document.getElementById('scm-explosion').classList.add('hidden')" class="ml-auto text-slate-400 hover:text-white">✕</button></div>
+          <table class="w-full text-left"><thead class="text-slate-400"><tr><th class="p-1.5">Material</th><th class="p-1.5">Needed</th><th class="p-1.5">In central store</th><th class="p-1.5">Cost</th><th class="p-1.5">Availability</th></tr></thead><tbody>
+          ${r.material_requirements.map((m) => { const s = stockOf(m.raw_material_id); const short = s && s.central_store_qty < m.gross_quantity_needed;
+            return `<tr><td class="p-1.5 text-white">${esc(m.material_name)}</td><td class="p-1.5">${qty(m.gross_quantity_needed)} ${esc(m.unit)}</td>
+              <td class="p-1.5">${s ? qty(s.central_store_qty) : '—'}</td><td class="p-1.5">${usd(m.estimated_cost_usd)}</td>
+              <td class="p-1.5">${s ? (short ? statusChip('SHORT', BAD) : statusChip('OK', GOOD)) : statusChip('NOT STOCKED', WARN)}</td></tr>`; }).join('')}
+          </tbody></table>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-2 text-slate-300">
+            <div>Materials ${usd(r.total_material_cost_usd)}</div><div>Labour ${qty(r.total_labor_hours)} h · ${usd(r.total_labor_cost_usd)}</div>
+            <div>Machine ${qty(r.total_machine_hours)} h · ${usd(r.total_machine_cost_usd)}</div><div class="font-bold text-white">Total ${usd(r.grand_total_production_usd)} (ZWG ${qty(r.grand_total_production_zwg)})</div>
+          </div>`;
+        box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      } catch (e) { alert(`⛔ Could not calculate materials: ${e.message}`); }
+    }
+
+    function scmAssembleDialog(code) {
+      openFormDialog({
+        title: '<i class="fa-solid fa-industry"></i> Assemble Prefab Components',
+        intro: 'Issues a production work order, deducts raw materials per the bill of materials, and stocks the finished panels at the destination site.',
+        submitLabel: 'Assemble & Stock',
+        fields: [
+          { id: 'product_code', label: 'Product', type: 'select', options: bomOptions(), value: code, wide: true },
+          { id: 'quantity', label: 'Quantity', type: 'number', value: '', min: 1 },
+          { id: 'destination_site', label: 'Deliver to', type: 'select', options: locationOptions(), value: scm.locations[1] },
+        ],
+        onSubmit: async (v) => {
+          requireLoaded();
+          if (!Number.isInteger(v.quantity) || v.quantity < 1) throw new Error('Enter a whole number of units.');
+          const r = await erpApi('/api/supplychain/mfg/assemble', v);
+          loadSupplyChain();
+          return `✅ Work order ${esc(r.work_order_id)}: ${r.quantity_manufactured} × ${esc(r.product_name)} → ${esc(r.destination_site)} (QC ${r.qc_pass_rate_pct}%).<br>
+            Raw materials consumed: ${r.raw_materials_consumed.map((m) => `${qty(m.quantity_deducted)} ${esc(m.material)}`).join(', ')}.`;
+        }
+      });
+    }
+
+    function scmEcoDialog() {
+      openFormDialog({
+        title: '<i class="fa-solid fa-code-branch"></i> Engineering Change Order',
+        intro: 'Proposes a design change to a prefab product. It stays PENDING APPROVAL until engineering signs it off.',
+        submitLabel: 'Submit Change',
+        fields: [
+          { id: 'product_code', label: 'Product', type: 'select', options: bomOptions(), wide: true },
+          { id: 'title', label: 'Change title', type: 'text', value: '', wide: true },
+          { id: 'justification', label: 'Justification', type: 'textarea', value: '' },
+          { id: 'old_revision', label: 'Current revision', type: 'text', value: '' },
+          { id: 'new_revision', label: 'New revision', type: 'text', value: '' },
+          { id: 'requested_by', label: 'Requested by', type: 'text', value: '', wide: true },
+        ],
+        onSubmit: async (v) => {
+          if (!v.title || !v.justification || !v.requested_by) throw new Error('Enter the title, justification and who is requesting the change.');
+          const bom = scm.boms.find((b) => b.product_code === v.product_code);
+          const r = await erpApi('/api/supplychain/mfg/eco', { ...v, old_revision: v.old_revision || bom?.revision || 'Rev A', new_revision: v.new_revision || 'Next revision' });
+          loadSupplyChain();
+          return `✅ ${esc(r.eco_id)} submitted — ${esc(r.status.replace(/_/g, ' '))}.`;
+        }
+      });
+    }
+
+    // ---------------------------------------------------------------- CSV export & print for every table
+    function toCsv(rows) {
+      const cell = (v) => { const s = String(v ?? '').replace(/\s+/g, ' ').trim(); return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+      return rows.map((r) => r.map(cell).join(',')).join('\r\n');
+    }
+
+    function tableRows(table) {
+      const heads = [...table.querySelectorAll('thead th')].map((th) => th.innerText.trim());
+      const skip = new Set(heads.map((h, i) => (/^actions?$/i.test(h) ? i : -1)).filter((i) => i >= 0));
+      const body = [...table.querySelectorAll('tbody tr')]
+        .filter((tr) => !(tr.children.length === 1 && tr.children[0].colSpan > 1))
+        .map((tr) => [...tr.children].filter((_, i) => !skip.has(i)).map((td) => td.innerText));
+      return [heads.filter((_, i) => !skip.has(i)), ...body];
+    }
+
+    function tableTitle(table) {
+      const pane = table.closest('.fn-pane');
+      const heading = table.closest('div.bg-slate-900\\/80, div.rounded-2xl')?.querySelector('h3') || pane?.querySelector('h2');
+      return (heading?.innerText || 'table').trim();
+    }
+
+    function exportTableCsv(table) {
+      const rows = tableRows(table);
+      if (rows.length < 2) return alert('This table has no rows to export yet.');
+      const name = tableTitle(table).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 60) || 'table';
+      downloadFile(`${name}-${new Date().toISOString().slice(0, 10)}.csv`, toCsv(rows), 'text/csv');
+    }
+
+    function printTable(table) {
+      const rows = tableRows(table);
+      if (rows.length < 2) return alert('This table has no rows to print yet.');
+      const w = window.open('', '_blank');
+      if (!w) return alert('Allow pop-ups for this page to print tables.');
+      const title = esc(tableTitle(table));
+      w.document.write(`<!doctype html><html><head><meta charset="utf-8"><title>${title}</title><style>
+        body{font:12px system-ui,sans-serif;margin:24px;color:#111} h1{font-size:16px;margin:0 0 4px} p{color:#555;margin:0 0 12px}
+        table{border-collapse:collapse;width:100%} th,td{border:1px solid #ccc;padding:4px 6px;text-align:left;vertical-align:top} th{background:#f1f5f9}</style></head>
+        <body><h1>${title}</h1><p>Zimbuild ERP · printed ${new Date().toLocaleString()} · role ${esc(currentJobRole)}</p>
+        <table><thead><tr>${rows[0].map((h) => `<th>${esc(h)}</th>`).join('')}</tr></thead>
+        <tbody>${rows.slice(1).map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></body></html>`);
+      w.document.close();
+      w.focus();
+      w.print();
+    }
+
+    function addTableTools() {
+      document.querySelectorAll('.fn-pane table').forEach((table) => {
+        if (table.dataset.tools || !table.querySelector('thead')) return;
+        table.dataset.tools = '1';
+        const bar = document.createElement('div');
+        bar.className = 'flex justify-end gap-1.5 mb-1.5';
+        bar.innerHTML = `<button type="button" class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-[10px] font-bold text-slate-300"><i class="fa-solid fa-file-csv"></i> CSV</button>
+          <button type="button" class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 rounded text-[10px] font-bold text-slate-300"><i class="fa-solid fa-print"></i> Print</button>`;
+        bar.children[0].onclick = () => exportTableCsv(table);
+        bar.children[1].onclick = () => printTable(table);
+        const anchor = table.parentElement.classList.contains('overflow-x-auto') ? table.parentElement : table;
+        anchor.parentElement.insertBefore(bar, anchor);
+      });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', addTableTools);
+    else addTableTools();
+
+    // Straight-line depreciation of the building component (land does not depreciate), from the user's inputs.
+    function triggerDepreciationCalc() {
+      openFormDialog({
+        title: '<i class="fa-solid fa-chart-line"></i> Straight-Line Depreciation Schedule',
+        intro: 'Only the building share of the purchase price depreciates; land is excluded.',
+        submitLabel: 'Calculate',
+        fields: [
+          { id: 'cost', label: 'Purchase price (USD)', type: 'number', value: 2800000, min: 1 },
+          { id: 'building', label: 'Building share of price (%)', type: 'number', value: 80, min: 1, max: 100 },
+          { id: 'life', label: 'Useful life (years)', type: 'number', value: 40, min: 1, max: 100 },
+          { id: 'salvage', label: 'Residual value (USD)', type: 'number', value: 0, min: 0 },
+          { id: 'held', label: 'Years held to date', type: 'number', value: 5, min: 0, max: 100 },
+        ],
+        onSubmit: (v) => {
+          const base = v.cost * v.building / 100;
+          if (v.salvage >= base) throw new Error('Residual value must be below the depreciable building base.');
+          const annual = (base - v.salvage) / v.life;
+          const years = Math.min(v.held, v.life);
+          const accumulated = annual * years;
+          const rows = Array.from({ length: Math.min(v.life, 10) }, (_, i) => {
+            const y = i + 1;
+            return `<tr><td class="p-1">Year ${y}</td><td class="p-1">${usd(annual)}</td><td class="p-1">${usd(annual * y)}</td><td class="p-1">${usd(v.cost - annual * y)}</td></tr>`;
+          }).join('');
+          return `<div class="grid grid-cols-2 gap-2 mb-2">
+              <div>Depreciable base: <b class="text-white">${usd(base - v.salvage)}</b></div>
+              <div>Annual depreciation: <b class="text-white">${usd(annual)}</b></div>
+              <div>Accumulated (${years} yrs): <b class="text-white">${usd(accumulated)}</b></div>
+              <div>Net book value: <b class="text-emerald-400">${usd(v.cost - accumulated)}</b></div>
+            </div>
+            <table class="w-full text-left"><thead class="text-slate-400"><tr><th class="p-1">Year</th><th class="p-1">Charge</th><th class="p-1">Accumulated</th><th class="p-1">Book value</th></tr></thead><tbody>${rows}</tbody></table>
+            ${v.life > 10 ? '<div class="text-slate-500 mt-1">First 10 years shown.</div>' : ''}`;
+        }
+      });
+    }
+
+    // QS payment certificate: the server applies the contract retention and returns the net payable.
     function openPaymentCertModal() {
-      if (!checkRbac('certify_payment')) return;
-      alert("✅ QS Certification Released:
-Contractor: VoltCraft Electrical
-Certified Work: $13,500.00 USD
-Retention Withheld (10%): $1,350.00 USD
-Approved Variations: $750.00 USD
-Net Disbursement: $12,900.00 USD released.");
+      openFormDialog({
+        title: '<i class="fa-solid fa-file-signature"></i> Certify Payment Application',
+        intro: 'Certifies the value of work done on a contractor payment application. Retention is withheld per the contract.',
+        submitLabel: 'Certify',
+        fields: [
+          { id: 'app_id', label: 'Payment application ID', type: 'text', value: 'PAY-APP-101', wide: true },
+          { id: 'certified_amount', label: 'Certified work value (USD)', type: 'number', value: '', min: 0.01 },
+          { id: 'variations', label: 'Approved variations (USD)', type: 'number', value: 0, min: 0 },
+        ],
+        onSubmit: async (v) => {
+          if (!v.app_id) throw new Error('Enter the payment application ID.');
+          if (!(v.certified_amount > 0)) throw new Error('Enter the certified work value.');
+          const r = await erpApi('/api/payment/certify', v);
+          return `✅ ${esc(r.app_id)} certified.<br>Certified work ${usd(r.certified_amount_usd)} · retention ${r.retention_rate_pct}% withheld ${usd(r.retention_withheld_usd)}
+            · variations ${usd(r.variation_claims_usd)}<br><b class="text-white">Net payable ${usd(r.net_payable_amount_usd)}</b>`;
+        }
+      });
     }
 
     function sendTenantEscalationNotice() {
@@ -3993,16 +5052,13 @@ Net Disbursement: $12,900.00 USD released.");
       closeModal('modal-ecocash');
       const stand = sanitizeInput(document.getElementById('pos-stand').value);
       const usd = parseFloat(document.getElementById('pos-usd').value) || 0;
+      if (!(usd > 0)) return alert('Enter the amount to collect before sending the EcoCash push.');
       try {
-        const resp = await fetch('/api/pos/pay', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-User-Role': currentJobRole },
-          body: JSON.stringify({ stand: stand, amount_usd: usd, method: 'EcoCash' })
-        });
-        const data = await resp.json();
+        const data = await erpApi('/api/pos/pay', { stand: stand, amount_usd: usd, method: 'EcoCash' });
         viewVoucher(data.receipt_number, data.stand, 'Takudzwa Kunaka', data.amount_usd, 'USD', data.hmac_signature);
       } catch (e) {
-        viewVoucher('REC-2026-902', stand, 'Takudzwa Kunaka', usd, 'USD', '7f8a3b2c...543210');
+        // Never print a receipt for a payment the server did not record.
+        alert(`⛔ EcoCash payment NOT recorded — no receipt issued.\n${e.message}`);
       }
     }
 
@@ -4932,14 +5988,8 @@ Instant WhatsApp Confirmation dispatched to ${data.phone}.`);
       }
 
       try {
-        const resp = await fetch('/api/payments/ecocash-settle', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-User-Role': currentJobRole },
-          body: JSON.stringify({ stand_id: standId, amount_usd: usd, payer_phone: phone, fx_rate: currentFx })
-        });
-
-        if (resp.ok) {
-          const data = await resp.json();
+        const data = await erpApi('/api/payments/ecocash-settle', { stand_id: standId, amount_usd: usd, payer_phone: phone, fx_rate: currentFx });
+        {
           alert(`📲 EcoCash USSD Push Confirmed!
 Receipt: ${data.receipt_number}
 Amount Settled: $${data.amount_usd} USD (ZWG ${data.amount_zwg})
@@ -4949,20 +5999,24 @@ Live Ledger Updated & Confirmation SMS Sent!`);
           await fetchAllocationsRegister();
         }
       } catch (e) {
-        alert(`Payment of $${usd} USD processed via EcoCash for ${standId}.`);
+        alert(`⛔ EcoCash payment NOT recorded for ${standId}: ${e.message}\nDo not issue a receipt; check the payment status before retrying.`);
       }
+    }
+
+    // Youth applicant rows only know the stand; reminders go to the allocation holding that stand.
+    async function dispatchDirectReminder(standId, channel) {
+      try {
+        const reg = await erpApi('/api/allocations/register');
+        const alloc = (reg.allocations || []).find((a) => a.stand_id === standId);
+        if (!alloc) return alert(`No allocation exists yet for ${standId}, so there is no payment reminder to send.`);
+        await dispatchReminderForAlloc(alloc.allocation_id, channel, 'PAYMENT_REMINDER');
+      } catch (e) { alert(`⛔ Reminder not sent: ${e.message}`); }
     }
 
     async function dispatchReminderForAlloc(allocId, channel, type) {
       try {
-        const resp = await fetch('/api/messaging/send-reminder', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'X-User-Role': currentJobRole },
-          body: JSON.stringify({ allocation_id: allocId, channel: channel, type: type })
-        });
-
-        if (resp.ok) {
-          const data = await resp.json();
+        const data = await erpApi('/api/messaging/send-reminder', { allocation_id: allocId, channel: channel, type: type });
+        {
           alert(`✅ Automatic ${data.channel} Dispatch Successful!
 Recipient: ${data.dispatched_message.recipient_name} (${data.dispatched_message.recipient})
 Stand: ${data.dispatched_message.stand_id}
@@ -4971,7 +6025,7 @@ HMAC Token: ${data.hmac_signature}`);
           await fetchOutboundMessages();
         }
       } catch (e) {
-        alert(`Reminder dispatched via ${channel}.`);
+        alert(`⛔ ${channel} reminder NOT sent for ${allocId}: ${e.message}`);
       }
     }
 
