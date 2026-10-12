@@ -73,14 +73,13 @@ class LandDeveloperService:
         # Using periodic cash flows across duration
         periods = max(1, req.project_duration_months)
         total_unlevered_outflow = rlv + construction_costs + req.finance_costs
-        # Construct monthly cash flow array
-        unlevered_cfs = [-total_unlevered_outflow]
-        monthly_cost_drain = 0.0  # already lumped or distributed
-        for m in range(1, periods):
-            unlevered_cfs.append(0.0)
-        unlevered_cfs.append(req.gross_realization_value)
 
-        unlevered_monthly_irr = LandDeveloperService._internal_rate_of_return(unlevered_cfs)
+        # Optimized calculation: When intermediate periods are zero, IRR has an exact closed-form:
+        # 0 = -Outflow + Inflow / (1 + r)^N  =>  (1 + r) = (Inflow / Outflow)^(1 / N)
+        if total_unlevered_outflow > 0 and req.gross_realization_value > 0:
+            unlevered_monthly_irr = (req.gross_realization_value / total_unlevered_outflow) ** (1.0 / periods) - 1.0
+        else:
+            unlevered_monthly_irr = 0.0
         unlevered_irr_annual = ((1.0 + unlevered_monthly_irr) ** 12 - 1.0) * 100.0
 
         # Levered cash flows: Equity portion only
@@ -90,17 +89,15 @@ class LandDeveloperService:
         total_debt_repayment = debt_principal * (1.0 + (req.debt_interest_rate_pct / 100.0) * (periods / 12.0))
         net_equity_exit = max(0.0, req.gross_realization_value - total_debt_repayment)
 
-        levered_cfs = [-equity_invested]
-        for m in range(1, periods):
-            levered_cfs.append(0.0)
-        levered_cfs.append(net_equity_exit)
-
-        levered_monthly_irr = LandDeveloperService._internal_rate_of_return(levered_cfs)
+        if equity_invested > 0 and net_equity_exit > 0:
+            levered_monthly_irr = (net_equity_exit / equity_invested) ** (1.0 / periods) - 1.0
+        else:
+            levered_monthly_irr = 0.0
         levered_irr_annual = ((1.0 + levered_monthly_irr) ** 12 - 1.0) * 100.0
 
-        # NPV calculation
+        # NPV calculation: -total_unlevered_outflow + gross_realization_value / (1 + monthly_discount_rate)^periods
         monthly_discount_rate = (1.0 + (req.discount_rate_pct / 100.0)) ** (1.0 / 12.0) - 1.0
-        npv = LandDeveloperService._net_present_value(monthly_discount_rate, unlevered_cfs)
+        npv = -total_unlevered_outflow + (req.gross_realization_value / ((1.0 + monthly_discount_rate) ** periods))
 
         # DSCR: NOI / Debt Service
         if req.annual_debt_service > 0:

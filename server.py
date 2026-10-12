@@ -34,6 +34,38 @@ from src.erp.project_engineering_suite import (
     MortgageFinancingEngine,
     MunicipalPermitManager
 )
+from src.real_estate_erp.services import (
+    LandDeveloperService,
+    LandSurveyorService,
+    CivilDesignService,
+    LandSalesService,
+    ProjectManagerService,
+    ExecutiveManagementService,
+    FinanceAccountingService,
+    MarketingService,
+    HrPayrollService,
+    OperationsService
+)
+from src.real_estate_erp.schemas import (
+    ProFormaRequestDTO,
+    SensitivityStressTestDTO,
+    CoordinateConversionRequestDTO,
+    LotSubdivisionRequestDTO,
+    CommissionCalculationDTO,
+    EvmMetricsDTO,
+    AiaG702BillingDTO,
+    ChangeOrderCreateDTO,
+    PortfolioProjectSummaryDTO,
+    MultiCurrencyFxConversionDTO,
+    CamReconciliationDTO,
+    LeadWebhookDTO,
+    CampaignPerformanceDTO,
+    MobileGeofencedCheckInDTO,
+    SiteWorkerPayrollDTO,
+    ThreeWayMatchVerificationDTO,
+    PlantAssetUsageDTO
+)
+from src.real_estate_erp.tasks import ERPTaskQueue
 
 PORT = int(os.environ.get("PORT", 8000))
 RATE_LIMIT_MAX = int(os.environ.get("RATE_LIMIT_MAX", 500))
@@ -612,6 +644,27 @@ class SecureERPRequestHandler(http.server.SimpleHTTPRequestHandler):
                     "total_messages": len(sanitized_messages),
                     "messages": sanitized_messages
                 })
+                return
+
+            # =========================================================
+            # REAL ESTATE & BUILDING CONSTRUCTION ERP SUITE GET ROUTES
+            # =========================================================
+            if path == "/api/erp/predictive-risk-alert":
+                query = urllib.parse.parse_qs(url.query)
+                cpi = float(query.get("cpi", [0.88])[0])
+                spi = float(query.get("spi", [0.82])[0])
+                deadline_days = int(query.get("deadline_days_remaining", [10])[0])
+                eval_res = ExecutiveManagementService.evaluate_predictive_risk(cpi, spi, deadline_days)
+                self._send_json(200, eval_res.model_dump())
+                return
+
+            if path.startswith("/api/erp/jobs/") and path.endswith("/status"):
+                job_id = path.split("/")[4]
+                status_res = ERPTaskQueue.get_job_status(job_id)
+                if not status_res:
+                    self._send_json(404, {"error": "Job Not Found", "job_id": job_id})
+                    return
+                self._send_json(200, status_res)
                 return
 
             self._send_json(404, {"error": "API Route Not Found"})
@@ -1706,6 +1759,132 @@ class SecureERPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 "hmac_signature": sig,
                 "status": "SETTLED"
             })
+            return
+
+        # =========================================================
+        # REAL ESTATE & BUILDING CONSTRUCTION ERP SUITE POST ROUTES
+        # =========================================================
+        if path == "/api/erp/land-developer/proforma-rlv":
+            req_dto = ProFormaRequestDTO(**body)
+            res = LandDeveloperService.calculate_rlv_and_proforma(req_dto)
+            self._send_json(200, res.model_dump())
+            return
+
+        if path == "/api/erp/land-developer/sensitivity-stress-test":
+            stress_dto = SensitivityStressTestDTO(**body)
+            res = LandDeveloperService.sensitivity_stress_test(stress_dto)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/land-surveyor/convert-coordinates":
+            coord_dto = CoordinateConversionRequestDTO(**body)
+            res = LandSurveyorService.convert_wgs84_to_projected(coord_dto)
+            self._send_json(200, res.model_dump())
+            return
+
+        if path == "/api/erp/land-surveyor/subdivide-parcel":
+            subdiv_dto = LotSubdivisionRequestDTO(**body)
+            res = LandSurveyorService.subdivide_lot_polygon(subdiv_dto)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/civil-design/parse-boq":
+            csv_content = body.get("csv_content", "")
+            res = CivilDesignService.parse_boq_csv_and_map(csv_content)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/civil-design/tqm-inspection-routing":
+            severity = body.get("defect_severity", "MINOR")
+            desc = body.get("defect_description", "")
+            res = CivilDesignService.evaluate_inspection_severity_routing(severity, desc)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/land-sales/calculate-commission":
+            comm_dto = CommissionCalculationDTO(**body)
+            res = LandSalesService.calculate_commission(comm_dto)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/project-manager/calculate-evm":
+            evm_dto = EvmMetricsDTO(**body)
+            res = ProjectManagerService.calculate_evm(evm_dto)
+            self._send_json(200, res.model_dump())
+            return
+
+        if path == "/api/erp/project-manager/certify-aia-g702":
+            aia_dto = AiaG702BillingDTO(**body)
+            res = ProjectManagerService.certify_aia_g702_billing(aia_dto)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/project-manager/process-change-order":
+            co_dto = ChangeOrderCreateDTO(**body)
+            res = ProjectManagerService.process_change_order(co_dto)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/executive/portfolio-aggregation":
+            projects_data = [PortfolioProjectSummaryDTO(**p) for p in body.get("projects", [])]
+            res = ExecutiveManagementService.aggregate_portfolio(projects_data)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/finance/calculate-fx":
+            fx_dto = MultiCurrencyFxConversionDTO(**body)
+            res = FinanceAccountingService.calculate_fx_gain_loss(fx_dto)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/finance/reconcile-cam":
+            cam_dto = CamReconciliationDTO(**body)
+            res = FinanceAccountingService.reconcile_cam_expenses(cam_dto)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/marketing/lead-webhook":
+            lead_dto = LeadWebhookDTO(**body)
+            agents = ["agent_alpha@zimbuild.co.zw", "agent_bravo@zimbuild.co.zw"]
+            res = MarketingService.score_and_route_lead(lead_dto, agents)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/marketing/campaign-performance":
+            camp_dto = CampaignPerformanceDTO(**body)
+            res = MarketingService.calculate_campaign_romi(camp_dto)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/hr/geofence-checkin":
+            geo_dto = MobileGeofencedCheckInDTO(**body)
+            res = HrPayrollService.verify_geofenced_check_in(geo_dto)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/hr/calculate-payroll":
+            pay_dto = SiteWorkerPayrollDTO(**body)
+            res = HrPayrollService.calculate_payroll(pay_dto)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/operations/three-way-match":
+            match_dto = ThreeWayMatchVerificationDTO(**body)
+            res = OperationsService.verify_three_way_match(match_dto)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/operations/plant-asset-utilization":
+            plant_dto = PlantAssetUsageDTO(**body)
+            res = OperationsService.log_plant_equipment_utilization(plant_dto)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/jobs/enqueue":
+            t_name = body.get("task_name", "")
+            p_load = body.get("payload", {})
+            job_id = ERPTaskQueue.enqueue(t_name, p_load)
+            self._send_json(200, {"job_id": job_id, "status": "QUEUED"})
             return
 
         self._send_json(404, {"error": "API Endpoint Not Found"})
