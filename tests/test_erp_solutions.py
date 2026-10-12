@@ -195,3 +195,25 @@ def test_lean_construction_toc_and_offline_sync():
     sync_result = lean.process_sync_queue()
     assert sync_result["synced_count"] >= 1
     assert evt.synced_to_cloud is True
+
+def test_log_equipment_shift():
+    sm = SiteOperationsManager()
+
+    # Get initial state
+    initial_op_hours = sm.equipment_fleet["PLANT-01"].operating_hours
+    initial_idle_hours = sm.equipment_fleet["PLANT-01"].idle_downtime_hours
+    initial_fuel = sm.equipment_fleet["PLANT-01"].fuel_consumed_liters
+
+    # Log shift for existing equipment
+    sm.log_equipment_shift("PLANT-01", 8.0, 2.0, 50.0)
+
+    # Verify state changes
+    assert sm.equipment_fleet["PLANT-01"].operating_hours == initial_op_hours + 8.0
+    assert sm.equipment_fleet["PLANT-01"].idle_downtime_hours == initial_idle_hours + 2.0
+    assert sm.equipment_fleet["PLANT-01"].fuel_consumed_liters == initial_fuel + 50.0
+
+    # Log shift for non-existent equipment (should not raise error)
+    sm.log_equipment_shift("NON-EXISTENT", 8.0, 2.0, 50.0)
+
+    # Verify no new keys were added
+    assert "NON-EXISTENT" not in sm.equipment_fleet
