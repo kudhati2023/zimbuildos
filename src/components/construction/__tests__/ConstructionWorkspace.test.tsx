@@ -1,8 +1,9 @@
 import { render, screen, act, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom';
-import React from 'react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ConstructionWorkspace } from '../ConstructionWorkspace';
 import * as api from '../../../api';
+import { Session, ConstructionProject } from '../../../types';
 
 // Mock the API module
 vi.mock('../../../api', () => ({
@@ -36,26 +37,54 @@ describe('ConstructionWorkspace', () => {
   const mockNotify = vi.fn();
   const mockFail = vi.fn();
 
+  const createMockSession = (roles: string[]): Session => ({
+    sub: 'user1',
+    roles,
+    token: 'fake-token',
+    expiresAt: Date.now(), // It is a number
+  });
+
+  const createMockProject = (overrides: Partial<ConstructionProject>): ConstructionProject => ({
+    project_id: 'proj-1',
+    code: 'PROJ-01',
+    name: 'Test Project 1',
+    status: 'ACTIVE',
+    budget_usd: '10000',
+    actual_usd: '5000',
+    percent_complete: 50,
+    open_ncrs: 0,
+    claims_awaiting_certification: 0,
+    site_location: 'Location 1',
+    client_name: 'Client 1',
+    start_date: '2023-01-01',
+    planned_end_date: '2023-12-31',
+    contract_value_usd: '10000',
+    development_id: null,
+    created_by: 'user1',
+    created_at: new Date().toISOString(),
+    ...overrides,
+  });
+
   it('renders "Sign in with a construction role" when no session is provided', () => {
     render(<ConstructionWorkspace session={null} notify={mockNotify} fail={mockFail} />);
     expect(screen.getByText(/Sign in with a construction role/i)).toBeInTheDocument();
   });
 
   it('renders "Your sign-in has no construction role" for non-construction roles', () => {
-    const session = { sub: 'user1', roles: ['SOME_OTHER_ROLE'] };
+    const session = createMockSession(['SOME_OTHER_ROLE']);
     render(<ConstructionWorkspace session={session} notify={mockNotify} fail={mockFail} />);
     expect(screen.getByText(/Your sign-in has no construction role/i)).toBeInTheDocument();
   });
 
   it('renders Subcontractor portal for SUBCONTRACTOR role', () => {
-    const session = { sub: 'sub1', roles: ['SUBCONTRACTOR'] };
+    const session = createMockSession(['SUBCONTRACTOR']);
     render(<ConstructionWorkspace session={session} notify={mockNotify} fail={mockFail} />);
     expect(screen.getByText(/Subcontractor portal/i)).toBeInTheDocument();
     expect(screen.getByTestId('tenders-panel')).toBeInTheDocument();
   });
 
   it('renders StaffWorkspace for construction roles (e.g. PROJECT_MANAGER)', async () => {
-    const session = { sub: 'pm1', roles: ['PROJECT_MANAGER'] };
+    const session = createMockSession(['PROJECT_MANAGER']);
 
     // Mock fetchProjects to return an empty array
     vi.mocked(api.fetchProjects).mockResolvedValueOnce([]);
@@ -69,24 +98,13 @@ describe('ConstructionWorkspace', () => {
   });
 
   it('renders project list when projects are fetched', async () => {
-    const session = { sub: 'pm1', roles: ['PROJECT_MANAGER'] };
+    const session = createMockSession(['PROJECT_MANAGER']);
     const mockProjects = [
-      {
-        project_id: 'proj-1',
+      createMockProject({
         code: 'PROJ-01',
         name: 'Test Project 1',
-        status: 'ACTIVE',
-        budget_usd: '10000',
-        actual_usd: '5000',
-        percent_complete: 50,
         open_ncrs: 1,
-        claims_awaiting_certification: 0,
-        site_location: 'Location 1',
-        client_name: 'Client 1',
-        start_date: '2023-01-01',
-        planned_end_date: '2023-12-31',
-        contract_value_usd: '10000'
-      }
+      })
     ];
 
     vi.mocked(api.fetchProjects).mockResolvedValueOnce(mockProjects);
@@ -107,18 +125,8 @@ describe('ConstructionWorkspace', () => {
   });
 
   it('allows switching between modules', async () => {
-    const session = { sub: 'pm1', roles: ['PROJECT_MANAGER'] };
-    const mockProjects = [
-      {
-        project_id: 'proj-1',
-        code: 'PROJ-01',
-        name: 'Test Project 1',
-        status: 'ACTIVE',
-        budget_usd: '10000',
-        actual_usd: '5000',
-        percent_complete: 50,
-      }
-    ];
+    const session = createMockSession(['PROJECT_MANAGER']);
+    const mockProjects = [createMockProject({})];
 
     vi.mocked(api.fetchProjects).mockResolvedValueOnce(mockProjects);
 
@@ -139,7 +147,7 @@ describe('ConstructionWorkspace', () => {
   });
 
   it('toggles new project form for PROJECT_MANAGER', async () => {
-    const session = { sub: 'pm1', roles: ['PROJECT_MANAGER'] };
+    const session = createMockSession(['PROJECT_MANAGER']);
     vi.mocked(api.fetchProjects).mockResolvedValueOnce([]);
 
     await act(async () => {

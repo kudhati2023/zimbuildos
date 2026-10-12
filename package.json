@@ -10,7 +10,8 @@
     "test:api": "npm --prefix zhms-api test",
     "seed:api": "npm --prefix zhms-api run seed",
     "seed:construction": "npm --prefix zhms-api run seed:construction",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "test": "vitest"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",
