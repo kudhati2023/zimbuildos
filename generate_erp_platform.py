@@ -2249,6 +2249,19 @@
       sysadmin: { name: "SecOps Administrator", title: "SECURITY & AUDIT ADMINISTRATOR", sub: "Zero-Trust Architecture & MCP Gateway", startFn: "sysadmin" }
     };
 
+    let _navTabsCache = null;
+    function getNavTabs() {
+      if (!_navTabsCache) {
+        _navTabsCache = Array.from(document.querySelectorAll('#master-nav-bar .func-tab')).map(tab => {
+          return {
+            element: tab,
+            allowedRoles: tab.getAttribute('data-roles').split(',')
+          };
+        });
+      }
+      return _navTabsCache;
+    }
+
     function selectJobRole(role) {
       currentJobRole = role;
       const conf = roleConfig[role] || roleConfig.ceo;
@@ -2256,14 +2269,17 @@
       document.getElementById('active-user-badge').innerText = conf.title;
       document.getElementById('active-user-sub').innerText = conf.sub;
 
-      document.querySelectorAll('#master-nav-bar .func-tab').forEach(tab => {
-        const allowedRoles = tab.getAttribute('data-roles').split(',');
-        if (role === 'ceo' || allowedRoles.includes(role)) {
-          tab.classList.remove('hidden');
+      const tabs = getNavTabs();
+      const isCeo = role === 'ceo';
+
+      for (let i = 0; i < tabs.length; i++) {
+        const tab = tabs[i];
+        if (isCeo || tab.allowedRoles.includes(role)) {
+          tab.element.classList.remove('hidden');
         } else {
-          tab.classList.add('hidden');
+          tab.element.classList.add('hidden');
         }
-      });
+      }
 
       showFunction(conf.startFn);
     }
