@@ -210,9 +210,19 @@ class LandSurveyorService:
     and computes automated lot subdivisions with setback buffers and easements.
     """
 
-    @staticmethod
-    def convert_wgs84_to_projected(req: CoordinateConversionRequestDTO) -> CoordinateConversionResponseDTO:
-        transformer = pyproj.Transformer.from_crs("EPSG:4326", f"EPSG:{req.target_epsg}", always_xy=True)
+    _TRANSFORMER_CACHE: Dict[int, pyproj.Transformer] = {}
+
+    @classmethod
+    def _get_transformer(cls, target_epsg: int) -> pyproj.Transformer:
+        if target_epsg not in cls._TRANSFORMER_CACHE:
+            cls._TRANSFORMER_CACHE[target_epsg] = pyproj.Transformer.from_crs(
+                "EPSG:4326", f"EPSG:{target_epsg}", always_xy=True
+            )
+        return cls._TRANSFORMER_CACHE[target_epsg]
+
+    @classmethod
+    def convert_wgs84_to_projected(cls, req: CoordinateConversionRequestDTO) -> CoordinateConversionResponseDTO:
+        transformer = cls._get_transformer(req.target_epsg)
         easting, northing = transformer.transform(req.wgs84_longitude, req.wgs84_latitude)
         return CoordinateConversionResponseDTO(
             wgs84_lat=req.wgs84_latitude,
@@ -242,18 +252,22 @@ class LandSurveyorService:
         if buildable_envelope.is_empty:
             buildable_envelope = poly_geom
 
+        env_minx, env_miny, env_maxx, env_maxy = buildable_envelope.bounds
+        env_width = env_maxx - env_minx
+        env_height = env_maxy - env_miny
+
         # Programmatically slice polygon along the longer axis
         lots = []
-        n = req.target_lot_count
-        slice_step = width / n if width >= height else height / n
+        n = max(1, req.target_lot_count)
+        slice_step = env_width / n if env_width >= env_height else env_height / n
 
         for i in range(n):
-            if width >= height:
-                box_slice = box(minx + i * slice_step, miny, minx + (i + 1) * slice_step, maxy)
+            if env_width >= env_height:
+                box_slice = box(env_minx + i * slice_step, env_miny, env_minx + (i + 1) * slice_step, env_maxy)
             else:
-                box_slice = box(minx, miny + i * slice_step, maxx, miny + (i + 1) * slice_step)
+                box_slice = box(env_minx, env_miny + i * slice_step, env_maxx, env_miny + (i + 1) * slice_step)
 
-            lot_intersect = poly_geom.intersection(box_slice)
+            lot_intersect = buildable_envelope.intersection(box_slice)
             if not lot_intersect.is_empty and lot_intersect.area > 0:
                 lots.append({
                     "lot_index": i + 1,
