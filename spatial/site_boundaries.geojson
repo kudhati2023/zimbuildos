@@ -1,0 +1,81 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "STAND-001",
+      "properties": {
+        "ladm_type": "LA_SpatialUnit",
+        "su_id": "STAND-001",
+        "zoning_type": "HIGH_RISE",
+        "area_sqm": 4000,
+        "is_youth_quota": true,
+        "price_usd": 10000.0,
+        "price_zwg": 265000.0,
+        "status": "TITLE_DEED_RELEASED",
+        "deed_number": "DT-2026/0894-HAR"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [[31.0520, -17.8240], [31.0540, -17.8240], [31.0540, -17.8255], [31.0520, -17.8255], [31.0520, -17.8240]]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "STAND-002",
+      "properties": {
+        "ladm_type": "LA_SpatialUnit",
+        "su_id": "STAND-002",
+        "zoning_type": "HIGH_RISE",
+        "area_sqm": 3000,
+        "is_youth_quota": false,
+        "price_usd": 8500.0,
+        "price_zwg": 225250.0,
+        "status": "AVAILABLE"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [[31.0542, -17.8240], [31.0560, -17.8240], [31.0560, -17.8255], [31.0542, -17.8255], [31.0542, -17.8240]]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "STAND-003",
+      "properties": {
+        "ladm_type": "LA_SpatialUnit",
+        "su_id": "STAND-003",
+        "zoning_type": "COMMERCIAL_RETAIL",
+        "area_sqm": 3000,
+        "is_youth_quota": false,
+        "price_usd": 7500.0,
+        "price_zwg": 198750.0,
+        "status": "AVAILABLE"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [[31.0520, -17.8258], [31.0550, -17.8258], [31.0550, -17.8270], [31.0520, -17.8270], [31.0520, -17.8258]]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "WETLAND-BUFFER-01",
+      "properties": {
+        "ladm_type": "LA_Restriction",
+        "restriction_type": "100M_WETLAND_BUFFER",
+        "description": "Statutory Ecological Exclusion Zone - Zero Development Allowed"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [[31.0565, -17.8270], [31.0585, -17.8270], [31.0585, -17.8285], [31.0565, -17.8285], [31.0565, -17.8270]]
+        ]
+      }
+    }
+  ]
+}

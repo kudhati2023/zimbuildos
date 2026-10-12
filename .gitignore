@@ -1,0 +1,15 @@
+# Secrets (ISO 27001 A.8.24): never commit real environment files
+.env
+.env.*
+!.env.example
+
+# Dependencies, build output, caches
+node_modules/
+dist/
+src-tauri/target/
+__pycache__/
+.pytest_cache/
+*.pyc
+
+# Local agent/editor state
+.refact/

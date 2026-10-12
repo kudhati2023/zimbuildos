@@ -1,0 +1,20 @@
+CREATE EXTENSION IF NOT EXISTS postgis;
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+
+CREATE TABLE IF NOT EXISTS la_party (
+    party_id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    national_id VARCHAR(50) UNIQUE NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+    party_type VARCHAR(50) NOT NULL CHECK (party_type IN ('YOUTH', 'DIASPORA', 'COMMERCIAL_DEVELOPER', 'CONVEYANCER')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS la_spatial_unit (
+    su_id VARCHAR(100) PRIMARY KEY,
+    geom GEOMETRY(Polygon, 4326) NOT NULL,
+    area_sqm NUMERIC(12, 2) NOT NULL,
+    zoning_type VARCHAR(50) NOT NULL CHECK (zoning_type IN ('HIGH_RISE', 'COMMERCIAL_RETAIL', 'OFFICE_PARK', 'MIXED_USE')),
+    price_usd NUMERIC(12, 2) NOT NULL,
+    price_zwg NUMERIC(14, 2) NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_la_spatial_unit_geom ON la_spatial_unit USING GIST(geom);

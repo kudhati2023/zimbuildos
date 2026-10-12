@@ -1,0 +1,39 @@
+{
+  "security": {
+    "preset": "strict",
+    "terminal": {
+      "executionMode": "sandboxed",
+      "requireManualApproval": true
+    },
+    "fileModifications": {
+      "requireManualApproval": true
+    },
+    "pathBoundaries": {
+      "allowWrite": [
+        "/src",
+        "/spatial",
+        "/contracts",
+        "/config"
+      ],
+      "denyWrite": [
+        "/.agents",
+        "/.gemini",
+        "/*"
+      ]
+    },
+    "network": {
+      "urlAllowlist": [
+        "http://localhost:*",
+        "https://api.ecocash.co.zw/*",
+        "https://gis.postgis-internal.lan/*"
+      ],
+      "defaultOutboundPolicy": "deny"
+    }
+  },
+  "reviewPolicy": {
+    "requireApprovalOnArtifacts": [
+      "implementation_plan",
+      "walkthrough"
+    ]
+  }
+}

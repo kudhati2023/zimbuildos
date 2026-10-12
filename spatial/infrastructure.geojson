@@ -1,0 +1,252 @@
+{
+  "type": "FeatureCollection",
+  "name": "Zimbuild_Highlands_Infrastructure_Masterplan",
+  "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+  "features": [
+    {
+      "type": "Feature",
+      "id": "ROAD-01",
+      "properties": {
+        "category": "ROADS",
+        "name": "Harare Highlands Boulevard (Spine)",
+        "hierarchy": "PRIMARY_ARTERIAL",
+        "reserve_width_m": 20.0,
+        "carriage_width_m": 7.4,
+        "surfacing": "Hot-Mix Asphalt (40mm Wearing Course)",
+        "progress_percent": 95,
+        "status": "OPERATIONAL",
+        "contractor": "Zimbuild Civil Engineering (Cat A)",
+        "civil_length_m": 480.0
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [31.0510, -17.8235],
+          [31.0535, -17.8237],
+          [31.0565, -17.8238],
+          [31.0590, -17.8240]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "ROAD-02",
+      "properties": {
+        "category": "ROADS",
+        "name": "Highlands Crescent (Access Loop)",
+        "hierarchy": "RESIDENTIAL_COLLECTOR",
+        "reserve_width_m": 15.0,
+        "carriage_width_m": 6.0,
+        "surfacing": "Bituminous Surface Dressing & Kerbs",
+        "progress_percent": 88,
+        "status": "UNDER_CONSTRUCTION",
+        "contractor": "Zimbuild Civil Engineering (Cat A)",
+        "civil_length_m": 360.0
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [31.0535, -17.8237],
+          [31.0538, -17.8258],
+          [31.0558, -17.8262],
+          [31.0565, -17.8238]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "SEWER-TRUNK",
+      "properties": {
+        "category": "SEWER",
+        "name": "Gravity Sewer Trunk Outfall (250mm)",
+        "pipe_type": "Class 100D Spun Concrete / Vitrified Clay",
+        "nominal_diameter_mm": 250,
+        "gradient": "1:120 (Self-cleansing 0.85 m/s)",
+        "progress_percent": 82,
+        "status": "TESTED_AND_CERTIFIED",
+        "contractor": "Zimbuild Civil Works",
+        "civil_length_m": 420.0
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [31.0515, -17.8242],
+          [31.0535, -17.8245],
+          [31.0555, -17.8250],
+          [31.0580, -17.8255]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "SEWER-MH-01",
+      "properties": {
+        "category": "SEWER_MANHOLE",
+        "name": "Manhole MH-01 (Upstream)",
+        "cover_level_m": 1502.10,
+        "invert_level_m": 1500.20,
+        "depth_m": 1.90,
+        "internal_diam_mm": 1050,
+        "status": "BENCHED_AND_COVERED"
+      },
+      "geometry": { "type": "Point", "coordinates": [31.0515, -17.8242] }
+    },
+    {
+      "type": "Feature",
+      "id": "SEWER-MH-02",
+      "properties": {
+        "category": "SEWER_MANHOLE",
+        "name": "Manhole MH-02 (Stand 001 Branch Junction)",
+        "cover_level_m": 1501.40,
+        "invert_level_m": 1499.10,
+        "depth_m": 2.30,
+        "internal_diam_mm": 1050,
+        "status": "BENCHED_AND_COVERED"
+      },
+      "geometry": { "type": "Point", "coordinates": [31.0535, -17.8245] }
+    },
+    {
+      "type": "Feature",
+      "id": "SEWER-MH-03",
+      "properties": {
+        "category": "SEWER_MANHOLE",
+        "name": "Manhole MH-03 (Stand 002 & 003 Connection)",
+        "cover_level_m": 1500.50,
+        "invert_level_m": 1497.80,
+        "depth_m": 2.70,
+        "internal_diam_mm": 1200,
+        "status": "BENCHED_AND_COVERED"
+      },
+      "geometry": { "type": "Point", "coordinates": [31.0555, -17.8250] }
+    },
+    {
+      "type": "Feature",
+      "id": "SEWER-MH-04",
+      "properties": {
+        "category": "SEWER_MANHOLE",
+        "name": "Manhole MH-04 (Terminal Outfall Chamber)",
+        "cover_level_m": 1499.20,
+        "invert_level_m": 1496.20,
+        "depth_m": 3.00,
+        "internal_diam_mm": 1500,
+        "status": "COMMISSIONED"
+      },
+      "geometry": { "type": "Point", "coordinates": [31.0580, -17.8255] }
+    },
+    {
+      "type": "Feature",
+      "id": "POWER-11KV",
+      "properties": {
+        "category": "ELECTRICITY",
+        "name": "ZETDC 11kV Overhead Power Line",
+        "voltage": "11,000 V (3-Phase)",
+        "conductor": "Mink ACSR Aluminium",
+        "progress_percent": 75,
+        "status": "ENERGIZED_TESTING",
+        "contractor": "ZESA Approved Contractor / Zimbuild",
+        "civil_length_m": 460.0
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [31.0512, -17.8232],
+          [31.0540, -17.8234],
+          [31.0568, -17.8236],
+          [31.0592, -17.8238]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "POWER-SUB-01",
+      "properties": {
+        "category": "POWER_SUBSTATION",
+        "name": "Substation TX-01 (Step-down 11kV/400V)",
+        "rating_kva": 315,
+        "type": "Ground-Mounted Package Substation",
+        "supply_area": "Stands 001 - 020 High-Rise & Commercial",
+        "status": "ACTIVE_COMMISSIONED"
+      },
+      "geometry": { "type": "Point", "coordinates": [31.0545, -17.8235] }
+    },
+    {
+      "type": "Feature",
+      "id": "POWER-LV-DIST",
+      "properties": {
+        "category": "ELECTRICITY",
+        "name": "Low-Voltage (400V) Underground Distribution",
+        "voltage": "400V / 230V 50Hz",
+        "cable_spec": "4-Core 95mm² XLPE SWA PVC Copper",
+        "progress_percent": 70,
+        "status": "CABLING_IN_PROGRESS",
+        "civil_length_m": 340.0
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [31.0545, -17.8235],
+          [31.0538, -17.8245],
+          [31.0552, -17.8252]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "WATER-BULK-MAIN",
+      "properties": {
+        "category": "WATER",
+        "name": "Potable Bulk Water Reticulation (200mm)",
+        "pipe_material": "uPVC Class 16 Pressure Pipe",
+        "diameter_mm": 200,
+        "operating_pressure_bar": 6.5,
+        "progress_percent": 90,
+        "status": "PRESSURE_TESTED_PASSED",
+        "contractor": "Zimbuild Civil Works",
+        "civil_length_m": 450.0
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [31.0510, -17.8238],
+          [31.0535, -17.8240],
+          [31.0565, -17.8241],
+          [31.0588, -17.8243]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": "WATER-HYDRANT-01",
+      "properties": {
+        "category": "WATER_VALVE",
+        "name": "Fire Hydrant FH-01 (65mm BS750)",
+        "flow_lps": 25.0,
+        "status": "CERTIFIED_FIRE_READY"
+      },
+      "geometry": { "type": "Point", "coordinates": [31.0536, -17.8239] }
+    },
+    {
+      "type": "Feature",
+      "id": "STORMWATER-DRAIN-01",
+      "properties": {
+        "category": "STORMWATER",
+        "name": "Manning Trapezoidal Concrete Side Drain",
+        "width_m": 0.8,
+        "depth_m": 0.5,
+        "velocity_ms": 1.75,
+        "discharge_capacity_m3s": 1.40,
+        "route_notes": "Bypasses 100m wetland buffer safely into retention weir",
+        "progress_percent": 95,
+        "civil_length_m": 390.0
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [31.0515, -17.8248],
+          [31.0545, -17.8256],
+          [31.0562, -17.8266]
+        ]
+      }
+    }
+  ]
+}
