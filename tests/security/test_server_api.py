@@ -679,3 +679,40 @@ def test_iso_27001_public_static_assets_allowed():
         content = resp.read().decode("utf-8", errors="ignore")
         assert "<!DOCTYPE html>" in content
 
+
+def test_iso_27001_cors_and_security_headers():
+    """ISO A.8.26: CORS preflight must return appropriate origin, and enterprise security headers must be present."""
+    # OPTIONS request with local dev origin
+    req = urllib.request.Request(
+        f"{BASE_URL}/api/health",
+        headers={"Origin": "http://localhost:1420"},
+        method="OPTIONS"
+    )
+    with urllib.request.urlopen(req) as resp:
+        assert resp.status == 200
+        headers = dict(resp.headers)
+        assert headers.get("Access-Control-Allow-Origin") == "http://localhost:1420"
+        assert "POST" in headers.get("Access-Control-Allow-Methods", "")
+        assert "X-User-Role" in headers.get("Access-Control-Allow-Headers", "")
+
+    # GET response must carry ISO security headers
+    get_req = urllib.request.Request(f"{BASE_URL}/api/health")
+    with urllib.request.urlopen(get_req) as resp:
+        headers = dict(resp.headers)
+        assert headers.get("X-Content-Type-Options") == "nosniff"
+        assert headers.get("X-Frame-Options") == "SAMEORIGIN"
+        assert "Content-Security-Policy" in headers
+
+
+def test_iso_27001_subresource_integrity_attributes():
+    """ISO A.8.30: External CDN dependencies must declare Subresource Integrity (SRI) hashes."""
+    req = urllib.request.Request(f"{BASE_URL}/index.html")
+    with urllib.request.urlopen(req) as resp:
+        content = resp.read().decode("utf-8")
+        assert 'integrity="sha384-' in content
+        assert 'crossorigin="anonymous"' in content
+        assert "leaflet@1.9.4" in content
+        assert "font-awesome/6.4.0" in content
+
+
+

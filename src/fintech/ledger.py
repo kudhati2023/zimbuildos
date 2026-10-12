@@ -2,14 +2,23 @@
 Fintech Gateway:
 Dual-Currency Double-Entry Ledger (USD / ZWG) with RBZ exchange rate conversion and cryptographic integrity.
 """
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 import hmac
 import hashlib
 import time
+import os
 
 class DualCurrencyLedger:
-    def __init__(self, secret_key: str = "enterprise_secret"):
-        self.secret_key = secret_key.encode('utf-8')
+    def __init__(self, secret_key: Optional[str] = None):
+        """Initializes ledger with cryptographic key management (ISO 27001 A.8.24)."""
+        env_mode = (os.environ.get("NODE_ENV") or os.environ.get("ZIMBUILD_ENV") or "development").lower()
+        key = secret_key or os.environ.get("FINTECH_LEDGER_SECRET")
+        if env_mode == "production":
+            if not key or len(key) < 32:
+                raise ValueError("ISO 27001 A.8.24: FINTECH_LEDGER_SECRET must be set and >= 32 characters in production.")
+        elif not key:
+            key = "dev_fintech_ledger_ephemeral_key_32_chars_min"
+        self.secret_key = key.encode('utf-8')
         self.accounts: Dict[str, Dict[str, Any]] = {}
         self.transactions: List[Dict[str, Any]] = []
 

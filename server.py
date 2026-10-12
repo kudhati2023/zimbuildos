@@ -220,18 +220,41 @@ class SecureERPRequestHandler(http.server.SimpleHTTPRequestHandler):
         )
         super().end_headers()
 
+    def _get_allowed_origin(self) -> str:
+        """Dynamically validates and resolves CORS origin (ISO 27001 A.8.26)."""
+        origin = self.headers.get("Origin", "")
+        configured_origins = os.environ.get("CORS_ORIGINS", "")
+        if configured_origins:
+            allowed_list = [o.strip() for o in configured_origins.split(",") if o.strip()]
+            if origin in allowed_list:
+                return origin
+            if os.environ.get("NODE_ENV") == "production":
+                return allowed_list[0] if allowed_list else "null"
+
+        # Safe development/local origins
+        if origin and (
+            origin.startswith("http://localhost:") or
+            origin.startswith("http://127.0.0.1:") or
+            origin.startswith("tauri://") or
+            origin.startswith("https://tauri.localhost")
+        ):
+            return origin
+
+        return "*" if os.environ.get("NODE_ENV") != "production" else "null"
+
     def do_OPTIONS(self):
-        """Handle CORS pre-flight requests safely."""
+        """Handle CORS pre-flight requests safely (ISO A.8.26)."""
         self.send_response(200)
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Origin", self._get_allowed_origin())
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, X-User-Role, Authorization")
+        self.send_header("Access-Control-Max-Age", "86400")
         self.end_headers()
 
     def _send_json(self, status_code: int, data: Dict[str, Any]):
         self.send_response(status_code)
         self.send_header("Content-Type", "application/json")
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Origin", self._get_allowed_origin())
         self.end_headers()
         self.wfile.write(json.dumps(data).encode("utf-8"))
 

@@ -139,3 +139,78 @@ def test_audit_chain_tamper_detection():
     tampered_entry["details"] = original_details
     reverted_res = security_guard.verify_audit_log_integrity()
     assert reverted_res["valid"] is True
+
+
+def test_iso_27001_audit_logging_pseudonymization_and_jsonl_persistence(tmp_path):
+    """ISO A.8.16 / A.8.12: Security events must pseudonymize actor IDs and persist to audit_events.jsonl."""
+    import os
+    import json
+    from src.security.security_guard import SecurityGuard
+
+    test_log_file = tmp_path / "test_audit.jsonl"
+    guard = SecurityGuard(log_file_path=str(test_log_file))
+
+    raw_actor_id = "user-takudzwa-national-id-63-123456-A-24"
+    evt = guard.log_security_event(
+        user_role="leasecrm",
+        action="TENANT_BACKGROUND_CHECK",
+        details="Credit score vetted",
+        actor_id=raw_actor_id
+    )
+
+    # Actor identity must NOT be logged in plaintext
+    assert "actor_pseudonym" in evt
+    assert raw_actor_id not in str(evt)
+    assert len(evt["actor_pseudonym"]) == 64  # SHA-256 hash length
+
+    # JSONL persistence check
+    assert os.path.exists(str(test_log_file))
+    with open(str(test_log_file), "r", encoding="utf-8") as f:
+        lines = [line.strip() for line in f if line.strip()]
+        assert len(lines) >= 1
+        last_logged = json.loads(lines[-1])
+        assert last_logged["event_hash"] == evt["event_hash"]
+        assert last_logged["actor_pseudonym"] == evt["actor_pseudonym"]
+
+
+def test_iso_27001_cryptographic_secret_enforcement_in_production(monkeypatch):
+    """ISO A.8.24: Production environment must refuse weak or missing HMAC secrets."""
+    import os
+    from src.security.security_guard import get_hmac_secret
+
+    monkeypatch.setenv("NODE_ENV", "production")
+    monkeypatch.delenv("ZIMBUILD_HMAC_SECRET", raising=False)
+
+    with pytest.raises(ValueError, match="ISO 27001 A.8.24"):
+        get_hmac_secret()
+
+    # Weak secret (< 32 chars) must also be rejected in production
+    monkeypatch.setenv("ZIMBUILD_HMAC_SECRET", "short_secret_123")
+    with pytest.raises(ValueError, match="ISO 27001 A.8.24"):
+        get_hmac_secret()
+
+    # Sufficient secret (>= 32 chars) must succeed
+    valid_key = "a_very_strong_cryptographic_secret_key_exceeding_32_chars!"
+    monkeypatch.setenv("ZIMBUILD_HMAC_SECRET", valid_key)
+    assert get_hmac_secret() == valid_key.encode("utf-8")
+
+
+def test_iso_27001_fintech_ledger_secret_enforcement_in_production(monkeypatch):
+    """ISO A.8.24: Fintech DualCurrencyLedger must mandate strong secret in production."""
+    from src.fintech.ledger import DualCurrencyLedger
+
+    monkeypatch.setenv("NODE_ENV", "production")
+    monkeypatch.delenv("FINTECH_LEDGER_SECRET", raising=False)
+
+    with pytest.raises(ValueError, match="ISO 27001 A.8.24"):
+        DualCurrencyLedger()
+
+    # Weak secret rejected
+    with pytest.raises(ValueError, match="ISO 27001 A.8.24"):
+        DualCurrencyLedger(secret_key="too_short")
+
+    # Valid secret succeeds
+    strong_key = "enterprise_fintech_production_secret_key_minimum_32_chars_ok"
+    ledger = DualCurrencyLedger(secret_key=strong_key)
+    assert ledger.secret_key == strong_key.encode("utf-8")
+
