@@ -70,6 +70,37 @@ class RoleChecker:
         return x_user_role
 
 
+from src.real_estate_erp.tasks import ERPTaskQueue
+
+
+# ----------------------------------------------------------------------------
+# ASYNC BACKGROUND PROCESSING JOBS (BullMQ / Redis Compatible)
+# ----------------------------------------------------------------------------
+class EnqueueJobDTO(BaseModel):
+    task_name: str
+    payload: Dict[str, Any]
+
+
+@api_router.post("/jobs/enqueue")
+def enqueue_background_job(body: EnqueueJobDTO):
+    """
+    Submits high-compute job (pro-forma stress, spatial subdivision, PDF reports) to background queue.
+    """
+    job_id = ERPTaskQueue.enqueue(body.task_name, body.payload)
+    return {"job_id": job_id, "status": "QUEUED"}
+
+
+@api_router.get("/jobs/{job_id}/status")
+def get_background_job_status(job_id: str):
+    """
+    Queries current status, progress, and computed artifacts of background job.
+    """
+    job = ERPTaskQueue.get_job_status(job_id)
+    if not job:
+        raise HTTPException(status_code=404, detail=f"Job '{job_id}' not found")
+    return job
+
+
 # ============================================================================
 # MODULE 1: LAND DEVELOPER ENDPOINTS
 # ============================================================================

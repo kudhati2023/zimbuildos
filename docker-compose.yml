@@ -31,7 +31,29 @@ services:
           memory: 1024M
 
   # -------------------------------------------------------------------------
-  # 2. ZHMS Core API Service (Node.js 20+ Express Engine)
+  # 2. Redis 7 High-Throughput Job Queue (BullMQ / Async Background Jobs)
+  # -------------------------------------------------------------------------
+  redis:
+    image: redis:7-alpine
+    container_name: zhms-redis
+    restart: always
+    ports:
+      - "127.0.0.1:6379:6379"
+    networks:
+      - zhms-internal
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1024M
+
+  # -------------------------------------------------------------------------
+  # 3. ZHMS Core API Service (Node.js 20+ Express Engine)
   # -------------------------------------------------------------------------
   zhms-api:
     build:
