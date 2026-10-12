@@ -92,7 +92,7 @@ class SupplyChainCoordinator:
         """
         bom = next((b for b in self.manufacturing.bom_registry.values() if b.product_code == product_code), None)
         if not bom:
-            return {"success": False, "error": f"BOM not found for {product_code}"}
+            raise ValueError(f"No BOM found for {product_code}")
 
         # Check stock of components
         for comp in bom.components:
