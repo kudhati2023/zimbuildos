@@ -173,3 +173,49 @@ def test_supply_chain_coordinator_end_to_end():
     assert assembly["quantity_manufactured"] == 5
     assert assembly["qc_pass_rate_pct"] > 98.0
     assert assembly["inbound_stock"] >= 85 # previously 80 + 5
+
+
+def test_coordinator_assemble_and_stock_prefab_success():
+    coordinator = SupplyChainCoordinator(fx_rate=26.50)
+
+    # We will test PREFAB-WALL-STD as its components exist in the catalog
+    initial_cement = coordinator.wms.catalog["MAT-CEMENT-42"].central_store_qty
+    initial_rebar = coordinator.wms.catalog["MAT-REBAR-Y10"].central_store_qty
+    initial_prefab = coordinator.wms.catalog["PREFAB-WALL-STD"].site_allocations.get("SITE-HIGHLANDS-01", 0.0)
+
+    res = coordinator.assemble_and_stock_prefab("PREFAB-WALL-STD", 10, "SITE-HIGHLANDS-01")
+    assert res["success"] is True
+    assert res["quantity_manufactured"] == 10
+
+    # Verify stock deduction
+    # from bom: MAT-CEMENT-42=3.5, MAT-REBAR-Y10=22.0
+    expected_cement_deducted = 3.5 * 10
+    expected_rebar_deducted = 22.0 * 10
+
+    assert coordinator.wms.catalog["MAT-CEMENT-42"].central_store_qty == initial_cement - expected_cement_deducted
+    assert coordinator.wms.catalog["MAT-REBAR-Y10"].central_store_qty == initial_rebar - expected_rebar_deducted
+
+    assert coordinator.wms.catalog["PREFAB-WALL-STD"].site_allocations["SITE-HIGHLANDS-01"] == initial_prefab + 10
+
+
+def test_coordinator_assemble_and_stock_prefab_no_bom():
+    import pytest
+    coordinator = SupplyChainCoordinator(fx_rate=26.50)
+    with pytest.raises(ValueError, match="No BOM found"):
+        coordinator.assemble_and_stock_prefab("UNKNOWN-PRODUCT", 10, "SITE-HIGHLANDS-01")
+
+
+def test_coordinator_assemble_and_stock_prefab_insufficient_stock():
+    coordinator = SupplyChainCoordinator(fx_rate=26.50)
+
+    # Empties MAT-CEMENT-42 stock
+    coordinator.wms.catalog["MAT-CEMENT-42"].central_store_qty = 10.0 # not enough for 3.5 * 10
+    initial_rebar = coordinator.wms.catalog["MAT-REBAR-Y10"].central_store_qty
+
+    res = coordinator.assemble_and_stock_prefab("PREFAB-WALL-STD", 10, "SITE-HIGHLANDS-01")
+    assert res["success"] is False
+    assert "Insufficient raw material" in res["error"]
+
+    # Ensure no partial deductions happened
+    assert coordinator.wms.catalog["MAT-CEMENT-42"].central_store_qty == 10.0
+    assert coordinator.wms.catalog["MAT-REBAR-Y10"].central_store_qty == initial_rebar
