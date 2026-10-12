@@ -137,6 +137,54 @@ export function createTransport(messaging) {
         { to: `+${m.to_phone}`, from: senderId, message: m.body });
       return String(json.id ?? json.messageId ?? 'sms');
     }
+    if (provider === 'twilio') {
+      const { accountSid, authToken, fromPhone } = messaging.sms.twilio;
+      const url = `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`;
+      const creds = Buffer.from(`${accountSid}:${authToken}`).toString('base64');
+      const params = new URLSearchParams();
+      params.append('To', `+${m.to_phone}`);
+      params.append('From', fromPhone);
+      params.append('Body', m.body);
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Basic ${creds}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: params.toString(),
+        signal: AbortSignal.timeout(15_000),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(`Twilio error: ${data.message || res.status}`);
+      return data.sid ?? 'twilio-sms';
+    }
+    if (provider === 'africastalking') {
+      const { username, apiKey, senderId } = messaging.sms.africastalking;
+      const url = username === 'sandbox'
+        ? 'https://api.sandbox.africastalking.com/version1/messaging'
+        : 'https://api.africastalking.com/version1/messaging';
+      const params = new URLSearchParams();
+      params.append('username', username);
+      params.append('to', `+${m.to_phone}`);
+      params.append('message', m.body);
+      if (senderId) params.append('from', senderId);
+
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'apiKey': apiKey,
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Accept': 'application/json',
+        },
+        body: params.toString(),
+        signal: AbortSignal.timeout(15_000),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(`Africa's Talking error: ${data.errorMessage || res.status}`);
+      const recipient = data?.SMSMessageData?.Recipients?.[0];
+      return recipient?.messageId ?? 'africastalking-sms';
+    }
     throw new Error(`Unknown provider ${provider}`);
   };
 }

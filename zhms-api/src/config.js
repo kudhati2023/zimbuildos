@@ -26,12 +26,21 @@ export function loadConfig(env = process.env) {
   const whatsappProvider = env.WHATSAPP_PROVIDER ?? 'console';
   const smsProvider = env.SMS_PROVIDER ?? 'console';
   if (!['console', 'cloud'].includes(whatsappProvider)) problems.push('WHATSAPP_PROVIDER must be console or cloud');
-  if (!['console', 'http'].includes(smsProvider)) problems.push('SMS_PROVIDER must be console or http');
+  if (!['console', 'http', 'twilio', 'africastalking'].includes(smsProvider)) problems.push('SMS_PROVIDER must be console, http, twilio, or africastalking');
   if (whatsappProvider === 'cloud') {
     if (!env.WHATSAPP_TOKEN) problems.push('WHATSAPP_TOKEN is required when WHATSAPP_PROVIDER=cloud');
     if (!env.WHATSAPP_PHONE_NUMBER_ID) problems.push('WHATSAPP_PHONE_NUMBER_ID is required when WHATSAPP_PROVIDER=cloud');
   }
   if (smsProvider === 'http' && !env.SMS_HTTP_URL) problems.push('SMS_HTTP_URL is required when SMS_PROVIDER=http');
+  if (smsProvider === 'twilio') {
+    if (!env.TWILIO_ACCOUNT_SID) problems.push('TWILIO_ACCOUNT_SID is required when SMS_PROVIDER=twilio');
+    if (!env.TWILIO_AUTH_TOKEN) problems.push('TWILIO_AUTH_TOKEN is required when SMS_PROVIDER=twilio');
+    if (!env.TWILIO_FROM_PHONE) problems.push('TWILIO_FROM_PHONE is required when SMS_PROVIDER=twilio');
+  }
+  if (smsProvider === 'africastalking') {
+    if (!env.AT_USERNAME) problems.push('AT_USERNAME is required when SMS_PROVIDER=africastalking');
+    if (!env.AT_API_KEY) problems.push('AT_API_KEY is required when SMS_PROVIDER=africastalking');
+  }
 
   const jobIntervalMinutes = Number(env.JOB_INTERVAL_MINUTES ?? 15);
   if (!Number.isInteger(jobIntervalMinutes) || jobIntervalMinutes < 0) problems.push('JOB_INTERVAL_MINUTES must be a whole number (0 disables jobs)');
@@ -81,6 +90,16 @@ export function loadConfig(env = process.env) {
         url: env.SMS_HTTP_URL,
         token: env.SMS_HTTP_TOKEN,
         senderId: env.SMS_SENDER_ID ?? 'ZIMBUILD',
+        twilio: {
+          accountSid: env.TWILIO_ACCOUNT_SID,
+          authToken: env.TWILIO_AUTH_TOKEN,
+          fromPhone: env.TWILIO_FROM_PHONE,
+        },
+        africastalking: {
+          username: env.AT_USERNAME,
+          apiKey: env.AT_API_KEY,
+          senderId: env.AT_SENDER_ID ?? 'ZIMBUILD',
+        },
       },
     },
   };
