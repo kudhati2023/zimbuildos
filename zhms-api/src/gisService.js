@@ -205,17 +205,52 @@ export class GisService {
       }
       if (problems.length) throw badRequest('GEOJSON_REJECTED', `${problems.length} feature(s) failed validation; nothing was imported`, problems);
 
-      for (const r of rows) {
+      if (rows.length > 0) {
+        const standNumbers = [];
+        const schemeNames = [];
+        const siteLocations = [];
+        const areaSqms = [];
+        const pricesUsd = [];
+        const surveyorGeneralRefs = [];
+        const statuses = [];
+        const quotaCategories = [];
+        const developmentIds = [];
+        const zoningTypes = [];
+        const landConstraints = [];
+        const boundaryGeojsons = [];
+        const centerLats = [];
+        const centerLngs = [];
+        const dimensionsList = [];
+
+        for (const r of rows) {
+          standNumbers.push(r.standNumber);
+          schemeNames.push(dev.name);
+          siteLocations.push(typeof r.p.site_location === 'string' ? r.p.site_location : dev.province);
+          areaSqms.push(Number.isFinite(Number(r.p.area_sqm)) && Number(r.p.area_sqm) > 0 ? Number(r.p.area_sqm) : r.shape.areaSqm);
+          pricesUsd.push(centsToNumeric(r.priceCents));
+          surveyorGeneralRefs.push(r.p.surveyor_general_ref ?? null);
+          statuses.push(r.constraint ? 'WITHDRAWN' : 'AVAILABLE');
+          quotaCategories.push(r.quota);
+          developmentIds.push(developmentId);
+          zoningTypes.push(r.zoning);
+          landConstraints.push(r.constraint);
+          boundaryGeojsons.push(JSON.stringify(r.geometry));
+          centerLats.push(r.shape.centroid.lat);
+          centerLngs.push(r.shape.centroid.lng);
+          dimensionsList.push(r.shape.dimensions);
+        }
+
         await client.query(
           `INSERT INTO la_spatial_unit (stand_number, scheme_name, site_location, area_sqm, price_usd, surveyor_general_ref,
                                         status, quota_category, development_id, zoning_type, land_constraint,
                                         boundary_geojson, center_lat, center_lng, dimensions)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
-          [r.standNumber, dev.name, typeof r.p.site_location === 'string' ? r.p.site_location : dev.province,
-            Number.isFinite(Number(r.p.area_sqm)) && Number(r.p.area_sqm) > 0 ? Number(r.p.area_sqm) : r.shape.areaSqm,
-            centsToNumeric(r.priceCents), r.p.surveyor_general_ref ?? null,
-            r.constraint ? 'WITHDRAWN' : 'AVAILABLE', r.quota, developmentId, r.zoning, r.constraint,
-            JSON.stringify(r.geometry), r.shape.centroid.lat, r.shape.centroid.lng, r.shape.dimensions]);
+           SELECT * FROM UNNEST($1::text[], $2::text[], $3::text[], $4::numeric[], $5::numeric[], $6::text[],
+                                $7::text[], $8::text[], $9::text[], $10::text[], $11::text[],
+                                $12::jsonb[], $13::numeric[], $14::numeric[], $15::text[])`,
+          [standNumbers, schemeNames, siteLocations, areaSqms, pricesUsd, surveyorGeneralRefs,
+           statuses, quotaCategories, developmentIds, zoningTypes, landConstraints,
+           boundaryGeojsons, centerLats, centerLngs, dimensionsList]
+        );
       }
       await audit(client, actor, 'STANDS_IMPORTED', 'developments', developmentId, {
         count: rows.length, standNumbers: rows.map((r) => r.standNumber),
