@@ -7,7 +7,6 @@ Validates land survey geometry against ZNHSP statutory rules:
 """
 from typing import List, Dict, Any
 from shapely.geometry import Polygon, Point, MultiPolygon
-from shapely.ops import unary_union
 
 class ZoningValidator:
     def __init__(self, wetland_buffer_distance_m: float = 100.0, high_rise_min_ratio: float = 0.40):
