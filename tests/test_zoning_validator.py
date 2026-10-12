@@ -3,7 +3,7 @@ from shapely.geometry import Polygon, Point
 from spatial.zoning_validator import ZoningValidator
 
 def test_wetland_buffer_compliant():
-    validator = ZoningValidator(wetland_buffer_distance_m=100.0)
+    validator = ZoningValidator(wetland_buffer_distance_m=100.0, high_rise_min_ratio=0.40)
 
     # Parcel is a 10x10 square at origin
     parcel = Polygon([(0, 0), (10, 0), (10, 10), (0, 10)])
@@ -19,7 +19,7 @@ def test_wetland_buffer_compliant():
     assert len(result["violations"]) == 0
 
 def test_wetland_buffer_non_compliant():
-    validator = ZoningValidator(wetland_buffer_distance_m=100.0)
+    validator = ZoningValidator(wetland_buffer_distance_m=100.0, high_rise_min_ratio=0.40)
 
     # Parcel is a 10x10 square at origin
     parcel = Polygon([(0, 0), (10, 0), (10, 10), (0, 10)])
@@ -41,7 +41,7 @@ def test_wetland_buffer_non_compliant():
     assert violation["encroachment_m"] == 90.0
 
 def test_multiple_wetlands():
-    validator = ZoningValidator(wetland_buffer_distance_m=100.0)
+    validator = ZoningValidator(wetland_buffer_distance_m=100.0, high_rise_min_ratio=0.40)
 
     # Parcel is a 10x10 square at origin
     parcel = Polygon([(0, 0), (10, 0), (10, 10), (0, 10)])
@@ -69,4 +69,3 @@ def test_multiple_wetlands():
     v2 = next(v for v in result["violations"] if v["wetland_index"] == 2)
     assert v2["actual_distance_m"] == 0.0
     assert v2["encroachment_m"] == 100.0
-# testing
