@@ -195,3 +195,23 @@ def test_lean_construction_toc_and_offline_sync():
     sync_result = lean.process_sync_queue()
     assert sync_result["synced_count"] >= 1
     assert evt.synced_to_cloud is True
+
+def test_site_operations_log_equipment_shift():
+    sm = SiteOperationsManager()
+
+    # "PLANT-03" is seeded by _seed_default_data which is called in __init__
+    eq = sm.equipment_fleet["PLANT-03"]
+    initial_op_hours = eq.operating_hours
+    initial_idle_hours = eq.idle_downtime_hours
+    initial_fuel = eq.fuel_consumed_liters
+
+    sm.log_equipment_shift("PLANT-03", 5.0, 1.0, 20.0)
+
+    assert eq.operating_hours == initial_op_hours + 5.0
+    assert eq.idle_downtime_hours == initial_idle_hours + 1.0
+    assert eq.fuel_consumed_liters == initial_fuel + 20.0
+
+    # Test invalid asset_id
+    sm.log_equipment_shift("INVALID-PLANT", 5.0, 1.0, 20.0)
+    # Should not throw exception and plant 03 should be unmodified
+    assert eq.operating_hours == initial_op_hours + 5.0
