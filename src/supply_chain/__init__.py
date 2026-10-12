@@ -90,7 +90,7 @@ class SupplyChainCoordinator:
         3. Runs Manufacturing assembly work order
         4. Records finished prefabrication units into WMS active site inventory
         """
-        bom = next((b for b in self.manufacturing.bom_registry.values() if b.product_code == product_code), None)
+        bom = self.manufacturing.get_bom_by_product_code(product_code)
         if not bom:
             return {"success": False, "error": f"BOM not found for {product_code}"}
 

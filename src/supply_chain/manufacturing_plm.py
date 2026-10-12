@@ -90,8 +90,14 @@ class ManufacturingPLMManager:
         self.fx_rate = fx_rate
         self.bom_registry: Dict[str, BillOfMaterials] = {}
         self.eco_registry: Dict[str, EngineeringChangeOrder] = {}
+        self._product_code_idx: Dict[str, BillOfMaterials] = {}
         self.production_orders: Dict[str, ProductionWorkOrder] = {}
         self._seed_mrp_plm_data()
+
+    def get_bom_by_product_code(self, product_code: str) -> Optional[BillOfMaterials]:
+        if len(self._product_code_idx) != len(self.bom_registry):
+            self._product_code_idx = {b.product_code: b for b in self.bom_registry.values()}
+        return self._product_code_idx.get(product_code)
 
     def _seed_mrp_plm_data(self):
         # 1. Standard Prefab Wall Panel BOM (2.8m x 1.2m)
@@ -199,7 +205,7 @@ class ManufacturingPLMManager:
         Enables MRP netting against available stock.
         """
         # Find active BOM
-        bom = next((b for b in self.bom_registry.values() if b.product_code == product_code), None)
+        bom = self.get_bom_by_product_code(product_code)
         if not bom:
             return {"success": False, "error": f"No BOM found for product {product_code}"}
 
@@ -248,7 +254,7 @@ class ManufacturingPLMManager:
         facility: str = "Mount Hampden Prefab Yard"
     ) -> Dict[str, Any]:
         """Creates an executable shop-floor manufacturing order."""
-        bom = next((b for b in self.bom_registry.values() if b.product_code == product_code), None)
+        bom = self.get_bom_by_product_code(product_code)
         if not bom:
             return {"success": False, "error": f"No active BOM found for {product_code}"}
 
