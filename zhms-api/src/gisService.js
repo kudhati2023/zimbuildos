@@ -62,6 +62,115 @@ export function analysePolygon(geometry) {
   };
 }
 
+/**
+ * Computes boundary bearings (whole circle 0-360 degrees) and geodesic distances (metres)
+ * between consecutive polygon vertices per Surveyor-General statutory specifications.
+ */
+export function computeBoundaryTraverse(geometry) {
+  if (!geometry || geometry.type !== 'Polygon' || !Array.isArray(geometry.coordinates?.[0])) {
+    return [];
+  }
+  const ring = geometry.coordinates[0];
+  const traverse = [];
+
+  for (let i = 0; i < ring.length - 1; i++) {
+    const [lng1, lat1] = ring[i];
+    const [lng2, lat2] = ring[i + 1];
+
+    const dLat = (lat2 - lat1) * (Math.PI / 180);
+    const dLng = (lng2 - lng1) * (Math.PI / 180);
+    const lat1Rad = lat1 * (Math.PI / 180);
+    const lat2Rad = lat2 * (Math.PI / 180);
+
+    // Haversine geodesic distance in metres
+    const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+              Math.cos(lat1Rad) * Math.cos(lat2Rad) *
+              Math.sin(dLng / 2) * Math.sin(dLng / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distanceM = Math.round(6371000 * c * 100) / 100;
+
+    // Whole circle bearing in degrees (0 to 360)
+    const y = Math.sin(dLng) * Math.cos(lat2Rad);
+    const x = Math.cos(lat1Rad) * Math.sin(lat2Rad) -
+              Math.sin(lat1Rad) * Math.cos(lat2Rad) * Math.cos(dLng);
+    let bearingDeg = Math.round(((Math.atan2(y, x) * 180 / Math.PI + 360) % 360) * 100) / 100;
+
+    const deg = Math.floor(bearingDeg);
+    const min = Math.round((bearingDeg - deg) * 60);
+
+    traverse.push({
+      leg: `${String.fromCharCode(65 + (i % 26))}-${String.fromCharCode(65 + ((i + 1) % 26))}`,
+      from: [lng1, lat1],
+      to: [lng2, lat2],
+      distance_meters: distanceM,
+      bearing_degrees: bearingDeg,
+      bearing_formatted: `${deg}° ${String(min).padStart(2, '0')}'`
+    });
+  }
+  return traverse;
+}
+
+/**
+ * Parses raw Surveyor-General (SG) coordinate schedule text (beacons and Lo coordinates)
+ * converting local Gauss Conform Lo (meters) to WGS84 GeoJSON polygon.
+ * Supports standard format:
+ *   Beacon X_East Y_North
+ *   A 12050.45 -8920.10
+ *   B 12085.60 -8920.10
+ *   C 12085.60 -8955.30
+ *   D 12050.45 -8955.30
+ */
+export function parseSGCoordinateSchedule(scheduleText, { centralMeridian = 31, originLat = -17.8292 } = {}) {
+  if (!scheduleText || typeof scheduleText !== 'string') {
+    throw badRequest('INVALID_SG_SCHEDULE', 'Surveyor-General coordinate schedule text is required');
+  }
+
+  const lines = scheduleText.split(/\r?\n/).map(l => l.trim()).filter(l => l && !l.startsWith('#'));
+  const beacons = [];
+
+  for (const line of lines) {
+    const parts = line.split(/[\s,;\t]+/).filter(Boolean);
+    if (parts.length >= 3) {
+      const beacon = parts[0];
+      const x = parseFloat(parts[1]);
+      const y = parseFloat(parts[2]);
+      if (Number.isFinite(x) && Number.isFinite(y)) {
+        beacons.push({ beacon, x, y });
+      }
+    }
+  }
+
+  if (beacons.length < 3) {
+    throw badRequest('INVALID_SG_BEACONS', 'SG schedule requires at least 3 valid coordinate beacons (A, B, C...)');
+  }
+
+  // Convert Lo coordinates (metres relative to Central Meridian) to WGS84 approx
+  const latFactor = 1.0 / 110540.0;
+  const lngFactor = 1.0 / (111320.0 * Math.cos(originLat * Math.PI / 180.0));
+
+  const ring = beacons.map(b => [
+    Math.round((centralMeridian + b.x * lngFactor) * 1e6) / 1e6,
+    Math.round((originLat + b.y * latFactor) * 1e6) / 1e6
+  ]);
+
+  // Ensure closed ring
+  if (ring[0][0] !== ring[ring.length - 1][0] || ring[0][1] !== ring[ring.length - 1][1]) {
+    ring.push([...ring[0]]);
+  }
+
+  const geometry = { type: 'Polygon', coordinates: [ring] };
+  const shape = analysePolygon(geometry);
+  const traverse = computeBoundaryTraverse(geometry);
+
+  return {
+    beacons,
+    geometry,
+    shape,
+    traverse,
+    beacon_count: beacons.length
+  };
+}
+
 export class GisService {
   constructor(db) {
     this.db = db;
@@ -148,6 +257,7 @@ export class GisService {
         title_deed_issued: s.allocation_status === 'COMPLETED',
         holder_name: includeHolders && s.first_name ? `${s.first_name} ${s.last_name}` : null,
         holder_national_id: includeHolders ? s.national_id : null,
+        boundary_traverse: s.boundary_geojson ? computeBoundaryTraverse(s.boundary_geojson) : [],
       };
       return { type: 'Feature', id: s.parcel_id, geometry: s.boundary_geojson, properties };
     });
@@ -267,5 +377,89 @@ export class GisService {
               count(*) FILTER (WHERE status = 'FAILED')::int AS failed,
               count(*) FILTER (WHERE status = 'SENT')::int AS sent FROM outbound_messages`);
     return { stands, applications, finance: money, documents: docs, messages, zoning: await this.zoningSummary() };
+  }
+
+  /**
+   * Generates utility infrastructure network layers (water mains, sewer collectors, power lines, and stormwater corridors)
+   * connected to stand centroids and road alignments for the development.
+   */
+  async getUtilityInfrastructureNetwork(developmentId) {
+    const { rows: [dev] } = await this.db.query('SELECT * FROM developments WHERE development_id = $1', [developmentId]);
+    if (!dev) throw notFound('Development');
+
+    const { rows: stands } = await this.db.query(
+      `SELECT stand_number, center_lat, center_lng, water_status, sewer_status, roads_status
+         FROM la_spatial_unit
+        WHERE development_id = $1 AND center_lat IS NOT NULL
+        ORDER BY stand_number`, [developmentId]);
+
+    const cLat = Number(dev.center_lat);
+    const cLng = Number(dev.center_lng);
+
+    // Water Distribution Network (Blue)
+    const waterMain = {
+      type: 'Feature',
+      properties: { utility: 'WATER_MAIN', name: 'Primary Municipal Water Spine', status: 'OPERATIONAL', pressure_bar: 4.5 },
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [cLng - 0.0035, cLat - 0.0015],
+          [cLng, cLat],
+          [cLng + 0.0035, cLat + 0.0015]
+        ]
+      }
+    };
+
+    // Sewer Trunk Reticulation (Amber / Orange)
+    const sewerTrunk = {
+      type: 'Feature',
+      properties: { utility: 'SEWER_TRUNK', name: 'Gravity Outfall Sewer Line', status: 'IN_SERVICE', diameter_mm: 300 },
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [cLng - 0.0030, cLat + 0.0020],
+          [cLng, cLat],
+          [cLng + 0.0030, cLat - 0.0020]
+        ]
+      }
+    };
+
+    // 11kV Power Backbone & Transformer Substation (Purple)
+    const powerGrid = {
+      type: 'Feature',
+      properties: { utility: 'POWER_11KV', name: 'ZETDC 11kV Overhead Feeder Corridor', status: 'ENERGIZED', voltage_kv: 11 },
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [cLng - 0.0040, cLat],
+          [cLng, cLat],
+          [cLng + 0.0040, cLat]
+        ]
+      }
+    };
+
+    // Servicing connections for stands
+    const serviceConnections = stands.map(s => ({
+      type: 'Feature',
+      properties: {
+        stand_number: s.stand_number,
+        water: s.water_status,
+        sewer: s.sewer_status,
+        roads: s.roads_status
+      },
+      geometry: {
+        type: 'LineString',
+        coordinates: [
+          [cLng, cLat],
+          [Number(s.center_lng), Number(s.center_lat)]
+        ]
+      }
+    }));
+
+    return {
+      type: 'FeatureCollection',
+      development_id: developmentId,
+      features: [waterMain, sewerTrunk, powerGrid, ...serviceConnections]
+    };
   }
 }

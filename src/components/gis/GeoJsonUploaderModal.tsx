@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Upload, X, CheckCircle2, FileText, AlertCircle, Terminal, HelpCircle } from 'lucide-react';
-import { importStands, ApiError } from '../../api';
+import { Upload, X, CheckCircle2, FileText, AlertCircle, Terminal, HelpCircle, Compass, Calculator } from 'lucide-react';
+import { importStands, parseSGSchedule, ApiError } from '../../api';
+import type { SGScheduleParseResult } from '../../types';
 
 interface GeoJsonUploaderModalProps {
   isOpen: boolean;
@@ -19,7 +20,19 @@ export const GeoJsonUploaderModal: React.FC<GeoJsonUploaderModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'upload' | 'docs'>('upload');
+  const [activeTab, setActiveTab] = useState<'upload' | 'sg' | 'docs'>('upload');
+
+  // Surveyor-General Schedule Parsing State
+  const [sgText, setSgText] = useState(
+`A   +294500.00   -1979200.00
+B   +294540.00   -1979200.00
+C   +294540.00   -1979250.00
+D   +294500.00   -1979250.00`
+  );
+  const [sgStandNumber, setSgStandNumber] = useState('BUD2-601');
+  const [sgPriceUsd, setSgPriceUsd] = useState('1500.00');
+  const [sgResult, setSgResult] = useState<SGScheduleParseResult | null>(null);
+  const [isParsingSG, setIsParsingSG] = useState(false);
 
   if (!isOpen) return null;
 
@@ -39,6 +52,73 @@ export const GeoJsonUploaderModal: React.FC<GeoJsonUploaderModalProps> = ({
       }
     };
     reader.readAsText(file);
+  };
+
+  const handleSGFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      setSgText(content);
+      setError(null);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleParseSG = async () => {
+    setError(null);
+    setSuccessMsg(null);
+    setIsParsingSG(true);
+    try {
+      const res = await parseSGSchedule(sgText, {
+        centralMeridian: 31,
+        originLat: -17.8292
+      });
+      setSgResult(res);
+      setSuccessMsg(`Parsed ${res.beacons.length} beacons, ${res.traverse.length} traverse legs. Area: ${res.shape.areaSqm} m²`);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to parse Surveyor-General coordinate schedule.');
+    } finally {
+      setIsParsingSG(false);
+    }
+  };
+
+  const handleImportSGCadastre = async () => {
+    if (!sgResult) return;
+    setError(null);
+    setSuccessMsg(null);
+    setIsUploading(true);
+
+    try {
+      const feature = {
+        type: 'Feature' as const,
+        geometry: sgResult.geometry,
+        properties: {
+          stand_number: sgStandNumber.trim(),
+          price_usd: sgPriceUsd.trim(),
+          area_sqm: sgResult.shape.areaSqm,
+          zoning_type: 'SINGLE_RESIDENTIAL',
+          quota_category: 'GENERAL',
+          surveyor_general_ref: `SG/CAD/${sgStandNumber.trim()}`
+        }
+      };
+
+      const fc = {
+        type: 'FeatureCollection' as const,
+        features: [feature]
+      };
+
+      const { importedCount } = await importStands(developmentId, fc);
+      setSuccessMsg(`Imported stand ${sgStandNumber} with SG traverse verification.`);
+      onUploadSuccess(importedCount);
+      setTimeout(onClose, 1500);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to import stand.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -106,6 +186,17 @@ export const GeoJsonUploaderModal: React.FC<GeoJsonUploaderModalProps> = ({
             Import GeoJSON
           </button>
           <button
+            onClick={() => setActiveTab('sg')}
+            className={`px-3 py-1.5 rounded-lg text-xs font-mono flex items-center space-x-1 transition ${
+              activeTab === 'sg' 
+                ? 'bg-indigo-600 text-white font-semibold' 
+                : 'text-slate-400 hover:text-slate-200'
+            }`}
+          >
+            <Compass className="w-3.5 h-3.5 mr-1 text-sky-400" />
+            <span>Surveyor-General (.CRD)</span>
+          </button>
+          <button
             onClick={() => setActiveTab('docs')}
             className={`px-3 py-1.5 rounded-lg text-xs font-mono flex items-center space-x-1 transition ${
               activeTab === 'docs' 
@@ -114,7 +205,7 @@ export const GeoJsonUploaderModal: React.FC<GeoJsonUploaderModalProps> = ({
             }`}
           >
             <HelpCircle className="w-3.5 h-3.5 mr-1" />
-            <span>Developer Guide (Shapefile Conversion)</span>
+            <span>Developer Guide</span>
           </button>
         </div>
 
@@ -184,6 +275,137 @@ export const GeoJsonUploaderModal: React.FC<GeoJsonUploaderModalProps> = ({
               </button>
             </div>
           </form>
+        ) : activeTab === 'sg' ? (
+          <div className="space-y-4">
+            <div className="bg-sky-950/40 border border-sky-500/30 p-3 rounded-xl text-xs text-sky-200 flex items-start space-x-2">
+              <Compass className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
+              <div>
+                <p className="font-semibold text-slate-100">Surveyor-General Gauss Conform Lo Coordinate Schedule</p>
+                <p className="text-[11px] text-sky-300/80 mt-0.5">
+                  Paste lettered beacon coordinates (e.g. <code>A +294500.00 -1979200.00</code>) or upload a <code>.crd/.txt</code> schedule file. The system will compute azimuth bearings, traverse legs, polygon area, and project into WGS84.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-mono text-slate-300 mb-1">Stand Number</label>
+                <input
+                  type="text"
+                  value={sgStandNumber}
+                  onChange={e => setSgStandNumber(e.target.value)}
+                  placeholder="e.g. BUD2-601"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs font-mono text-white focus:border-indigo-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-mono text-slate-300 mb-1">Price (USD)</label>
+                <input
+                  type="text"
+                  value={sgPriceUsd}
+                  onChange={e => setSgPriceUsd(e.target.value)}
+                  placeholder="e.g. 1500.00"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-xs font-mono text-white focus:border-indigo-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <div className="flex justify-between items-center mb-1">
+                <label className="block text-xs font-mono text-slate-300">
+                  BEACON COORDINATES SCHEDULE (Beacon X_East Y_North)
+                </label>
+                <label className="text-[11px] text-indigo-400 hover:text-indigo-300 cursor-pointer font-mono">
+                  <span>Upload .crd/.txt</span>
+                  <input
+                    type="file"
+                    accept=".crd,.txt,.dat"
+                    onChange={handleSGFileUpload}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+              <textarea
+                value={sgText}
+                onChange={e => setSgText(e.target.value)}
+                placeholder="A  +294500.00  -1979200.00&#10;B  +294540.00  -1979200.00&#10;C  +294540.00  -1979250.00&#10;D  +294500.00  -1979250.00"
+                rows={5}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-xs font-mono text-slate-200 focus:outline-none focus:border-indigo-500 resize-none"
+              />
+            </div>
+
+            <div className="flex space-x-2">
+              <button
+                type="button"
+                onClick={handleParseSG}
+                disabled={!sgText.trim() || isParsingSG}
+                className="flex-1 py-2 bg-sky-700 hover:bg-sky-600 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition flex items-center justify-center space-x-1.5"
+              >
+                <Calculator className="w-3.5 h-3.5" />
+                <span>{isParsingSG ? 'Parsing Geodesy...' : 'Compute Bearings & Area'}</span>
+              </button>
+            </div>
+
+            {/* Parsed Result Preview */}
+            {sgResult && (
+              <div className="bg-slate-950 border border-slate-800 rounded-xl p-3 text-xs font-mono space-y-2 max-h-44 overflow-y-auto">
+                <div className="flex justify-between items-center border-b border-slate-800 pb-1">
+                  <span className="text-emerald-400 font-bold">Area: {sgResult.shape.areaSqm} m²</span>
+                  <span className="text-slate-400">{sgResult.traverse.length} Traverse Legs</span>
+                </div>
+                <table className="w-full text-left border-collapse text-[11px]">
+                  <thead>
+                    <tr className="text-slate-500 border-b border-slate-800">
+                      <th>Leg</th>
+                      <th>Bearing (deg min)</th>
+                      <th className="text-right">Distance (m)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sgResult.traverse.map(leg => (
+                      <tr key={leg.leg} className="border-b border-slate-900">
+                        <td className="text-slate-200 font-bold">{leg.leg}</td>
+                        <td className="text-sky-400">{leg.bearing_formatted}</td>
+                        <td className="text-right text-slate-300">{leg.distance_meters}m</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            {error && (
+              <div className="p-3 bg-rose-950/60 border border-rose-500/40 rounded-xl text-xs text-rose-300 flex items-start space-x-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
+
+            {successMsg && (
+              <div className="p-3 bg-emerald-950/60 border border-emerald-500/40 rounded-xl text-xs text-emerald-300 flex items-center space-x-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0" />
+                <span>{successMsg}</span>
+              </div>
+            )}
+
+            <div className="flex space-x-3 pt-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold rounded-xl transition"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleImportSGCadastre}
+                disabled={!sgResult || isUploading || !sgStandNumber.trim()}
+                className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white text-xs font-bold rounded-xl transition shadow-lg shadow-emerald-950"
+              >
+                {isUploading ? 'Registering Cadastre Stand...' : 'Ingest Stand with SG Traverse'}
+              </button>
+            </div>
+          </div>
         ) : (
           <div className="space-y-3 font-mono text-xs max-h-[360px] overflow-y-auto pr-1">
             <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800">

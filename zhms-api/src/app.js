@@ -269,6 +269,26 @@ export function createApp(db, services, config) {
     } catch (e) { next(e); }
   });
 
+  // 7c. Surveyor-General (SG) Coordinate Schedule Parser
+  app.post('/api/v1/gis/sg-schedule/parse', authenticate(config), requireRole(ROLES.LAND_OFFICER, ROLES.ENGINEER, ROLES.ADMIN), async (req, res, next) => {
+    try {
+      const { parseSGCoordinateSchedule } = await import('./gisService.js');
+      const text = req.body?.scheduleText ?? '';
+      const opts = {
+        centralMeridian: Number(req.body?.centralMeridian ?? 31),
+        originLat: Number(req.body?.originLat ?? -17.8292)
+      };
+      res.json(parseSGCoordinateSchedule(text, opts));
+    } catch (e) { next(e); }
+  });
+
+  // 7d. Utility Infrastructure Networks (water, sewer, 11kV electrical corridors)
+  app.get('/api/v1/gis/developments/:id/utility-infrastructure', async (req, res, next) => {
+    try {
+      res.json(await services.gis.getUtilityInfrastructureNetwork(req.params.id));
+    } catch (e) { next(e); }
+  });
+
   app.get('/api/v1/gis/zoning-summary', async (_req, res, next) => {
     try {
       res.json({ developments: await services.gis.zoningSummary() });

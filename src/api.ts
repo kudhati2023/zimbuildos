@@ -123,6 +123,23 @@ export const importStands = (developmentId: string, featureCollection: unknown) 
     method: 'POST', body: featureCollection,
   });
 
+/** Fetches multi-utility reticulation infrastructure (water, sewer, 11kV corridors). */
+export const fetchUtilityInfrastructure = (developmentId: string) =>
+  request<import('./types').UtilityFeatureCollection>(`/gis/developments/${encodeURIComponent(developmentId)}/utility-infrastructure`);
+
+/** Parses Surveyor-General coordinate schedule text into polygon boundary & traverse legs. */
+export const parseSGSchedule = (scheduleText: string, options?: { centralMeridian?: number; originLat?: number }) =>
+  request<{
+    beacons: { beacon: string; x: number; y: number }[];
+    geometry: import('./types').GeoJSONPolygon;
+    shape: { centroid: { lat: number; lng: number }; areaSqm: number; dimensions: string };
+    traverse: import('./types').BoundaryTraverseLeg[];
+    beacon_count: number;
+  }>('/gis/sg-schedule/parse', {
+    method: 'POST',
+    body: { scheduleText, ...options },
+  });
+
 /** ENGINEER only. Full certification requires the council inspection certificate reference. */
 export const updateServicing = (parcelId: string, servicing: Partial<StandServicing>, certificateRef?: string) =>
   request<{ stand: unknown }>(`/stands/${encodeURIComponent(parcelId)}/servicing`, {

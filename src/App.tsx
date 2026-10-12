@@ -4,7 +4,7 @@ import {
   Shield, CheckCircle, AlertTriangle, Printer,
   RefreshCw, MapPin, Upload, Compass,
   FileSpreadsheet, Sparkles, AlertCircle, Award, LogIn, LogOut,
-  Send, Smartphone, MessageSquare, Clock, Eye, Package, Boxes, Factory, CheckCircle2
+  Send, Smartphone, MessageSquare, Clock, Eye, Package, Boxes, Factory, CheckCircle2, HardHat
 } from 'lucide-react';
 import * as api from './api';
 import { InteractiveLeafletMap } from './components/map/InteractiveLeafletMap';
@@ -127,6 +127,7 @@ export default function AntigravityEnterpriseDesktop() {
   const [selectedDevId, setSelectedDevId] = useState<string>('');
   const [developments, setDevelopments] = useState<HousingDevelopment[]>([]);
   const [spatialViewMode, setSpatialViewMode] = useState<'MAP' | 'GRID'>('MAP');
+  const [mapColorMode, setMapColorMode] = useState<'cadastre' | 'infrastructure'>('cadastre');
   const [selectedStandId, setSelectedStandId] = useState<string>('');
   const [isInspectorOpen, setIsInspectorOpen] = useState(true);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -703,6 +704,30 @@ export default function AntigravityEnterpriseDesktop() {
 
               {/* View Mode Toggle & Actions */}
               <div className="flex items-center space-x-2">
+                {/* Cadastre vs Infrastructure Lens Toggle */}
+                <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800">
+                  <button
+                    onClick={() => setMapColorMode('cadastre')}
+                    className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition ${
+                      mapColorMode === 'cadastre' ? 'bg-emerald-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                    title="Color stands by booking availability & allocation status"
+                  >
+                    <MapPin className="w-3.5 h-3.5" />
+                    <span>Cadastre</span>
+                  </button>
+                  <button
+                    onClick={() => setMapColorMode('infrastructure')}
+                    className={`flex items-center space-x-1.5 px-2.5 py-1 rounded-lg text-xs font-medium transition ${
+                      mapColorMode === 'infrastructure' ? 'bg-cyan-600 text-white shadow' : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                    title="Color stands by civil infrastructure works & servicing stage"
+                  >
+                    <HardHat className="w-3.5 h-3.5" />
+                    <span>Infrastructure</span>
+                  </button>
+                </div>
+
                 <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800">
                   <button
                     onClick={() => setSpatialViewMode('MAP')}
@@ -727,7 +752,7 @@ export default function AntigravityEnterpriseDesktop() {
                   className="bg-slate-950 hover:bg-slate-900 border border-slate-800 hover:border-slate-700 text-cyan-400 px-3 py-1.5 rounded-xl text-xs flex items-center space-x-1.5 transition font-medium disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   <Upload className="w-3.5 h-3.5" />
-                  <span>Upload GeoJSON</span>
+                  <span>Upload GeoJSON / SG</span>
                 </button>
 
                 <button
@@ -755,6 +780,8 @@ export default function AntigravityEnterpriseDesktop() {
                       onReserveClick={handleReserveFromMap}
                       center={activeDev?.center ?? DEFAULT_CENTER}
                       zoom={activeDev?.zoom ?? 16}
+                      developmentId={activeDev?.id}
+                      colorMode={mapColorMode}
                     />
 
                     {/* Cadastre Telemetry Overlay Badge */}

@@ -53,6 +53,60 @@ export interface GISStand {
   holder_name: string | null;          // staff only
   holder_national_id: string | null;   // staff only
   geometry: GeoJSONPolygon | null;
+  boundary_traverse?: BoundaryTraverseLeg[];
+}
+
+export interface BoundaryTraverseLeg {
+  leg: string;
+  from: [number, number];
+  to: [number, number];
+  distance_meters: number;
+  bearing_degrees: number;
+  bearing_formatted: string;
+}
+
+export interface UtilityFeatureCollection {
+  type: 'FeatureCollection';
+  development_id: string;
+  features: {
+    type: 'Feature';
+    properties: {
+      utility?: 'WATER_MAIN' | 'SEWER_TRUNK' | 'POWER_11KV';
+      utility_type?: string;
+      name?: string;
+      status?: string;
+      pressure_bar?: number;
+      diameter_mm?: number;
+      pipe_dia_mm?: number;
+      voltage_kv?: number;
+      material?: string;
+      gradient_percent?: number;
+      stand_number?: string;
+      water?: ServicingState;
+      sewer?: ServicingState;
+      roads?: ServicingState;
+    };
+    geometry: {
+      type: 'LineString';
+      coordinates: number[][];
+    };
+  }[];
+}
+
+export interface SGScheduleParseResult {
+  beacons: Array<{
+    beacon: string;
+    x: number;
+    y: number;
+  }>;
+  geometry: GeoJSONPolygon;
+  shape: {
+    centroid: { lat: number; lng: number };
+    areaSqm: number;
+    dimensions: string;
+  };
+  traverse: BoundaryTraverseLeg[];
+  beacon_count: number;
 }
 
 export interface StandFeatureCollection {

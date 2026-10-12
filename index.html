@@ -3579,7 +3579,7 @@
       const lng = e.latlng.lng;
 
       if (currentGisTool === 'peg') {
-        const letter = String.fromCharCode(65 + activePegPoints.length);
+        const letter = activePegPoints.length < 26 ? String.fromCharCode(65 + activePegPoints.length) : `${activePegPoints.length + 1}`;
         activePegPoints.push([lat, lng]);
 
         const marker = L.circleMarker([lat, lng], {
@@ -3614,12 +3614,29 @@
         const colorMap = { road: '#f59e0b', sewer: '#ea580c', water: '#06b6d4', power: '#eab308', measure: '#10b981' };
         const color = colorMap[currentGisTool] || '#3b82f6';
 
-        const marker = L.circleMarker([lat, lng], { radius: 5, color: color, fillColor: '#ffffff', fillOpacity: 0.9 }).addTo(layerSketch);
+        let markerTooltip = null;
+        if (currentGisTool === 'measure') {
+          let cumDist = 0;
+          for (let i = 0; i < activeInfraPoints.length - 1; i++) {
+            cumDist += getDistanceMeters(activeInfraPoints[i], activeInfraPoints[i+1]);
+          }
+          markerTooltip = `Pt ${activeInfraPoints.length} (${cumDist.toFixed(1)} m)`;
+        }
+
+        const marker = L.circleMarker([lat, lng], { radius: currentGisTool === 'measure' ? 6 : 5, color: color, fillColor: '#ffffff', fillOpacity: 0.95 });
+        if (markerTooltip) {
+          marker.bindTooltip(markerTooltip, { permanent: true, direction: 'top', className: 'text-[10px] font-mono' });
+        }
+        marker.addTo(layerSketch);
         activeInfraMarkers.push(marker);
 
         if (activeInfraPoints.length >= 2) {
           if (activeInfraLine) sMap.removeLayer(activeInfraLine);
-          activeInfraLine = L.polyline(activeInfraPoints, { color: color, weight: currentGisTool === 'road' ? 6 : 3, dashArray: currentGisTool === 'measure' ? '6,6' : null }).addTo(layerSketch);
+          activeInfraLine = L.polyline(activeInfraPoints, {
+            color: color,
+            weight: currentGisTool === 'road' ? 6 : (currentGisTool === 'measure' ? 3.5 : 3),
+            dashArray: currentGisTool === 'measure' ? '6,6' : null
+          }).addTo(layerSketch);
 
           let totalLen = 0;
           for (let i = 0; i < activeInfraPoints.length - 1; i++) {
@@ -3629,8 +3646,12 @@
           document.getElementById('hud-infra-length').innerText = `${totalLen.toFixed(1)} m`;
           const rates = { road: 185.0, sewer: 65.0, water: 45.0, power: 55.0, measure: 0.0 };
           const rate = rates[currentGisTool] || 0;
-          const cost = totalLen * rate;
-          document.getElementById('hud-infra-cost').innerText = `$${cost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD`;
+          if (currentGisTool === 'measure') {
+            document.getElementById('hud-infra-cost').innerText = `Total: ${totalLen.toFixed(1)} m (${(totalLen / 1000).toFixed(3)} km)`;
+          } else {
+            const cost = totalLen * rate;
+            document.getElementById('hud-infra-cost').innerText = `$${cost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD`;
+          }
         }
       }
     });
@@ -3643,7 +3664,7 @@
       }
       let html = '';
       activePegPoints.forEach((pt, i) => {
-        const letter = String.fromCharCode(65 + i);
+        const letter = i < 26 ? String.fromCharCode(65 + i) : `${i + 1}`;
         let dist = 0;
         if (i > 0) dist = getDistanceMeters(activePegPoints[i-1], pt);
         html += `<div class="flex justify-between items-center text-slate-300">
@@ -3716,8 +3737,12 @@
         alert("Please click at least 2 alignment points on the map to define an infrastructure corridor.");
         return;
       }
+      if (currentGisTool === 'measure') {
+        alert(`Measurement completed: ${document.getElementById('hud-infra-length').innerText}. To save permanent infrastructure, switch to Road, Sewer, Water, or Power.`);
+        return;
+      }
       const name = sanitizeInput(document.getElementById('infra-line-name').value) || "Civil Service Alignment";
-      const layerMap = { road: layerRoads, sewer: layerSewer, water: layerWater, power: layerPower, measure: layerSketch };
+      const layerMap = { road: layerRoads, sewer: layerSewer, water: layerWater, power: layerPower };
       const targetLayer = layerMap[currentGisTool] || layerRoads;
 
       const colorMap = { road: '#f59e0b', sewer: '#ea580c', water: '#06b6d4', power: '#eab308' };
@@ -3740,13 +3765,36 @@
           zoning: stand.zoning,
           owner: stand.owner,
           status: stand.status,
-          price_usd: stand.price_usd
+          price_usd: stand.price_usd,
+          deed_no: stand.deed_no,
+          servicing: stand.servicing
         },
         geometry: {
           type: "Polygon",
           coordinates: [stand.coords]
         }
       }));
+
+      // Include active draft pegged stand if available
+      if (activePegPoints.length >= 3) {
+        const proposedCoords = activePegPoints.map(p => [p[1], p[0]]);
+        proposedCoords.push(proposedCoords[0]);
+        features.push({
+          type: "Feature",
+          properties: {
+            stand_id: document.getElementById('peg-new-id')?.value || "STAND-DRAFT",
+            area_sqm: Math.round(calculatePolygonArea(activePegPoints)),
+            zoning: document.getElementById('peg-new-zoning')?.value || "HIGH_RISE",
+            owner: "Proposed Spatial Unit (Draft Pegging)",
+            status: "DRAFT_PEGGED",
+            price_usd: 0
+          },
+          geometry: {
+            type: "Polygon",
+            coordinates: [proposedCoords]
+          }
+        });
+      }
 
       const geojson = {
         type: "FeatureCollection",
@@ -3756,29 +3804,31 @@
       };
 
       downloadFile("zimbuild_cadastre_survey.geojson", JSON.stringify(geojson, null, 2), "application/geo+json");
+      alert(`Cadastral survey GeoJSON exported successfully! (${features.length} stand features generated).`);
     }
 
     function exportSurveyDxf() {
-      let dxf = "0\nSECTION\n2\nENTITIES\n";
+      let dxf = `0\nSECTION\n2\nENTITIES\n`;
       standsData.forEach(stand => {
-        dxf += "0\nPOLYLINE\n8\nCADASTRAL_STANDS\n66\n1\n70\n1\n";
+        dxf += `0\nPOLYLINE\n8\nCADASTRAL_STANDS\n66\n1\n70\n1\n`;
         stand.coords.forEach(c => {
-          dxf += `0
-VERTEX
-8
-CADASTRAL_STANDS
-10
-${c[0]}
-20
-${c[1]}
-30
-0.0
-`;
+          dxf += `0\nVERTEX\n8\nCADASTRAL_STANDS\n10\n${c[0]}\n20\n${c[1]}\n30\n0.0\n`;
         });
-        dxf += "0\nSEQEND\n";
+        dxf += `0\nSEQEND\n`;
       });
-      dxf += "0\nENDSEC\n0\nEOF\n";
+
+      if (activePegPoints.length >= 3) {
+        dxf += `0\nPOLYLINE\n8\nPROPOSED_STANDS\n66\n1\n70\n1\n`;
+        const closed = [...activePegPoints, activePegPoints[0]];
+        closed.forEach(c => {
+          dxf += `0\nVERTEX\n8\nPROPOSED_STANDS\n10\n${c[1]}\n20\n${c[0]}\n30\n0.0\n`;
+        });
+        dxf += `0\nSEQEND\n`;
+      }
+
+      dxf += `0\nENDSEC\n0\nEOF\n`;
       downloadFile("zimbuild_cadastre_survey.dxf", dxf, "application/dxf");
+      alert(`Cadastral survey DXF exported successfully! (${standsData.length} cadastral polygons compiled to AutoCAD DXF).`);
     }
 
     // 12-STEP END-TO-END ERP SIMULATION
@@ -3856,7 +3906,12 @@ ${c[1]}
         const isSold = stand.status === 'SOLD';
         const color = isSold ? '#3b82f6' : (stand.zoning === 'HIGH_RISE' ? '#10b981' : '#f59e0b');
         const poly = L.polygon(polyCoords, { color: color, weight: 2.5, fillColor: color, fillOpacity: isSold ? 0.45 : 0.65 });
-        poly.on('click', () => showStandDetails(stand));
+        poly.on('click', (e) => {
+          if (currentGisTool === 'select') {
+            L.DomEvent.stopPropagation(e);
+            showStandDetails(stand);
+          }
+        });
         poly.addTo(layerStands);
       });
     }
@@ -3905,15 +3960,30 @@ ${c[1]}
       const activeBtn = document.getElementById('tool-' + tool);
       if (activeBtn) activeBtn.classList.add('active');
 
+      if (window.standsMap && window.standsMap.getContainer()) {
+        window.standsMap.getContainer().style.cursor = tool === 'select' ? 'default' : 'crosshair';
+        window.standsMap.invalidateSize();
+      }
+
       if (tool === 'peg') {
+        clearInfraSketch();
         switchGisSidebarTab('pegging');
       } else if (['road', 'sewer', 'water', 'power'].includes(tool)) {
+        clearInfraSketch();
         switchGisSidebarTab('infra');
         const typeNames = { road: 'Road Corridor (Tarred)', sewer: 'Gravity Sewer Trunk', water: 'Water Mainline', power: '11kV Electrical Grid' };
         const rates = { road: '$185/m (Tarred Road & Base)', sewer: '$65/m (HDPE Gravity Sewer)', water: '$45/m (150mm uPVC Ring)', power: '$55/m (11kV ZETDC Cable)' };
         document.getElementById('hud-infra-type').innerText = typeNames[tool] || 'Civil Infrastructure';
         document.getElementById('hud-infra-rate').innerText = rates[tool] || '';
-        document.getElementById('infra-line-name').value = `Highlands ${typeNames[tool]} Segment #0${activeInfraPoints.length + 1}`;
+        document.getElementById('infra-line-name').value = `Highlands ${typeNames[tool]} Segment #01`;
+      } else if (tool === 'measure') {
+        clearInfraSketch();
+        switchGisSidebarTab('infra');
+        document.getElementById('hud-infra-type').innerText = 'Measurement Tape (Distance & Bearing)';
+        document.getElementById('hud-infra-rate').innerText = 'Live Geodesic Surveying';
+        document.getElementById('hud-infra-length').innerText = '0.0 m';
+        document.getElementById('hud-infra-cost').innerText = 'Click 2+ points on map';
+        document.getElementById('infra-line-name').value = 'Highlands Perimeter / Alignment Measurement';
       } else if (tool === 'select') {
         switchGisSidebarTab('inspector');
       }
@@ -5070,13 +5140,22 @@ Reconciled ${data.synced_count} events with central ERP cloud.`);
       document.getElementById('modal-voucher').classList.remove('hidden');
     }
 
-    // DOCUMENT DOWNLOAD UTILITIES
-    function downloadDoc(filename, text) {
-      const blob = new Blob([text], { type: 'text/markdown' });
+    // DOCUMENT & GIS FILE DOWNLOAD UTILITIES
+    function downloadFile(filename, content, mimeType = 'text/plain') {
+      const blob = new Blob([content], { type: mimeType });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
       a.download = filename;
+      document.body.appendChild(a);
       a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(a.href);
+      }, 150);
+    }
+
+    function downloadDoc(filename, text) {
+      downloadFile(filename, text, 'text/markdown');
     }
 
     function downloadGeodesyReport() {
