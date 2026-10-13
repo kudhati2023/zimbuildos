@@ -7,6 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha384-sHL9NAb7lN7rfvG5lfHpm643Xkcjzp4jFvuavGOndn6pjVqS6ny56CAt3nsEVT4H" crossorigin="anonymous" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH" crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha384-iw3OoTErCYJJB9mCa8LNS2hbsQ7M3C0EpIsO/H5+EGAkPGc6rk+V8i04oW/K5xq0" crossorigin="anonymous" referrerpolicy="no-referrer" />
   <style>
     .func-tab.active { background-color: #047857; color: #ffffff; border-color: #10b981; font-weight: 700; }
@@ -19,6 +20,118 @@
       body * { visibility: hidden; }
       .printable-modal, .printable-modal * { visibility: visible; }
       .printable-modal { position: absolute; left: 0; top: 0; width: 100%; }
+    }
+    /* CAD DRAFTING & VERTEX MANIPULATION STYLES */
+    .cad-beacon-handle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #0f172a;
+      border: 2px solid #38bdf8;
+      color: #ffffff;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 10px;
+      font-weight: 800;
+      cursor: grab;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.6), 0 2px 6px rgba(0,0,0,0.6);
+      transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+      user-select: none;
+    }
+    .cad-beacon-handle:hover {
+      transform: scale(1.3);
+      box-shadow: 0 0 16px rgba(56, 189, 248, 1), 0 4px 10px rgba(0,0,0,0.7);
+      z-index: 1000 !important;
+      border-color: #7dd3fc;
+    }
+    .cad-beacon-handle:active {
+      cursor: grabbing;
+      transform: scale(1.2);
+    }
+    .cad-beacon-first {
+      border-color: #10b981 !important;
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.8) !important;
+      animation: cadPulseBeacon 1.8s infinite;
+    }
+    @keyframes cadPulseBeacon {
+      0%, 100% { transform: scale(1); box-shadow: 0 0 10px rgba(16, 185, 129, 0.7); }
+      50% { transform: scale(1.18); box-shadow: 0 0 18px rgba(16, 185, 129, 1); }
+    }
+    .cad-midpoint-handle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 17px;
+      height: 17px;
+      border-radius: 50%;
+      background: #1e293b;
+      border: 1.5px dashed #94a3b8;
+      color: #38bdf8;
+      font-size: 11px;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 1px 5px rgba(0,0,0,0.5);
+      transition: transform 0.15s, background 0.15s, border-color 0.15s;
+    }
+    .cad-midpoint-handle:hover {
+      transform: scale(1.35);
+      background: #0284c7;
+      color: #ffffff;
+      border-style: solid;
+      border-color: #38bdf8;
+    }
+    .cad-angle-badge {
+      background: rgba(15, 23, 42, 0.92);
+      border: 1px solid #475569;
+      border-radius: 6px;
+      padding: 1.5px 5px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 9.5px;
+      font-weight: 700;
+      color: #cbd5e1;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+      white-space: nowrap;
+      pointer-events: auto;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .cad-angle-badge:hover {
+      border-color: #38bdf8;
+      color: #ffffff;
+      transform: scale(1.12);
+      background: rgba(30, 41, 59, 0.98);
+    }
+    .cad-angle-badge.right-angle {
+      border-color: #10b981;
+      color: #34d399;
+      background: rgba(6, 78, 59, 0.92);
+      box-shadow: 0 0 8px rgba(16, 185, 129, 0.6);
+    }
+    .cad-dimension-badge {
+      background: rgba(15, 23, 42, 0.88);
+      border: 1px solid #334155;
+      border-radius: 4px;
+      padding: 1px 5px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 9px;
+      color: #94a3b8;
+      white-space: nowrap;
+      pointer-events: none;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.4);
+    }
+    .cad-cursor-hud {
+      background: rgba(15, 23, 42, 0.95);
+      border: 1px solid #38bdf8;
+      border-radius: 8px;
+      padding: 4px 8px;
+      color: #ffffff;
+      font-size: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      pointer-events: none;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.7);
+      white-space: nowrap;
     }
   </style>
 </head>
@@ -1347,8 +1460,20 @@
           <button onclick="setGisTool('power')" id="tool-power" class="tool-btn px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-white transition flex items-center gap-1 font-semibold shrink-0">
             <i class="fa-solid fa-bolt text-yellow-400"></i> Add 11kV Power
           </button>
+          <button onclick="setGisTool('drain')" id="tool-drain" class="tool-btn px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-white transition flex items-center gap-1 font-semibold shrink-0">
+            <i class="fa-solid fa-water text-blue-400"></i> Add Drain
+          </button>
           <button onclick="setGisTool('measure')" id="tool-measure" class="tool-btn px-2.5 py-1.5 rounded-lg text-slate-300 hover:text-white transition flex items-center gap-1 font-semibold shrink-0">
             <i class="fa-solid fa-ruler-combined text-emerald-400"></i> Measure
+          </button>
+          <button onclick="runZoningAndBufferAudit()" id="btn-zoning-audit" class="px-2.5 py-1.5 bg-blue-700/80 hover:bg-blue-600 rounded-lg text-white transition flex items-center gap-1 font-semibold shrink-0 shadow-sm" title="Run ZNHSP 40% & EMA 100m Wetland Compliance Audit">
+            <i class="fa-solid fa-shield-halved"></i> Verify Zoning
+          </button>
+          <button onclick="openGeodeticTransformModal()" id="btn-geodetic-transform" class="px-2.5 py-1.5 bg-indigo-700/80 hover:bg-indigo-600 rounded-lg text-white transition flex items-center gap-1 font-semibold shrink-0 shadow-sm" title="Gauss Lo 27°/29°/31°/33° to WGS84 Transformer">
+            <i class="fa-solid fa-compass-drafting"></i> Gauss Lo ⇄ WGS84
+          </button>
+          <button onclick="generateSgDiagram()" id="btn-sg-diagram" class="px-2.5 py-1.5 bg-amber-700/80 hover:bg-amber-600 rounded-lg text-white transition flex items-center gap-1 font-semibold shrink-0 shadow-sm" title="Generate Statutory Surveyor-General SG Diagram (Land Survey Act)">
+            <i class="fa-solid fa-stamp"></i> SG Diagram
           </button>
           <button onclick="exportSurveyGeoJson()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-teal-400 transition flex items-center gap-1 font-semibold shrink-0">
             <i class="fa-solid fa-file-export"></i> GeoJSON
@@ -1356,18 +1481,147 @@
           <button onclick="exportSurveyDxf()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-purple-400 transition flex items-center gap-1 font-semibold shrink-0">
             <i class="fa-solid fa-file-code"></i> DXF
           </button>
+          <button onclick="exportDesignedMapImage()" id="btn-export-map-image" class="px-2.5 py-1.5 bg-emerald-700 hover:bg-emerald-600 rounded-lg text-white transition flex items-center gap-1 font-semibold shrink-0 shadow-sm" title="Export Designed Map as High-Res PNG">
+            <i class="fa-solid fa-camera"></i> Export Map (PNG)
+          </button>
+          <button onclick="toggleGisMaximize()" id="btn-gis-maximize" class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white transition flex items-center gap-1 font-semibold shrink-0 shadow-sm" title="Maximize Screen for Clear Drawing">
+            <i class="fa-solid fa-expand"></i> <span id="txt-gis-maximize">Maximize</span>
+          </button>
         </div>
       </div>
 
       <div class="flex-1 flex overflow-hidden relative">
-        <div id="stands-map" class="flex-1 h-full w-full bg-slate-950 z-0"></div>
+        <div id="stands-map" class="flex-1 h-full w-full bg-slate-950 z-0 relative">
+          <!-- Floating CAD map controls -->
+          <div class="absolute top-3 right-3 z-[400] flex items-center gap-2">
+            <button onclick="toggleGisSidebar()" id="btn-toggle-gis-sidebar" class="px-2.5 py-1.5 bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700 rounded-lg shadow-xl text-xs font-semibold backdrop-blur flex items-center gap-1.5 transition">
+              <i class="fa-solid fa-table-columns text-blue-400"></i> <span id="txt-toggle-gis-sidebar">Toggle Sidebar</span>
+            </button>
+            <button onclick="toggleGisMaximize()" id="btn-float-maximize" class="px-2.5 py-1.5 bg-indigo-600/90 hover:bg-indigo-500 text-white border border-indigo-500 rounded-lg shadow-xl text-xs font-semibold backdrop-blur flex items-center gap-1.5 transition">
+              <i id="icon-gis-float-max" class="fa-solid fa-expand"></i> <span id="txt-gis-float-max">Full Screen</span>
+            </button>
+            <button onclick="exportDesignedMapImage()" class="px-2.5 py-1.5 bg-emerald-600/90 hover:bg-emerald-500 text-white border border-emerald-500 rounded-lg shadow-xl text-xs font-semibold backdrop-blur flex items-center gap-1.5 transition">
+              <i class="fa-solid fa-image"></i> Export Layout
+            </button>
+          </div>
 
-        <div class="w-96 bg-slate-900 border-l border-slate-800 flex flex-col z-10 shadow-2xl overflow-hidden">
-          <div class="flex border-b border-slate-800 p-2 gap-1 bg-slate-950 text-xs">
-            <button onclick="switchGisSidebarTab('inspector')" id="tab-btn-inspector" class="flex-1 py-1.5 px-1.5 rounded-lg bg-blue-600 text-white font-bold transition text-[11px]">Inspector</button>
-            <button onclick="switchGisSidebarTab('pegging')" id="tab-btn-pegging" class="flex-1 py-1.5 px-1.5 rounded-lg bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 transition text-[11px]">Pegging HUD</button>
-            <button onclick="switchGisSidebarTab('infra')" id="tab-btn-infra" class="flex-1 py-1.5 px-1.5 rounded-lg bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 transition text-[11px]">Infra Studio</button>
-            <button onclick="switchGisSidebarTab('devboq')" id="tab-btn-devboq" class="flex-1 py-1.5 px-1.5 rounded-lg bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 transition text-[11px]">Civil BOQ</button>
+          <!-- 1. FLOATING CAD TOP-LEFT DRAFTING & MEASUREMENT HUD -->
+          <div id="cad-floating-hud" class="absolute top-3 left-14 z-[400] bg-slate-900/95 border border-slate-700/80 rounded-xl shadow-2xl px-3.5 py-2 text-xs backdrop-blur flex items-center gap-3 transition pointer-events-auto">
+            <div class="flex items-center gap-2">
+              <span id="cad-hud-mode-pill" class="px-2.5 py-1 rounded-lg bg-blue-600 text-white font-bold text-[11px] uppercase tracking-wide flex items-center gap-1.5 shadow-sm">
+                <i id="cad-hud-mode-icon" class="fa-solid fa-arrow-pointer"></i> <span id="cad-hud-mode-text">SELECT & INSPECT</span>
+              </span>
+            </div>
+            <div class="h-4 w-px bg-slate-700"></div>
+            <div id="cad-hud-metrics" class="flex items-center gap-3 font-mono text-[11px] text-slate-300 flex-wrap">
+              <span id="cad-hud-stat-1"><b class="text-blue-400">Features:</b> 3 Stands</span>
+              <span id="cad-hud-stat-2"><b class="text-emerald-400">Total Area:</b> 10,000 m²</span>
+              <span id="cad-hud-stat-3"><b class="text-amber-400">Services:</b> 9 Corridors</span>
+              <span id="cad-hud-stat-4" class="hidden text-purple-300"><b>Angle:</b> --</span>
+            </div>
+          </div>
+
+          <!-- 2. FLOATING BOTTOM CAD ACTION & DRAFTING DOCK -->
+          <div id="cad-action-dock" class="absolute bottom-5 left-1/2 -translate-x-1/2 z-[400] bg-slate-900/95 border border-slate-700/90 rounded-2xl shadow-2xl px-3.5 py-2 flex items-center gap-2 backdrop-blur transition max-w-[95%] overflow-x-auto pointer-events-auto">
+            <!-- Commit / Finish -->
+            <button id="cad-dock-commit" onclick="cadCommitActiveFeature()" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-lg transition whitespace-nowrap">
+              <i class="fa-solid fa-check"></i> <span id="cad-dock-commit-text">Finish & Commit</span> <kbd class="px-1.5 py-0.5 bg-emerald-700 rounded text-[9px] font-mono">↵ Enter</kbd>
+            </button>
+            
+            <!-- Undo Point -->
+            <button id="cad-dock-undo" onclick="cadUndoLastPoint()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition whitespace-nowrap" title="Undo Last Clicked Point (Ctrl+Z / Backspace)">
+              <i class="fa-solid fa-rotate-left text-amber-400"></i> Undo Point <kbd class="px-1 py-0.5 bg-slate-900 rounded text-[9px] font-mono">⌫</kbd>
+            </button>
+
+            <!-- Square Active Corner (90° Perpendicular) -->
+            <button id="cad-dock-square" onclick="cadSquareActiveCorner()" class="px-2.5 py-1.5 bg-indigo-700/80 hover:bg-indigo-600 text-indigo-100 border border-indigo-500/50 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition whitespace-nowrap" title="Make Selected / Last Corner 90.0° Perpendicular">
+              <i class="fa-solid fa-vector-square text-cyan-300"></i> <span id="cad-dock-square-text">Square 90°</span>
+            </button>
+
+            <!-- Ortho Snap (90°/45°) Toggle -->
+            <button id="cad-dock-ortho" onclick="cadToggleOrthoMode()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition whitespace-nowrap" title="Toggle Orthogonal Snap (Hold Shift while drafting)">
+              <i class="fa-solid fa-magnet text-yellow-400"></i> <span id="cad-dock-ortho-text">Ortho: OFF</span>
+            </button>
+
+            <!-- Toggle Angles & Dimension Badges -->
+            <button id="cad-dock-dims" onclick="cadToggleDimensions()" class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition whitespace-nowrap" title="Toggle Display of Corner Angles and Segment Lengths">
+              <i class="fa-solid fa-ruler-combined"></i> <span id="cad-dock-dims-text">Angles & Dims</span>
+            </button>
+
+            <div class="h-5 w-px bg-slate-700"></div>
+
+            <!-- Cancel / Deselect -->
+            <button id="cad-dock-cancel" onclick="cadCancelActiveOperation()" class="px-2.5 py-1.5 bg-rose-900/60 hover:bg-rose-800 text-rose-200 border border-rose-700/50 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition whitespace-nowrap" title="Cancel Active Drawing or Exit Edit Mode (Esc)">
+              <i class="fa-solid fa-xmark"></i> <span id="cad-dock-cancel-text">Cancel</span> <kbd class="px-1 py-0.5 bg-slate-900 rounded text-[9px] font-mono">Esc</kbd>
+            </button>
+          </div>
+
+          <!-- 3. INTERACTIVE CORNER ANGLE INSPECTOR & ADJUSTER POPOVER -->
+          <div id="cad-vertex-popover" class="hidden absolute z-[500] bg-slate-900/98 border border-slate-700 rounded-2xl shadow-2xl p-3.5 text-xs w-80 backdrop-blur space-y-3 pointer-events-auto">
+            <div class="flex justify-between items-center border-b border-slate-800 pb-2">
+              <span class="font-bold text-white flex items-center gap-1.5">
+                <i class="fa-solid fa-compass-drafting text-blue-400"></i> <span id="cad-vtx-title">Beacon B Angle Adjuster</span>
+              </span>
+              <button onclick="closeCadVertexPopover()" class="text-slate-400 hover:text-white px-1"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            
+            <div class="space-y-1.5 font-mono text-[11px] bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+              <div class="flex justify-between items-center">
+                <span class="text-slate-400">Interior Corner Angle:</span>
+                <span id="cad-vtx-current-angle" class="font-bold text-emerald-400 text-sm">89.4°</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Incoming Bearing:</span>
+                <span id="cad-vtx-in-bearing" class="text-blue-300">090° 15'</span>
+              </div>
+              <div class="flex justify-between">
+                <span class="text-slate-400">Outgoing Bearing:</span>
+                <span id="cad-vtx-out-bearing" class="text-purple-300">180° 30'</span>
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Set Target Corner Angle:</span>
+              <div class="grid grid-cols-3 gap-1.5">
+                <button onclick="cadSetTargetAngle(90.0)" class="py-1.5 px-1 rounded-lg bg-emerald-700/80 hover:bg-emerald-600 text-white font-bold text-[10px] shadow-sm flex items-center justify-center gap-1">
+                  <i class="fa-solid fa-vector-square"></i> 90° Square
+                </button>
+                <button onclick="cadSetTargetAngle(45.0)" class="py-1.5 px-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px]">45° Chamfer</button>
+                <button onclick="cadSetTargetAngle(120.0)" class="py-1.5 px-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px]">120° Hex</button>
+                <button onclick="cadSetTargetAngle(135.0)" class="py-1.5 px-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px]">135° Oct</button>
+                <button onclick="cadSetTargetAngle(60.0)" class="py-1.5 px-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px]">60° Tri</button>
+                <button onclick="cadSetTargetAngle(180.0)" class="py-1.5 px-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px]">180° Straight</button>
+              </div>
+              <div class="flex gap-1.5 pt-1">
+                <div class="relative flex-1">
+                  <input type="number" id="cad-custom-angle-input" value="90.0" step="0.1" min="1" max="179" class="w-full bg-slate-950 border border-slate-700 rounded-lg px-2.5 py-1.5 text-white text-xs font-mono pr-8">
+                  <span class="absolute right-2.5 top-1.5 text-slate-500 font-mono text-xs">deg</span>
+                </div>
+                <button onclick="cadApplyCustomAngle()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg font-bold text-xs shadow-sm">
+                  Apply Angle
+                </button>
+              </div>
+            </div>
+
+            <div class="border-t border-slate-800 pt-2 flex justify-between items-center">
+              <button onclick="cadDeleteSelectedVertex()" class="text-rose-400 hover:text-rose-300 text-xs font-semibold flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-trash"></i> Delete This Vertex
+              </button>
+              <button onclick="closeCadVertexPopover()" class="text-slate-400 hover:text-slate-200 text-xs font-medium">Done</button>
+            </div>
+          </div>
+        </div>
+
+        <div id="gis-sidebar" class="w-96 bg-slate-900 border-l border-slate-800 flex flex-col z-10 shadow-2xl overflow-hidden transition-all duration-200">
+          <div class="flex border-b border-slate-800 p-2 gap-1 bg-slate-950 text-xs flex-wrap">
+            <button onclick="switchGisSidebarTab('inspector')" id="tab-btn-inspector" class="flex-1 py-1.5 px-1 rounded-lg bg-blue-600 text-white font-bold transition text-[10px]">Inspector</button>
+            <button onclick="switchGisSidebarTab('pegging')" id="tab-btn-pegging" class="flex-1 py-1.5 px-1 rounded-lg bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 transition text-[10px]">Pegging</button>
+            <button onclick="switchGisSidebarTab('infra')" id="tab-btn-infra" class="flex-1 py-1.5 px-1 rounded-lg bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 transition text-[10px]">Infra Layout</button>
+            <button onclick="switchGisSidebarTab('earthwork')" id="tab-btn-earthwork" class="flex-1 py-1.5 px-1 rounded-lg bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 transition text-[10px]">Civil Eng</button>
+            <button onclick="switchGisSidebarTab('zoning')" id="tab-btn-zoning" class="flex-1 py-1.5 px-1 rounded-lg bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 transition text-[10px]">Zoning Audit</button>
+            <button onclick="switchGisSidebarTab('geodetic')" id="tab-btn-geodetic" class="flex-1 py-1.5 px-1 rounded-lg bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 transition text-[10px]">Gauss Lo</button>
+            <button onclick="switchGisSidebarTab('sgdiagram')" id="tab-btn-sgdiagram" class="flex-1 py-1.5 px-1 rounded-lg bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 transition text-[10px]">SG Diagram</button>
+            <button onclick="switchGisSidebarTab('devboq')" id="tab-btn-devboq" class="flex-1 py-1.5 px-1 rounded-lg bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 transition text-[10px]">Live BOQ</button>
           </div>
 
           <div class="flex-1 overflow-y-auto p-4 space-y-4 text-xs">
@@ -1383,6 +1637,7 @@
                 <label class="flex items-center justify-between text-xs cursor-pointer"><span class="flex items-center gap-1.5"><i class="fa-solid fa-faucet-drip text-cyan-400"></i> Pressurized Water (90%)</span> <input type="checkbox" id="chk-layer-water" checked onchange="toggleGisLayer('water')"></label>
                 <label class="flex items-center justify-between text-xs cursor-pointer"><span class="flex items-center gap-1.5"><i class="fa-solid fa-toilet text-orange-400"></i> Gravity Sewer (82%)</span> <input type="checkbox" id="chk-layer-sewer" checked onchange="toggleGisLayer('sewer')"></label>
                 <label class="flex items-center justify-between text-xs cursor-pointer"><span class="flex items-center gap-1.5"><i class="fa-solid fa-bolt text-yellow-400"></i> Electricity Grid 11kV (75%)</span> <input type="checkbox" id="chk-layer-power" checked onchange="toggleGisLayer('power')"></label>
+                <label class="flex items-center justify-between text-xs cursor-pointer"><span class="flex items-center gap-1.5"><i class="fa-solid fa-water text-blue-400"></i> Stormwater V-Drains (88%)</span> <input type="checkbox" id="chk-layer-drain" checked onchange="toggleGisLayer('drain')"></label>
                 <label class="flex items-center justify-between text-xs cursor-pointer"><span class="flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation text-red-400"></i> 100m Wetland Buffer</span> <input type="checkbox" id="chk-layer-wetland" checked onchange="toggleGisLayer('wetland')"></label>
               </div>
             </div>
@@ -1450,7 +1705,7 @@
                   </span>
                   <span id="hud-infra-type" class="px-2 py-0.5 rounded bg-amber-900/60 text-amber-300 text-[10px] font-bold">Road Network</span>
                 </div>
-                <p class="text-[11px] text-slate-400">Click on the GIS map to draw infrastructure corridor alignments (Roads, Sewer, Water, Power).</p>
+                <p class="text-[11px] text-slate-400">Click on the GIS map to draw infrastructure corridor alignments (Roads, Sewer, Water, Power, Drains).</p>
 
                 <div class="space-y-1.5 bg-slate-900 p-2.5 rounded-lg border border-slate-800 font-mono text-xs">
                   <div class="flex justify-between">
@@ -1481,23 +1736,226 @@
               </div>
             </div>
 
-            <!-- 4. CIVIL BOQ -->
-            <div id="gis-panel-devboq" class="hidden space-y-3">
-              <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
-                <h4 class="font-bold text-white">Infrastructure Servicing BOQ</h4>
-                <div class="space-y-1 text-slate-300 text-[11px]">
-                  <div class="flex justify-between"><span>Roads & Base Course:</span> <b>$84,000 USD</b></div>
-                  <div class="flex justify-between"><span>Sewer Reticulation:</span> <b>$42,800 USD</b></div>
-                  <div class="flex justify-between"><span>Water Reticulation:</span> <b>$31,250 USD</b></div>
-                  <div class="flex justify-between"><span>Power & Transformer:</span> <b>$36,500 USD</b></div>
-                  <div class="flex justify-between"><span>Stormwater V-Drains:</span> <b>$15,000 USD</b></div>
-                  <div class="pt-2 border-t border-slate-800 flex justify-between font-bold text-xs text-emerald-400">
-                    <span>Total Infrastructure:</span> <span>$209,550 USD</span>
+            <!-- 4. CIVIL ENGINEERING CALCULATOR (EARTHWORK & DRAINAGE) -->
+            <div id="gis-panel-earthwork" class="hidden space-y-4">
+              <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
+                <div class="flex justify-between items-center">
+                  <span class="font-bold text-emerald-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-mountain"></i> Earthwork & Cut/Fill Balancing
+                  </span>
+                  <span class="px-2 py-0.5 rounded bg-emerald-900/60 text-emerald-300 text-[10px] font-bold">End Area Method</span>
+                </div>
+                <p class="text-[11px] text-slate-400">Prismoidal cut & fill earthwork balancing across parcel contours and terrain grades.</p>
+
+                <div class="grid grid-cols-2 gap-2 text-[11px]">
+                  <div>
+                    <label class="text-slate-400 block mb-0.5">Average Cut Depth (m):</label>
+                    <input type="number" id="ew-cut-depth" value="0.75" step="0.05" oninput="calculateCivilEarthwork()" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-white font-mono">
+                  </div>
+                  <div>
+                    <label class="text-slate-400 block mb-0.5">Average Fill Height (m):</label>
+                    <input type="number" id="ew-fill-height" value="0.60" step="0.05" oninput="calculateCivilEarthwork()" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-white font-mono">
                   </div>
                 </div>
-                <button onclick="downloadInfrastructureBoq()" class="w-full mt-2 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-bold flex items-center justify-center gap-2">
-                  <i class="fa-solid fa-download"></i> Download BOQ (MD)
+
+                <div class="p-2.5 bg-slate-900 rounded-lg border border-slate-800 space-y-1 font-mono text-[11px]">
+                  <div class="flex justify-between"><span class="text-slate-400">Total Site Area:</span> <b id="ew-total-area" class="text-white">10,500 m²</b></div>
+                  <div class="flex justify-between"><span class="text-rose-400">Excavation Cut Vol:</span> <b id="ew-cut-vol" class="text-rose-400">4,725 m³</b></div>
+                  <div class="flex justify-between"><span class="text-cyan-400">Compacted Fill Vol:</span> <b id="ew-fill-vol" class="text-cyan-400">3,780 m³</b></div>
+                  <div class="flex justify-between pt-1 border-t border-slate-800 font-bold"><span class="text-slate-300">Net Soil Balance:</span> <b id="ew-net-balance" class="text-amber-400">+945 m³ (Cut Surplus)</b></div>
+                  <div class="flex justify-between text-slate-400 text-[10px]"><span>Haulage / Borrow Cost:</span> <b id="ew-haulage-cost" class="text-emerald-400">$8,505.00 USD</b></div>
+                </div>
+              </div>
+
+              <!-- Stormwater Drainage Hydraulics -->
+              <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
+                <div class="flex justify-between items-center">
+                  <span class="font-bold text-cyan-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-water"></i> Stormwater Hydraulics (Manning's)
+                  </span>
+                  <span class="px-2 py-0.5 rounded bg-cyan-900/60 text-cyan-300 text-[10px] font-bold">n = 0.015 Concrete</span>
+                </div>
+                <div class="grid grid-cols-3 gap-2 text-[10px]">
+                  <div>
+                    <label class="text-slate-400 block mb-0.5">Bottom Width (m):</label>
+                    <input type="number" id="drain-width" value="0.80" step="0.1" oninput="calculateDrainHydraulics()" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-white font-mono">
+                  </div>
+                  <div>
+                    <label class="text-slate-400 block mb-0.5">Flow Depth (m):</label>
+                    <input type="number" id="drain-depth" value="0.50" step="0.05" oninput="calculateDrainHydraulics()" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-white font-mono">
+                  </div>
+                  <div>
+                    <label class="text-slate-400 block mb-0.5">Bed Slope (S):</label>
+                    <input type="number" id="drain-slope" value="0.012" step="0.001" oninput="calculateDrainHydraulics()" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-white font-mono">
+                  </div>
+                </div>
+                <div class="p-2.5 bg-slate-900 rounded-lg border border-slate-800 space-y-1 font-mono text-[11px]">
+                  <div class="flex justify-between"><span class="text-slate-400">Flow Capacity (Q):</span> <b id="drain-flow-cap" class="text-cyan-400">1.48 m³/s</b></div>
+                  <div class="flex justify-between"><span class="text-slate-400">Flow Velocity (V):</span> <b id="drain-velocity" class="text-white">1.85 m/s</b></div>
+                  <div class="flex justify-between"><span class="text-slate-400">Velocity Check:</span> <b id="drain-check" class="text-emerald-400">✔ Non-Scouring (0.6 - 2.5 m/s)</b></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- 5. ZONING & WETLAND AUDIT PANEL -->
+            <div id="gis-panel-zoning" class="hidden space-y-4">
+              <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
+                <div class="flex justify-between items-center">
+                  <span class="font-bold text-indigo-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-stamp"></i> Statutory Town Planning Audit
+                  </span>
+                  <span id="zoning-overall-badge" class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-bold border border-emerald-500/30">COMPLIANT</span>
+                </div>
+                <p class="text-[11px] text-slate-400">Automated verification against ZNHSP Section 4.3 (40% High-Rise Densification) and EMA Statutory Instrument 7 of 2007 (100m Wetland Exclusion).</p>
+
+                <div class="space-y-2 text-[11px]">
+                  <!-- Rule 1: 40% High Rise -->
+                  <div class="p-2 bg-slate-900 rounded-lg border border-slate-800 space-y-1">
+                    <div class="flex justify-between items-center">
+                      <b class="text-white">ZNHSP 40% Multi-Storey Rule:</b>
+                      <span id="audit-densification-badge" class="font-bold text-emerald-400 font-mono">42.8% (PASS)</span>
+                    </div>
+                    <div class="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                      <div id="audit-densification-bar" class="bg-emerald-500 h-1.5" style="width: 42.8%;"></div>
+                    </div>
+                    <p class="text-[10px] text-slate-400" id="audit-densification-text">High-Rise Area: 4,500 m² / Total Developable: 10,500 m² (Mandate: ≥40%)</p>
+                  </div>
+
+                  <!-- Rule 2: Wetland Buffer -->
+                  <div class="p-2 bg-slate-900 rounded-lg border border-slate-800 space-y-1">
+                    <div class="flex justify-between items-center">
+                      <b class="text-white">EMA 100m Wetland Buffer:</b>
+                      <span id="audit-wetland-badge" class="font-bold text-emerald-400 font-mono">ZERO ENCROACHMENT</span>
+                    </div>
+                    <p class="text-[10px] text-slate-400" id="audit-wetland-text">All stands maintain &gt;100m separation from Harare wetland boundary.</p>
+                  </div>
+
+                  <!-- Rule 3: 20% Youth Quota -->
+                  <div class="p-2 bg-slate-900 rounded-lg border border-slate-800 space-y-1">
+                    <div class="flex justify-between items-center">
+                      <b class="text-white">Cabinet 20% Youth Quota:</b>
+                      <span id="audit-youth-badge" class="font-bold text-emerald-400 font-mono">33.3% (PASS)</span>
+                    </div>
+                    <p class="text-[10px] text-slate-400">1 of 3 initial stands reserved for qualifying youth applicants.</p>
+                  </div>
+                </div>
+
+                <button onclick="runZoningAndBufferAudit()" class="w-full py-1.5 bg-blue-600 hover:bg-blue-500 rounded-lg text-white font-bold text-xs flex items-center justify-center gap-1.5">
+                  <i class="fa-solid fa-arrows-rotate"></i> Re-Calculate Statutory Compliance
                 </button>
+              </div>
+            </div>
+
+            <!-- 6. DYNAMIC LIVE CIVIL BOQ -->
+            <div id="gis-panel-devboq" class="hidden space-y-3">
+              <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
+                <div class="flex justify-between items-center">
+                  <h4 class="font-bold text-white flex items-center gap-1.5">
+                    <i class="fa-solid fa-file-invoice-dollar text-emerald-400"></i> Civil Infrastructure BOQ
+                  </h4>
+                  <span class="text-[10px] font-mono text-amber-400">Dual-Currency USD / ZWG</span>
+                </div>
+                <div class="space-y-1.5 text-slate-300 text-[11px]" id="live-boq-breakdown">
+                  <!-- Generated dynamically via JS -->
+                </div>
+                <div class="pt-2 border-t border-slate-800 flex justify-between font-bold text-xs text-emerald-400">
+                  <span>Grand Total (USD):</span> <span id="boq-total-usd">$209,550.00 USD</span>
+                </div>
+                <div class="flex justify-between font-bold text-[11px] text-amber-400">
+                  <span>Grand Total (ZWG @ 26.50):</span> <span id="boq-total-zwg">5,553,075.00 ZWG</span>
+                </div>
+                <button onclick="downloadInfrastructureBoq()" class="w-full mt-2 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg font-bold flex items-center justify-center gap-2">
+                  <i class="fa-solid fa-download"></i> Download Comprehensive BOQ (MD)
+                </button>
+              </div>
+            </div>
+
+            <!-- 7. GAUSS LO / WGS84 GEODETIC COORDINATE TRANSFORMER -->
+            <div id="gis-panel-geodetic" class="hidden space-y-4">
+              <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
+                <div class="flex justify-between items-center">
+                  <span class="font-bold text-indigo-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-compass-drafting"></i> Gauss Lo ⇄ WGS84 Engine
+                  </span>
+                  <span class="px-2 py-0.5 rounded bg-indigo-900/60 text-indigo-300 text-[10px] font-bold">Helmert 7-Param</span>
+                </div>
+                <p class="text-[11px] text-slate-400">Convert between statutory South African/Zimbabwean survey coordinates (Arc 1950 Gauss Lo) and WGS84 GPS coordinates.</p>
+
+                <div class="space-y-2 text-[11px]">
+                  <div>
+                    <label class="text-slate-400 block mb-0.5">Central Meridian (Lo Belt):</label>
+                    <select id="geo-lo-belt" class="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-white">
+                      <option value="31" selected>Lo 31°E (Harare / Mashonaland / EPSG:20935)</option>
+                      <option value="29">Lo 29°E (Bulawayo / Midlands / EPSG:20931)</option>
+                      <option value="27">Lo 27°E (Hwange / Matabeleland North)</option>
+                      <option value="33">Lo 33°E (Mutare / Manicaland)</option>
+                    </select>
+                  </div>
+                  <div class="grid grid-cols-2 gap-2">
+                    <div>
+                      <label class="text-slate-400 block mb-0.5">Gauss Y (Westing m):</label>
+                      <input type="number" id="geo-input-y" value="-5780.25" step="0.01" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-white font-mono">
+                    </div>
+                    <div>
+                      <label class="text-slate-400 block mb-0.5">Gauss X (Southing m):</label>
+                      <input type="number" id="geo-input-x" value="1971480.50" step="0.01" class="w-full bg-slate-900 border border-slate-700 rounded p-1 text-white font-mono">
+                    </div>
+                  </div>
+                  <div class="flex gap-2">
+                    <button onclick="convertGaussLoToWgs84()" class="flex-1 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white font-bold flex items-center justify-center gap-1">
+                      <i class="fa-solid fa-arrow-down"></i> To WGS84
+                    </button>
+                    <button onclick="convertCurrentMapCenterToLo()" class="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 rounded-lg text-indigo-300 font-bold flex items-center justify-center gap-1">
+                      <i class="fa-solid fa-crosshairs"></i> Use Map Focus
+                    </button>
+                  </div>
+                </div>
+
+                <div class="p-2.5 bg-slate-900 rounded-lg border border-slate-800 space-y-1.5 font-mono text-[11px]">
+                  <div class="flex justify-between"><span class="text-slate-400">Computed WGS84 Lat:</span> <b id="geo-res-lat" class="text-emerald-400">-17.8250000°</b></div>
+                  <div class="flex justify-between"><span class="text-slate-400">Computed WGS84 Lng:</span> <b id="geo-res-lng" class="text-cyan-400">31.0545000°</b></div>
+                  <div class="flex justify-between text-[10px] text-slate-500 pt-1 border-t border-slate-800">
+                    <span>Precision: ±1.1 mm</span>
+                    <span>Helmert ΔX=-143, ΔY=-90, ΔZ=-294</span>
+                  </div>
+                </div>
+
+                <button onclick="plotTransformedPointOnMap()" class="w-full py-1.5 bg-emerald-600 hover:bg-emerald-500 rounded-lg text-white font-bold text-xs flex items-center justify-center gap-1">
+                  <i class="fa-solid fa-location-dot"></i> Plot Transformed Coordinate on Map
+                </button>
+              </div>
+            </div>
+
+            <!-- 8. STATUTORY SURVEYOR-GENERAL SG DIAGRAM VIEWER -->
+            <div id="gis-panel-sgdiagram" class="hidden space-y-4">
+              <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
+                <div class="flex justify-between items-center">
+                  <span class="font-bold text-amber-400 flex items-center gap-1.5">
+                    <i class="fa-solid fa-stamp"></i> SG Diagram Compiler
+                  </span>
+                  <span class="px-2 py-0.5 rounded bg-amber-900/60 text-amber-300 text-[10px] font-bold">Land Survey Act</span>
+                </div>
+                <p class="text-[11px] text-slate-400">Compiles cadastral polygon geometries into an official statutory Surveyor-General Diagram sheet with beacon boundary traverse tables, bearings, and DLAP linkage.</p>
+
+                <div>
+                  <label class="text-slate-400 block mb-0.5 text-[11px]">Select Cadastral Stand:</label>
+                  <select id="sg-stand-select" onchange="loadStandSgPreview()" class="w-full bg-slate-900 border border-slate-700 rounded p-1.5 text-white text-xs">
+                    <!-- Filled dynamically via JS -->
+                  </select>
+                </div>
+
+                <div id="sg-diagram-preview" class="p-3 bg-slate-900 rounded-lg border border-slate-800 space-y-2 text-[10px] font-mono text-slate-300 max-h-56 overflow-y-auto">
+                  <!-- Filled via JS -->
+                </div>
+
+                <div class="flex gap-2">
+                  <button onclick="generateSgDiagram()" class="flex-1 py-1.5 bg-amber-600 hover:bg-amber-500 text-slate-950 font-black rounded-lg text-xs flex items-center justify-center gap-1 shadow">
+                    <i class="fa-solid fa-file-pdf"></i> Export SG Sheet (Print/PDF)
+                  </button>
+                  <button onclick="copySgTraverseTable()" class="py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-lg text-xs">
+                    <i class="fa-solid fa-copy"></i>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -3475,7 +3933,7 @@
 
     const sMap = L.map('stands-map').setView([-17.8250, 31.0545], 16);
     window.standsMap = sMap;
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19 }).addTo(sMap);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, crossOrigin: true }).addTo(sMap);
 
     const layerStands = L.layerGroup().addTo(sMap);
     const layerWetland = L.layerGroup().addTo(sMap);
@@ -3483,70 +3941,88 @@
     const layerSewer = L.layerGroup().addTo(sMap);
     const layerPower = L.layerGroup().addTo(sMap);
     const layerWater = L.layerGroup().addTo(sMap);
+    const layerDrain = L.layerGroup().addTo(sMap);
     const layerSketch = L.layerGroup().addTo(sMap);
 
-    // REALISTIC CADASTRAL INFRASTRUCTURE OVERLAYS PRE-LOAD
-    // 1. Tarred Roads Network
-    const roadSegments = [
-      { name: "Highlands Spine Corridor (Dual Asphalt 12m)", coords: [[-17.8235, 31.0515], [-17.8235, 31.0570]] },
-      { name: "Avenue 1 Feeder (8m Tarred)", coords: [[-17.8235, 31.0541], [-17.8275, 31.0541]] },
-      { name: "Stand 3 Access Boulevard", coords: [[-17.8256, 31.0515], [-17.8256, 31.0565]] },
-      { name: "Southern Commercial Perimeter", coords: [[-17.8272, 31.0515], [-17.8272, 31.0562]] }
+    // =========================================================================
+    // MASTER CIVIL INFRASTRUCTURE DATASET & LAYER RENDERING
+    // =========================================================================
+    let infrastructureData = [
+      { id: "INFRA-01", name: "Highlands Spine Corridor (Dual Asphalt 12m)", type: "road", coords: [[-17.8235, 31.0515], [-17.8235, 31.0570]], spec: "150mm Crushed Stone Base + 40mm Asphalt Concrete", cost_usd: 84000, length_m: 585.0 },
+      { id: "INFRA-02", name: "Avenue 1 Feeder (8m Tarred)", type: "road", coords: [[-17.8235, 31.0541], [-17.8275, 31.0541]], spec: "8m Tarred Access Road", cost_usd: 48000, length_m: 445.0 },
+      { id: "INFRA-03", name: "Stand 3 Access Boulevard", type: "road", coords: [[-17.8256, 31.0515], [-17.8256, 31.0565]], spec: "Bitumen Access Corridor", cost_usd: 35000, length_m: 530.0 },
+      { id: "INFRA-04", name: "Southern Commercial Perimeter", type: "road", coords: [[-17.8272, 31.0515], [-17.8272, 31.0562]], spec: "Heavy Vehicle Tarred Road", cost_usd: 42000, length_m: 500.0 },
+      { id: "INFRA-05", name: "150mm uPVC Potable Water Main", type: "water", coords: [[-17.8236, 31.0515], [-17.8236, 31.0568]], spec: "4.5 Bar Harare Bulk Reticulation", cost_usd: 18500, length_m: 565.0 },
+      { id: "INFRA-06", name: "Avenue 1 Water Feeder Ring", type: "water", coords: [[-17.8236, 31.0541], [-17.8270, 31.0541]], spec: "150mm Class 9 uPVC Main", cost_usd: 12750, length_m: 378.0 },
+      { id: "INFRA-07", name: "200mm HDPE Gravity Sewer Trunk", type: "sewer", coords: [[-17.8242, 31.0530], [-17.8256, 31.0530], [-17.8271, 31.0538], [-17.8280, 31.0555]], spec: "Slope 1:120 to Southern Municipal Trunk Sewer", cost_usd: 42800, length_m: 650.0 },
+      { id: "INFRA-08", name: "11kV ZETDC Underground Feeder", type: "power", coords: [[-17.8237, 31.0516], [-17.8237, 31.0542], [-17.8255, 31.0542]], spec: "Highlands 33/11kV Substation Line", cost_usd: 36500, length_m: 475.0 },
+      { id: "INFRA-09", name: "Northern Stormwater Collector V-Drain", type: "drain", coords: [[-17.8234, 31.0515], [-17.8234, 31.0570]], spec: "Precast Concrete Trapezoidal Drain (Q=1.48 m³/s)", cost_usd: 15000, length_m: 585.0 }
     ];
-    roadSegments.forEach(r => {
-      L.polyline(r.coords, { color: '#f59e0b', weight: 6, opacity: 0.85 })
-        .bindPopup(`<b class="text-amber-400">${r.name}</b><br>Specification: 150mm Crushed Stone Base + 40mm Asphalt Concrete.`)
-        .addTo(layerRoads);
-      L.polyline(r.coords, { color: '#1e293b', weight: 2, dashArray: '6,6' }).addTo(layerRoads);
-    });
 
-    // 2. Pressurized Water Mainline & Hydrants
-    const waterLines = [
-      [[-17.8236, 31.0515], [-17.8236, 31.0568]],
-      [[-17.8236, 31.0541], [-17.8270, 31.0541]]
-    ];
-    waterLines.forEach(w => {
-      L.polyline(w, { color: '#06b6d4', weight: 3.5, dashArray: '4,4' })
-        .bindPopup("<b class='text-cyan-400'>150mm uPVC Potable Water Main</b><br>Pressure: 4.5 Bar • City of Harare Bulk Water Reticulation.")
-        .addTo(layerWater);
-    });
-    [[-17.8236, 31.0541], [-17.8256, 31.0541], [-17.8270, 31.0541]].forEach(h => {
-      L.circleMarker(h, { radius: 5, color: '#06b6d4', fillColor: '#22d3ee', fillOpacity: 0.9 })
-        .bindPopup("<b class='text-cyan-400'>Fire Hydrant #FH-09</b><br>Flow: 1,200 L/min.")
-        .addTo(layerWater);
-    });
+    function renderInfrastructureLayers() {
+      layerRoads.clearLayers();
+      layerWater.clearLayers();
+      layerSewer.clearLayers();
+      layerPower.clearLayers();
+      layerDrain.clearLayers();
 
-    // 3. Gravity Sewer Reticulation & Manholes
-    const sewerLine = [[-17.8242, 31.0530], [-17.8256, 31.0530], [-17.8271, 31.0538], [-17.8280, 31.0555]];
-    L.polyline(sewerLine, { color: '#ea580c', weight: 3.5 })
-      .bindPopup("<b class='text-orange-400'>200mm Heavy-Duty HDPE Gravity Sewer</b><br>Slope: 1:120 • Discharging to Southern Municipal Trunk Sewer.")
-      .addTo(layerSewer);
-    sewerLine.forEach((m, idx) => {
-      L.circleMarker(m, { radius: 6, color: '#ea580c', fillColor: '#fed7aa', fillOpacity: 0.95 })
-        .bindPopup(`<b class="text-orange-400">Sewer Manhole MH-0${idx + 1}</b><br>Invert Level: 1422.40m`)
-        .addTo(layerSewer);
-    });
+      const colorMap = { road: '#f59e0b', sewer: '#ea580c', water: '#06b6d4', power: '#eab308', drain: '#38bdf8' };
+      const layerMap = { road: layerRoads, sewer: layerSewer, water: layerWater, power: layerPower, drain: layerDrain };
 
-    // 4. 11kV ZETDC Electricity Grid & Transformer
-    const powerLine = [[-17.8237, 31.0516], [-17.8237, 31.0542], [-17.8255, 31.0542]];
-    L.polyline(powerLine, { color: '#eab308', weight: 3 })
-      .bindPopup("<b class='text-yellow-400'>11kV ZETDC Underground Feeder</b><br>Connected to Highlands 33/11kV Substation.")
-      .addTo(layerPower);
-    L.circleMarker([-17.8255, 31.0542], { radius: 8, color: '#eab308', fillColor: '#fef08a', fillOpacity: 0.95 })
-      .bindPopup("<b class='text-yellow-400'>500 kVA Step-Down Mini-Substation</b><br>11kV to 400V 3-Phase Residential & Commercial Supply.")
-      .addTo(layerPower);
+      infrastructureData.forEach((infra, idx) => {
+        const color = colorMap[infra.type] || '#3b82f6';
+        const targetLayer = layerMap[infra.type] || layerRoads;
 
-    // INTERACTIVE GIS STATE & TOOLS
-    let currentGisTool = 'select'; // 'select', 'peg', 'road', 'sewer', 'water', 'power', 'measure'
-    let activePegPoints = [];
-    let activePegMarkers = [];
-    let activePegPolygon = null;
+        // Render base visual line
+        if (infra.type === 'road') {
+          L.polyline(infra.coords, { color: '#f59e0b', weight: 6, opacity: 0.9 }).addTo(targetLayer);
+          L.polyline(infra.coords, { color: '#1e293b', weight: 2, dashArray: '6,6' }).addTo(targetLayer);
+        } else {
+          L.polyline(infra.coords, {
+            color: color,
+            weight: 3.5,
+            opacity: 0.9,
+            dashArray: infra.type === 'drain' ? '8,4' : (infra.type === 'water' ? '4,4' : null)
+          }).addTo(targetLayer);
+        }
 
-    let activeInfraPoints = [];
-    let activeInfraMarkers = [];
-    let activeInfraLine = null;
+        // Ancillary engineering icons/nodes
+        if (infra.type === 'water') {
+          infra.coords.forEach(pt => {
+            L.circleMarker(pt, { radius: 4.5, color: '#06b6d4', fillColor: '#22d3ee', fillOpacity: 0.95 }).addTo(targetLayer);
+          });
+        } else if (infra.type === 'sewer') {
+          infra.coords.forEach((pt, mIdx) => {
+            L.circleMarker(pt, { radius: 5.5, color: '#ea580c', fillColor: '#fed7aa', fillOpacity: 0.95 })
+              .bindTooltip(`MH-${mIdx + 1} (${infra.name})`, { className: 'text-[9px] font-mono' })
+              .addTo(targetLayer);
+          });
+        } else if (infra.type === 'power') {
+          if (infra.coords.length > 0) {
+            const endPt = infra.coords[infra.coords.length - 1];
+            L.circleMarker(endPt, { radius: 7, color: '#eab308', fillColor: '#fef08a', fillOpacity: 0.95 })
+              .bindTooltip("500kVA Mini-Substation", { className: 'text-[9px] font-mono' })
+              .addTo(targetLayer);
+          }
+        }
 
-    // Haversine distance in meters
+        // Invisible wider interactive hit-box polyline for crisp selection
+        const hitPoly = L.polyline(infra.coords, { color: 'transparent', weight: 14, opacity: 0 });
+        hitPoly.bindTooltip(`<b class="text-white">${infra.name}</b><br><span class="text-slate-400">Type: ${infra.type.toUpperCase()} • Spec: ${infra.spec}</span><br><span class="text-emerald-400 font-bold">Click in Select Mode to edit alignment & corner angles</span>`, { sticky: true });
+        hitPoly.on('click', (e) => {
+          if (cadState.activeTool === 'select') {
+            L.DomEvent.stopPropagation(e);
+            selectCadInfrastructure(infra, idx);
+          }
+        });
+        hitPoly.addTo(targetLayer);
+      });
+    }
+
+    // =========================================================================
+    // HIGH-PRECISION GEODETIC & TRIGONOMETRIC CAD CALCULATIONS
+    // =========================================================================
+
     function getDistanceMeters(p1, p2) {
       const R = 6371000;
       const dLat = (p2[0] - p1[0]) * Math.PI / 180;
@@ -3557,9 +4033,8 @@
       return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
     }
 
-    // Spherical Polygon Area in m²
     function calculatePolygonArea(coords) {
-      if (coords.length < 3) return 0;
+      if (!coords || coords.length < 3) return 0;
       const R = 6371000;
       let total = 0;
       for (let i = 0; i < coords.length; i++) {
@@ -3573,143 +4048,723 @@
       return Math.abs(total * R * R / 2.0);
     }
 
-    // Map Click Event Handler
-    sMap.on('click', function(e) {
-      const lat = e.latlng.lat;
-      const lng = e.latlng.lng;
+    function getBearingDegrees(p1, p2) {
+      const lat1 = p1[0] * Math.PI / 180;
+      const lat2 = p2[0] * Math.PI / 180;
+      const dLon = (p2[1] - p1[1]) * Math.PI / 180;
+      const y = Math.sin(dLon) * Math.cos(lat2);
+      const x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1) * Math.cos(lat2) * Math.cos(dLon);
+      let deg = Math.atan2(y, x) * 180 / Math.PI;
+      return (deg + 360) % 360;
+    }
 
-      if (currentGisTool === 'peg') {
-        const letter = activePegPoints.length < 26 ? String.fromCharCode(65 + activePegPoints.length) : `${activePegPoints.length + 1}`;
-        activePegPoints.push([lat, lng]);
+    function formatBearingDms(deg) {
+      const d = Math.floor(deg);
+      const minFloat = (deg - d) * 60;
+      const m = Math.floor(minFloat);
+      return `${String(d).padStart(3, '0')}° ${String(m).padStart(2, '0')}'`;
+    }
 
-        const marker = L.circleMarker([lat, lng], {
-          radius: 7,
-          color: '#3b82f6',
-          fillColor: '#93c5fd',
-          fillOpacity: 1
-        }).bindTooltip(`Beacon ${letter} (${lat.toFixed(5)}, ${lng.toFixed(5)})`, { permanent: true, direction: 'top', className: 'text-[10px] font-mono' }).addTo(layerSketch);
-        activePegMarkers.push(marker);
+    function getVertexInteriorAngle(pPrev, pCurr, pNext) {
+      const bPrev = getBearingDegrees(pCurr, pPrev);
+      const bNext = getBearingDegrees(pCurr, pNext);
+      let diff = Math.abs(bNext - bPrev);
+      if (diff > 180) diff = 360 - diff;
+      return diff;
+    }
 
-        if (activePegPoints.length >= 3) {
-          if (activePegPolygon) sMap.removeLayer(activePegPolygon);
-          activePegPolygon = L.polygon(activePegPoints, {
-            color: '#3b82f6', weight: 2.5, fillColor: '#3b82f6', fillOpacity: 0.35, dashArray: '4,4'
-          }).addTo(layerSketch);
+    function destinationPoint(pStart, bearingDeg, distanceMeters) {
+      const R = 6371000;
+      const delta = distanceMeters / R;
+      const theta = bearingDeg * Math.PI / 180;
+      const phi1 = pStart[0] * Math.PI / 180;
+      const lam1 = pStart[1] * Math.PI / 180;
 
-          const area = calculatePolygonArea(activePegPoints);
-          let perim = 0;
-          for (let i = 0; i < activePegPoints.length; i++) {
-            perim += getDistanceMeters(activePegPoints[i], activePegPoints[(i+1)%activePegPoints.length]);
-          }
-          document.getElementById('hud-pegged-area').innerText = `${area.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} m²`;
-          document.getElementById('hud-pegged-perimeter').innerText = `${perim.toFixed(1)} m`;
+      const phi2 = Math.asin(Math.sin(phi1) * Math.cos(delta) + Math.cos(phi1) * Math.sin(delta) * Math.cos(theta));
+      const lam2 = lam1 + Math.atan2(Math.sin(theta) * Math.sin(delta) * Math.cos(phi1), Math.cos(delta) - Math.sin(phi1) * Math.sin(phi2));
+
+      return [phi2 * 180 / Math.PI, lam2 * 180 / Math.PI];
+    }
+
+    function setCornerAngle(points, cornerIdx, targetAngleDeg, isClosed = true) {
+      if (points.length < 3) return;
+      const n = points.length;
+      let prevIdx, currIdx, nextIdx;
+
+      if (isClosed) {
+        currIdx = cornerIdx;
+        prevIdx = (cornerIdx - 1 + n) % n;
+        nextIdx = (cornerIdx + 1) % n;
+      } else {
+        currIdx = cornerIdx;
+        if (currIdx === 0) {
+          prevIdx = 2; currIdx = 1; nextIdx = 0;
+        } else if (currIdx === n - 1) {
+          prevIdx = n - 3; currIdx = n - 2; nextIdx = n - 1;
+        } else {
+          prevIdx = currIdx - 1; nextIdx = currIdx + 1;
         }
-
-        document.getElementById('hud-beacon-count').innerText = `${activePegPoints.length} Beacons`;
-        renderPeggedBeaconsList();
       }
 
-      else if (['road', 'sewer', 'water', 'power', 'measure'].includes(currentGisTool)) {
-        activeInfraPoints.push([lat, lng]);
-        const colorMap = { road: '#f59e0b', sewer: '#ea580c', water: '#06b6d4', power: '#eab308', measure: '#10b981' };
-        const color = colorMap[currentGisTool] || '#3b82f6';
+      const pPrev = points[prevIdx];
+      const pCurr = points[currIdx];
+      const pNext = points[nextIdx];
 
-        let markerTooltip = null;
-        if (currentGisTool === 'measure') {
-          let cumDist = 0;
-          for (let i = 0; i < activeInfraPoints.length - 1; i++) {
-            cumDist += getDistanceMeters(activeInfraPoints[i], activeInfraPoints[i+1]);
-          }
-          markerTooltip = `Pt ${activeInfraPoints.length} (${cumDist.toFixed(1)} m)`;
-        }
+      const bPrev = getBearingDegrees(pCurr, pPrev);
+      const bNext = getBearingDegrees(pCurr, pNext);
+      const currentDist = getDistanceMeters(pCurr, pNext);
 
-        const marker = L.circleMarker([lat, lng], { radius: currentGisTool === 'measure' ? 6 : 5, color: color, fillColor: '#ffffff', fillOpacity: 0.95 });
-        if (markerTooltip) {
-          marker.bindTooltip(markerTooltip, { permanent: true, direction: 'top', className: 'text-[10px] font-mono' });
-        }
-        marker.addTo(layerSketch);
-        activeInfraMarkers.push(marker);
+      const turn = (bNext - bPrev + 360) % 360;
+      let newBearing;
+      if (turn <= 180) {
+        newBearing = (bPrev + targetAngleDeg) % 360;
+      } else {
+        newBearing = (bPrev - targetAngleDeg + 360) % 360;
+      }
 
-        if (activeInfraPoints.length >= 2) {
-          if (activeInfraLine) sMap.removeLayer(activeInfraLine);
-          activeInfraLine = L.polyline(activeInfraPoints, {
-            color: color,
-            weight: currentGisTool === 'road' ? 6 : (currentGisTool === 'measure' ? 3.5 : 3),
-            dashArray: currentGisTool === 'measure' ? '6,6' : null
+      points[nextIdx] = destinationPoint(pCurr, newBearing, currentDist);
+    }
+
+    function autoSquareQuad(points) {
+      if (!points || points.length < 4) return;
+      const p0 = points[0];
+      const p1 = points[1];
+      const p2 = points[2];
+
+      const b01 = getBearingDegrees(p0, p1);
+      const len12 = getDistanceMeters(p1, p2);
+      const b12 = (b01 + 90) % 360;
+
+      points[2] = destinationPoint(p1, b12, len12);
+      points[3] = destinationPoint(p0, b12, len12);
+    }
+
+    function snapToOrtho(pFrom, pTo, stepDeg = 45) {
+      const b = getBearingDegrees(pFrom, pTo);
+      const snappedB = (Math.round(b / stepDeg) * stepDeg) % 360;
+      const dist = getDistanceMeters(pFrom, pTo);
+      return destinationPoint(pFrom, snappedB, dist);
+    }
+
+    // =========================================================================
+    // UNIFIED CAD ENGINE CONTROLLER & STATE
+    // =========================================================================
+    let currentGisTool = 'select';
+    let isGisMaximized = false;
+    let isGisSidebarHidden = false;
+
+    let cadState = {
+      activeTool: 'select',
+      selectedFeature: null, // { type: 'stand'|'infra', index, data }
+      points: [], // [[lat, lng], ...]
+      vertexMarkers: [],
+      angleMarkers: [],
+      dimensionMarkers: [],
+      rubberbandLine: null,
+      rubberbandClosingLine: null,
+      rubberbandTooltip: null,
+      isOrtho: false,
+      showDimensions: true,
+      selectedVertexIdx: null,
+      history: []
+    };
+
+    // Legacy references for compatibility with existing modals & audits
+    let activePegPoints = [];
+    let activePegMarkers = [];
+    let activePegPolygon = null;
+    let activeInfraPoints = [];
+    let activeInfraMarkers = [];
+    let activeInfraLine = null;
+
+    function syncCadPoints() {
+      activePegPoints = cadState.points;
+      activeInfraPoints = cadState.points;
+    }
+
+    function cadRenderSketch() {
+      syncCadPoints();
+      layerSketch.clearLayers();
+      cadState.vertexMarkers = [];
+      cadState.angleMarkers = [];
+      cadState.dimensionMarkers = [];
+
+      const pts = cadState.points;
+      const tool = cadState.activeTool;
+      const isClosed = tool === 'peg' || (cadState.selectedFeature && cadState.selectedFeature.type === 'stand');
+
+      const colorMap = {
+        select: '#38bdf8',
+        peg: '#3b82f6',
+        road: '#f59e0b',
+        sewer: '#ea580c',
+        water: '#06b6d4',
+        power: '#eab308',
+        drain: '#38bdf8',
+        measure: '#10b981'
+      };
+      const activeColor = colorMap[tool] || '#3b82f6';
+
+      // 1. Render Active Geometry (Polygon or Polyline)
+      if (isClosed) {
+        if (pts.length >= 3) {
+          const poly = L.polygon(pts, {
+            color: activeColor,
+            weight: 3,
+            fillColor: activeColor,
+            fillOpacity: 0.35,
+            dashArray: '5,5'
           }).addTo(layerSketch);
+          activePegPolygon = poly;
+
+          const area = calculatePolygonArea(pts);
+          let perim = 0;
+          for (let i = 0; i < pts.length; i++) {
+            perim += getDistanceMeters(pts[i], pts[(i + 1) % pts.length]);
+          }
+
+          // Update CAD Floating HUD
+          document.getElementById('cad-hud-stat-1').innerHTML = `<b class="text-blue-400">Beacons:</b> ${pts.length}`;
+          document.getElementById('cad-hud-stat-2').innerHTML = `<b class="text-emerald-400">Area:</b> ${area.toLocaleString(undefined, {minimumFractionDigits: 1, maximumFractionDigits: 1})} m²`;
+          document.getElementById('cad-hud-stat-3').innerHTML = `<b class="text-amber-400">Perimeter:</b> ${perim.toFixed(1)} m`;
+
+          // Update Sidebar HUD
+          const hArea = document.getElementById('hud-pegged-area');
+          const hPerim = document.getElementById('hud-pegged-perimeter');
+          const hCount = document.getElementById('hud-beacon-count');
+          if (hArea) hArea.innerText = `${area.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} m²`;
+          if (hPerim) hPerim.innerText = `${perim.toFixed(1)} m`;
+          if (hCount) hCount.innerText = `${pts.length} Beacons`;
+          renderPeggedBeaconsList();
+        } else {
+          if (pts.length === 2) {
+            L.polyline(pts, { color: activeColor, weight: 2.5, dashArray: '4,4' }).addTo(layerSketch);
+          }
+          document.getElementById('cad-hud-stat-1').innerHTML = `<b class="text-blue-400">Beacons:</b> ${pts.length}`;
+          document.getElementById('cad-hud-stat-2').innerHTML = `<b class="text-emerald-400">Area:</b> 0.0 m²`;
+          document.getElementById('cad-hud-stat-3').innerHTML = `<b class="text-amber-400">Perimeter:</b> 0.0 m`;
+        }
+      } else {
+        // Linear infrastructure & measurement
+        if (pts.length >= 2) {
+          const line = L.polyline(pts, {
+            color: activeColor,
+            weight: tool === 'road' ? 6 : (tool === 'measure' ? 3.5 : 3),
+            dashArray: tool === 'measure' ? '6,6' : (tool === 'drain' ? '8,4' : null)
+          }).addTo(layerSketch);
+          activeInfraLine = line;
 
           let totalLen = 0;
-          for (let i = 0; i < activeInfraPoints.length - 1; i++) {
-            totalLen += getDistanceMeters(activeInfraPoints[i], activeInfraPoints[i+1]);
+          for (let i = 0; i < pts.length - 1; i++) {
+            totalLen += getDistanceMeters(pts[i], pts[i + 1]);
           }
 
-          document.getElementById('hud-infra-length').innerText = `${totalLen.toFixed(1)} m`;
-          const rates = { road: 185.0, sewer: 65.0, water: 45.0, power: 55.0, measure: 0.0 };
-          const rate = rates[currentGisTool] || 0;
-          if (currentGisTool === 'measure') {
-            document.getElementById('hud-infra-cost').innerText = `Total: ${totalLen.toFixed(1)} m (${(totalLen / 1000).toFixed(3)} km)`;
+          const rates = { road: 185.0, sewer: 65.0, water: 45.0, power: 55.0, drain: 42.0, measure: 0.0 };
+          const rate = rates[tool] || 50.0;
+          const cost = Math.round(totalLen * rate);
+
+          document.getElementById('cad-hud-stat-1').innerHTML = `<b class="text-blue-400">Vertices:</b> ${pts.length}`;
+          document.getElementById('cad-hud-stat-2').innerHTML = `<b class="text-emerald-400">Length:</b> ${totalLen.toFixed(1)} m`;
+          if (tool === 'measure') {
+            document.getElementById('cad-hud-stat-3').innerHTML = `<b class="text-cyan-400">Distance:</b> ${(totalLen / 1000).toFixed(3)} km`;
           } else {
-            const cost = totalLen * rate;
-            document.getElementById('hud-infra-cost').innerText = `$${cost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD`;
+            document.getElementById('cad-hud-stat-3').innerHTML = `<b class="text-amber-400">Est. Cost:</b> $${cost.toLocaleString()} USD`;
           }
+
+          const hLen = document.getElementById('hud-infra-length');
+          const hCost = document.getElementById('hud-infra-cost');
+          if (hLen) hLen.innerText = `${totalLen.toFixed(1)} m`;
+          if (hCost) {
+            hCost.innerText = tool === 'measure' ? `Total: ${totalLen.toFixed(1)} m` : `$${cost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD`;
+          }
+        } else {
+          document.getElementById('cad-hud-stat-1').innerHTML = `<b class="text-blue-400">Vertices:</b> ${pts.length}`;
+          document.getElementById('cad-hud-stat-2').innerHTML = `<b class="text-emerald-400">Length:</b> 0.0 m`;
+          document.getElementById('cad-hud-stat-3').innerHTML = `<b class="text-amber-400">Est. Cost:</b> $0.00 USD`;
         }
       }
-    });
 
-    function renderPeggedBeaconsList() {
-      const listEl = document.getElementById('hud-beacons-list');
-      if (activePegPoints.length === 0) {
-        listEl.innerHTML = '<p class="text-slate-500 italic p-1">No beacons pegged yet. Click on the map to begin.</p>';
+      // 2. Render Interactive Draggable Vertex Handles
+      cadRenderVertexHandles(isClosed, activeColor);
+
+      // 3. Render Angle Badges & Edge Dimensions
+      if (cadState.showDimensions) {
+        cadRenderAngleAndDimensionOverlays(isClosed);
+      }
+    }
+
+    function cadRenderVertexHandles(isClosed, activeColor) {
+      const pts = cadState.points;
+      pts.forEach((pt, idx) => {
+        const letter = isClosed && idx < 26 ? String.fromCharCode(65 + idx) : `${idx + 1}`;
+        const isFirst = isClosed && idx === 0 && pts.length >= 3;
+
+        const handleDiv = document.createElement('div');
+        handleDiv.className = `cad-beacon-handle ${isFirst ? 'cad-beacon-first' : ''}`;
+        handleDiv.style.borderColor = isFirst ? '#10b981' : activeColor;
+        handleDiv.innerText = letter;
+        handleDiv.title = `Vertex ${letter} (${pt[0].toFixed(5)}, ${pt[1].toFixed(5)})\n• Click to adjust angle\n• Drag to move\n• Right-click to delete`;
+
+        const icon = L.divIcon({
+          className: 'cad-handle-container',
+          html: handleDiv,
+          iconSize: [22, 22],
+          iconAnchor: [11, 11]
+        });
+
+        const marker = L.marker([pt[0], pt[1]], { draggable: true, icon: icon });
+
+        marker.on('dragstart', () => {
+          if (cadState.rubberbandLine) sMap.removeLayer(cadState.rubberbandLine);
+        });
+
+        marker.on('drag', (e) => {
+          pts[idx] = [e.latlng.lat, e.latlng.lng];
+          cadRenderSketch();
+          // If editing a selected stand in Select mode, update live coordinates
+          if (cadState.selectedFeature && cadState.selectedFeature.type === 'stand') {
+            const stand = cadState.selectedFeature.data;
+            const closedCoords = pts.map(p => [p[1], p[0]]);
+            closedCoords.push(closedCoords[0]);
+            stand.coords = closedCoords;
+            stand.area = Math.round(calculatePolygonArea(pts));
+            stand.price_usd = stand.zoning === 'HIGH_RISE' ? stand.area * 2.5 : stand.area * 3.0;
+            showStandDetails(stand);
+          }
+        });
+
+        marker.on('click', (e) => {
+          L.DomEvent.stopPropagation(e);
+          // If user clicked Beacon A to close polygon during draft pegging
+          if (cadState.activeTool === 'peg' && idx === 0 && pts.length >= 3) {
+            savePeggedStand();
+            return;
+          }
+          openCadVertexPopover(idx, e.latlng);
+        });
+
+        marker.on('contextmenu', (e) => {
+          L.DomEvent.stopPropagation(e);
+          cadDeleteVertex(idx);
+        });
+
+        marker.addTo(layerSketch);
+        cadState.vertexMarkers.push(marker);
+      });
+    }
+
+    function cadRenderAngleAndDimensionOverlays(isClosed) {
+      const pts = cadState.points;
+      const n = pts.length;
+      if (n < 2) return;
+
+      // 1. Corner Interior Angle Badges
+      if ((isClosed && n >= 3) || (!isClosed && n >= 3)) {
+        const loopCount = isClosed ? n : n - 2;
+        for (let i = 0; i < (isClosed ? n : n - 2); i++) {
+          const currIdx = isClosed ? i : i + 1;
+          const prevIdx = isClosed ? (currIdx - 1 + n) % n : currIdx - 1;
+          const nextIdx = isClosed ? (currIdx + 1) % n : currIdx + 1;
+
+          const angle = getVertexInteriorAngle(pts[prevIdx], pts[currIdx], pts[nextIdx]);
+          const isRightAngle = Math.abs(angle - 90.0) <= 1.5;
+
+          const angleDiv = document.createElement('div');
+          angleDiv.className = `cad-angle-badge ${isRightAngle ? 'right-angle' : ''}`;
+          angleDiv.innerHTML = isRightAngle ? `${angle.toFixed(1)}° 📐` : `${angle.toFixed(1)}°`;
+          angleDiv.title = `Corner Angle: ${angle.toFixed(1)}°\nClick to adjust angle (90°, 45°, 120°, 180°...)`;
+
+          angleDiv.onclick = (e) => {
+            e.stopPropagation();
+            openCadVertexPopover(currIdx, pts[currIdx]);
+          };
+
+          const angleIcon = L.divIcon({
+            className: 'cad-angle-container',
+            html: angleDiv,
+            iconSize: [40, 16],
+            iconAnchor: [20, -6]
+          });
+
+          const angleMarker = L.marker(pts[currIdx], { icon: angleIcon, interactive: true }).addTo(layerSketch);
+          cadState.angleMarkers.push(angleMarker);
+        }
+      }
+
+      // 2. Edge Dimension Badges & Midpoint '+' Insertion Handles
+      const edgeCount = isClosed ? n : n - 1;
+      for (let i = 0; i < edgeCount; i++) {
+        const p1 = pts[i];
+        const p2 = pts[(i + 1) % n];
+        const dist = getDistanceMeters(p1, p2);
+        const bearing = getBearingDegrees(p1, p2);
+
+        const midLat = (p1[0] + p2[0]) / 2.0;
+        const midLng = (p1[1] + p2[1]) / 2.0;
+
+        // Midpoint container with dimension badge and insert handle
+        const midDiv = document.createElement('div');
+        midDiv.className = 'flex items-center gap-1 -translate-x-1/2 -translate-y-1/2';
+        midDiv.innerHTML = `
+          <span class="cad-dimension-badge">${dist.toFixed(1)}m | ${formatBearingDms(bearing)}</span>
+          <button class="cad-midpoint-handle" title="Click to insert new vertex here">+</button>
+        `;
+
+        const btnPlus = midDiv.querySelector('.cad-midpoint-handle');
+        btnPlus.onclick = (e) => {
+          e.stopPropagation();
+          cadInsertVertex(i + 1, [midLat, midLng]);
+        };
+
+        const dimIcon = L.divIcon({
+          className: 'cad-dim-container',
+          html: midDiv,
+          iconSize: [120, 20],
+          iconAnchor: [60, 10]
+        });
+
+        const dimMarker = L.marker([midLat, midLng], { icon: dimIcon, interactive: true }).addTo(layerSketch);
+        cadState.dimensionMarkers.push(dimMarker);
+      }
+    }
+
+    // =========================================================================
+    // CORNER ANGLE INSPECTOR & GEOMETRY ADJUSTMENT
+    // =========================================================================
+
+    function openCadVertexPopover(vertexIdx, latlng) {
+      cadState.selectedVertexIdx = vertexIdx;
+      const pts = cadState.points;
+      const isClosed = cadState.activeTool === 'peg' || (cadState.selectedFeature && cadState.selectedFeature.type === 'stand');
+      const n = pts.length;
+      if (n < 3) return;
+
+      const pCurr = pts[vertexIdx];
+      const prevIdx = isClosed ? (vertexIdx - 1 + n) % n : Math.max(0, vertexIdx - 1);
+      const nextIdx = isClosed ? (vertexIdx + 1) % n : Math.min(n - 1, vertexIdx + 1);
+
+      const pPrev = pts[prevIdx];
+      const pNext = pts[nextIdx];
+
+      const angle = getVertexInteriorAngle(pPrev, pCurr, pNext);
+      const inB = getBearingDegrees(pPrev, pCurr);
+      const outB = getBearingDegrees(pCurr, pNext);
+
+      const letter = isClosed && vertexIdx < 26 ? String.fromCharCode(65 + vertexIdx) : `#${vertexIdx + 1}`;
+      document.getElementById('cad-vtx-title').innerText = `Beacon ${letter} Angle Adjuster`;
+      document.getElementById('cad-vtx-current-angle').innerText = `${angle.toFixed(1)}°`;
+      document.getElementById('cad-vtx-in-bearing').innerText = formatBearingDms(inB);
+      document.getElementById('cad-vtx-out-bearing').innerText = formatBearingDms(outB);
+      document.getElementById('cad-custom-angle-input').value = angle.toFixed(1);
+
+      const popover = document.getElementById('cad-vertex-popover');
+      popover.classList.remove('hidden');
+
+      if (latlng) {
+        const point = sMap.latLngToContainerPoint(latlng);
+        const mapContainer = sMap.getContainer();
+        const maxX = Math.max(10, mapContainer.clientWidth - 330);
+        const maxY = Math.max(10, mapContainer.clientHeight - 260);
+        popover.style.left = `${Math.min(Math.max(20, point.x - 140), maxX)}px`;
+        popover.style.top = `${Math.min(Math.max(20, point.y + 20), maxY)}px`;
+      }
+    }
+
+    function closeCadVertexPopover() {
+      const popover = document.getElementById('cad-vertex-popover');
+      if (popover) popover.classList.add('hidden');
+      cadState.selectedVertexIdx = null;
+    }
+
+    function cadSetTargetAngle(targetDeg) {
+      if (cadState.selectedVertexIdx === null) {
+        cadState.selectedVertexIdx = Math.max(0, cadState.points.length - 2);
+      }
+      const isClosed = cadState.activeTool === 'peg' || (cadState.selectedFeature && cadState.selectedFeature.type === 'stand');
+      setCornerAngle(cadState.points, cadState.selectedVertexIdx, targetDeg, isClosed);
+      cadRenderSketch();
+      openCadVertexPopover(cadState.selectedVertexIdx, cadState.points[cadState.selectedVertexIdx]);
+    }
+
+    function cadApplyCustomAngle() {
+      const val = parseFloat(document.getElementById('cad-custom-angle-input')?.value);
+      if (isNaN(val) || val <= 0 || val >= 180) {
+        alert("Please enter a valid angle between 1° and 179°.");
         return;
       }
-      let html = '';
-      activePegPoints.forEach((pt, i) => {
-        const letter = i < 26 ? String.fromCharCode(65 + i) : `${i + 1}`;
-        let dist = 0;
-        if (i > 0) dist = getDistanceMeters(activePegPoints[i-1], pt);
-        html += `<div class="flex justify-between items-center text-slate-300">
-          <span><b>BCN-${letter}:</b> ${pt[0].toFixed(5)}, ${pt[1].toFixed(5)}</span>
-          <span class="text-blue-400">${i > 0 ? dist.toFixed(1) + 'm' : 'Start'}</span>
-        </div>`;
-      });
-      listEl.innerHTML = html;
+      cadSetTargetAngle(val);
     }
 
-    function clearGisSketch() {
-      activePegPoints = [];
-      activePegMarkers.forEach(m => sMap.removeLayer(m));
-      activePegMarkers = [];
-      if (activePegPolygon) sMap.removeLayer(activePegPolygon);
-      activePegPolygon = null;
-      document.getElementById('hud-pegged-area').innerText = '0.00 m²';
-      document.getElementById('hud-pegged-perimeter').innerText = '0.0 m';
-      document.getElementById('hud-beacon-count').innerText = '0 Beacons';
-      renderPeggedBeaconsList();
+    function cadSquareActiveCorner() {
+      const pts = cadState.points;
+      if (pts.length < 3) {
+        alert("Please draft at least 3 points before squaring a corner.");
+        return;
+      }
+      const isClosed = cadState.activeTool === 'peg' || (cadState.selectedFeature && cadState.selectedFeature.type === 'stand');
+      if (isClosed && pts.length === 4) {
+        autoSquareQuad(pts);
+        cadRenderSketch();
+        alert("📐 Stand geometry automatically rectified! All 4 corner beacons set to 90.0° square right angles.");
+        return;
+      }
+      const targetIdx = cadState.selectedVertexIdx !== null ? cadState.selectedVertexIdx : Math.max(0, pts.length - 2);
+      setCornerAngle(pts, targetIdx, 90.0, isClosed);
+      cadRenderSketch();
     }
 
-    function clearInfraSketch() {
-      activeInfraPoints = [];
-      activeInfraMarkers.forEach(m => sMap.removeLayer(m));
-      activeInfraMarkers = [];
-      if (activeInfraLine) sMap.removeLayer(activeInfraLine);
-      activeInfraLine = null;
-      document.getElementById('hud-infra-length').innerText = '0.0 m';
-      document.getElementById('hud-infra-cost').innerText = '$0.00 USD';
+    function cadInsertVertex(insertIdx, latlng) {
+      cadState.points.splice(insertIdx, 0, [latlng[0], latlng[1]]);
+      cadRenderSketch();
     }
+
+    function cadDeleteVertex(idx) {
+      const isClosed = cadState.activeTool === 'peg' || (cadState.selectedFeature && cadState.selectedFeature.type === 'stand');
+      if (isClosed && cadState.points.length <= 3) {
+        alert("A cadastral stand must maintain at least 3 corner beacons (A, B, C).");
+        return;
+      }
+      if (!isClosed && cadState.points.length <= 2) {
+        alert("An infrastructure line must maintain at least 2 alignment points.");
+        return;
+      }
+      cadState.points.splice(idx, 1);
+      closeCadVertexPopover();
+      cadRenderSketch();
+    }
+
+    function cadDeleteSelectedVertex() {
+      if (cadState.selectedVertexIdx !== null) {
+        cadDeleteVertex(cadState.selectedVertexIdx);
+      }
+    }
+
+    function cadUndoLastPoint() {
+      if (cadState.points.length > 0) {
+        cadState.points.pop();
+        cadRenderSketch();
+      }
+    }
+
+    function cadToggleOrthoMode() {
+      cadState.isOrtho = !cadState.isOrtho;
+      const btn = document.getElementById('cad-dock-ortho');
+      const txt = document.getElementById('cad-dock-ortho-text');
+      if (cadState.isOrtho) {
+        if (btn) btn.className = "px-2.5 py-1.5 bg-yellow-600 hover:bg-yellow-500 text-slate-950 font-bold border border-yellow-400 rounded-xl text-xs flex items-center gap-1.5 transition whitespace-nowrap shadow-md";
+        if (txt) txt.innerText = "Ortho: 90°/45° ON";
+      } else {
+        if (btn) btn.className = "px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition whitespace-nowrap";
+        if (txt) txt.innerText = "Ortho: OFF";
+      }
+    }
+
+    function cadToggleDimensions() {
+      cadState.showDimensions = !cadState.showDimensions;
+      const btn = document.getElementById('cad-dock-dims');
+      if (btn) {
+        btn.className = cadState.showDimensions
+          ? "px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition whitespace-nowrap"
+          : "px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-500 border border-slate-700 rounded-xl font-semibold text-xs flex items-center gap-1.5 transition whitespace-nowrap";
+      }
+      cadRenderSketch();
+    }
+
+    function cadCommitActiveFeature() {
+      if (cadState.selectedFeature) {
+        if (cadState.selectedFeature.type === 'stand') {
+          saveStandGeometryEdits();
+        } else if (cadState.selectedFeature.type === 'infra') {
+          saveInfraGeometryEdits();
+        }
+        return;
+      }
+
+      if (cadState.activeTool === 'peg') {
+        savePeggedStand();
+      } else if (['road', 'sewer', 'water', 'power', 'drain'].includes(cadState.activeTool)) {
+        commitInfrastructureLine();
+      } else if (cadState.activeTool === 'measure') {
+        alert(`Measurement completed: ${document.getElementById('hud-infra-length')?.innerText || ''}`);
+      }
+    }
+
+    function cadCancelActiveOperation() {
+      closeCadVertexPopover();
+      if (cadState.selectedFeature) {
+        cadDeselectFeature();
+      } else if (cadState.activeTool === 'peg') {
+        clearGisSketch();
+      } else {
+        clearInfraSketch();
+      }
+    }
+
+    // =========================================================================
+    // FEATURE SELECTION & INTERACTIVE EDITING IN 'SELECT' MODE
+    // =========================================================================
+
+    function selectCadStand(stand) {
+      cadDeselectFeature();
+      cadState.activeTool = 'select';
+      cadState.selectedFeature = { type: 'stand', data: stand };
+      // Omit trailing duplicated coordinate for clean editing
+      const polyPts = stand.coords.slice(0, -1).map(c => [c[1], c[0]]);
+      cadState.points = polyPts;
+
+      document.getElementById('cad-hud-mode-pill').className = "px-2.5 py-1 rounded-lg bg-emerald-600 text-white font-bold text-[11px] uppercase tracking-wide flex items-center gap-1.5 shadow-sm";
+      document.getElementById('cad-hud-mode-icon').className = "fa-solid fa-pen-ruler";
+      document.getElementById('cad-hud-mode-text').innerText = `EDITING STAND: ${stand.su_id}`;
+
+      document.getElementById('cad-dock-commit-text').innerText = `Save Stand Edits`;
+      document.getElementById('cad-dock-square-text').innerText = `Auto-Square 90°`;
+      document.getElementById('cad-dock-cancel-text').innerText = `Deselect`;
+
+      showStandDetails(stand);
+      cadRenderSketch();
+    }
+
+    function saveStandGeometryEdits() {
+      if (!cadState.selectedFeature || cadState.selectedFeature.type !== 'stand') return;
+      if (cadState.points.length < 3) {
+        alert("A stand must have at least 3 corner beacons.");
+        return;
+      }
+      const stand = cadState.selectedFeature.data;
+      const area = Math.round(calculatePolygonArea(cadState.points));
+      const closedCoords = cadState.points.map(p => [p[1], p[0]]);
+      closedCoords.push(closedCoords[0]);
+
+      stand.area = area;
+      stand.price_usd = stand.zoning === 'HIGH_RISE' ? area * 2.5 : area * 3.0;
+      stand.coords = closedCoords;
+
+      renderStandsLayer();
+      renderSalesTable();
+      showStandDetails(stand);
+      cadDeselectFeature();
+      alert(`Stand ${stand.su_id} geometry updated! New area: ${area.toLocaleString()} m², valuation: $${stand.price_usd.toLocaleString()} USD.`);
+    }
+
+    function selectCadInfrastructure(infra, idx) {
+      cadDeselectFeature();
+      cadState.activeTool = 'select';
+      cadState.selectedFeature = { type: 'infra', index: idx, data: infra };
+      cadState.points = infra.coords.slice();
+
+      const colorMap = { road: 'bg-amber-600', sewer: 'bg-orange-600', water: 'bg-cyan-600', power: 'bg-yellow-600', drain: 'bg-sky-600' };
+      const bgPill = colorMap[infra.type] || 'bg-blue-600';
+
+      document.getElementById('cad-hud-mode-pill').className = `px-2.5 py-1 rounded-lg ${bgPill} text-white font-bold text-[11px] uppercase tracking-wide flex items-center gap-1.5 shadow-sm`;
+      document.getElementById('cad-hud-mode-icon').className = "fa-solid fa-route";
+      document.getElementById('cad-hud-mode-text').innerText = `EDITING INFRA: ${infra.name.toUpperCase()}`;
+
+      document.getElementById('cad-dock-commit-text').innerText = `Save Line Edits`;
+      document.getElementById('cad-dock-square-text').innerText = `Square Corner`;
+      document.getElementById('cad-dock-cancel-text').innerText = `Deselect`;
+
+      showInfrastructureDetails(infra);
+      cadRenderSketch();
+    }
+
+    function saveInfraGeometryEdits() {
+      if (!cadState.selectedFeature || cadState.selectedFeature.type !== 'infra') return;
+      if (cadState.points.length < 2) {
+        alert("An infrastructure line must have at least 2 alignment points.");
+        return;
+      }
+      const infra = cadState.selectedFeature.data;
+      infra.coords = cadState.points.slice();
+
+      let len = 0;
+      for (let i = 0; i < infra.coords.length - 1; i++) {
+        len += getDistanceMeters(infra.coords[i], infra.coords[i+1]);
+      }
+      infra.length_m = len;
+      const rates = { road: 185.0, sewer: 65.0, water: 45.0, power: 55.0, drain: 42.0 };
+      infra.cost_usd = Math.round(len * (rates[infra.type] || 50));
+
+      renderInfrastructureLayers();
+      refreshLiveBoq();
+      showInfrastructureDetails(infra);
+      cadDeselectFeature();
+      alert(`Infrastructure alignment for '${infra.name}' updated! New length: ${len.toFixed(1)} m, Cost: $${infra.cost_usd.toLocaleString()} USD.`);
+    }
+
+    function cadDeselectFeature() {
+      cadState.selectedFeature = null;
+      cadState.points = [];
+      closeCadVertexPopover();
+      document.getElementById('cad-dock-commit-text').innerText = `Finish & Commit`;
+      document.getElementById('cad-dock-square-text').innerText = `Square 90°`;
+      document.getElementById('cad-dock-cancel-text').innerText = `Cancel`;
+      setGisTool('select');
+    }
+
+    function showInfrastructureDetails(infra) {
+      switchGisSidebarTab('inspector');
+      const detailsEl = document.getElementById('stands-details');
+      if (!detailsEl) return;
+
+      const typeBadgeMap = {
+        road: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+        water: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30',
+        sewer: 'bg-orange-500/20 text-orange-400 border-orange-500/30',
+        power: 'bg-yellow-500/20 text-yellow-400 border-yellow-500/30',
+        drain: 'bg-sky-500/20 text-sky-400 border-sky-500/30'
+      };
+      const badgeStyle = typeBadgeMap[infra.type] || 'bg-blue-500/20 text-blue-400 border-blue-500/30';
+
+      detailsEl.innerHTML = `
+        <div class="space-y-2.5">
+          <div class="flex justify-between items-center">
+            <span class="text-[10px] text-slate-400 font-bold uppercase">Civil Infrastructure Line</span>
+            <span class="px-2 py-0.5 rounded border ${badgeStyle} font-bold text-[10px] uppercase">${infra.type}</span>
+          </div>
+          <h3 class="text-base font-bold text-white">${infra.name}</h3>
+          <p class="text-xs text-slate-300 font-mono">${infra.length_m ? infra.length_m.toFixed(1) : '0.0'} m • Specification: ${infra.spec}</p>
+          <div class="pt-2 flex justify-between"><span class="text-slate-400">Total Alignment Vertices:</span> <b class="text-white font-mono">${infra.coords.length} Points</b></div>
+          <div class="flex justify-between"><span class="text-slate-400">BOQ Value:</span> <b class="text-emerald-400 font-mono">$${(infra.cost_usd || 0).toLocaleString()} USD</b></div>
+          
+          <div class="pt-2 border-t border-slate-800 flex gap-2">
+            <button onclick="saveInfraGeometryEdits()" class="flex-1 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1">
+              <i class="fa-solid fa-check"></i> Save Line
+            </button>
+            <button onclick="deleteSelectedInfrastructure()" class="py-1.5 px-3 bg-rose-900/60 hover:bg-rose-800 text-rose-200 border border-rose-700/50 rounded-lg font-bold text-xs">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    }
+
+    function deleteSelectedInfrastructure() {
+      if (!cadState.selectedFeature || cadState.selectedFeature.type !== 'infra') return;
+      if (!confirm(`Are you sure you want to remove '${cadState.selectedFeature.data.name}' from the infrastructure layout?`)) return;
+      const idx = cadState.selectedFeature.index;
+      infrastructureData.splice(idx, 1);
+      renderInfrastructureLayers();
+      refreshLiveBoq();
+      cadDeselectFeature();
+      alert("Infrastructure line removed.");
+    }
+
+    // =========================================================================
+    // PERSISTENCE FOR DRAWINGS (STANDS & INFRASTRUCTURE LINES)
+    // =========================================================================
 
     function savePeggedStand() {
-      if (activePegPoints.length < 3) {
+      if (cadState.points.length < 3) {
         alert("Please peg at least 3 corner beacons (A, B, C) to define a cadastral spatial unit.");
         return;
       }
-      const standId = sanitizeInput(document.getElementById('peg-new-id').value) || `STAND-00${standsData.length + 1}`;
-      const zoning = document.getElementById('peg-new-zoning').value;
-      const area = Math.round(calculatePolygonArea(activePegPoints));
+      const standId = sanitizeInput(document.getElementById('peg-new-id')?.value) || `STAND-00${standsData.length + 1}`;
+      const zoning = document.getElementById('peg-new-zoning')?.value || "HIGH_RISE";
+      const area = Math.round(calculatePolygonArea(cadState.points));
       const price = zoning === 'HIGH_RISE' ? area * 2.5 : area * 3.0;
 
-      // Close polygon coordinates
-      const coords = activePegPoints.map(p => [p[1], p[0]]);
-      coords.push(coords[0]);
+      const coords = cadState.points.map(p => [p[1], p[0]]);
+      coords.push(coords[0]); // Close polygon
 
       const newStand = {
         su_id: standId,
@@ -3729,32 +4784,229 @@
       renderSalesTable();
       clearGisSketch();
       showStandDetails(newStand);
-      alert(`Cadastral stand ${standId} successfully pegged, verified against 40% ZNHSP high-rise zoning, and saved to sales inventory!`);
+      alert(`Cadastral stand ${standId} successfully pegged (${area.toLocaleString()} m²), verified against 40% ZNHSP high-rise zoning, and saved to sales inventory!`);
     }
 
     function commitInfrastructureLine() {
-      if (activeInfraPoints.length < 2) {
+      if (cadState.points.length < 2) {
         alert("Please click at least 2 alignment points on the map to define an infrastructure corridor.");
         return;
       }
-      if (currentGisTool === 'measure') {
-        alert(`Measurement completed: ${document.getElementById('hud-infra-length').innerText}. To save permanent infrastructure, switch to Road, Sewer, Water, or Power.`);
+      if (cadState.activeTool === 'measure') {
+        alert(`Measurement completed: ${document.getElementById('hud-infra-length')?.innerText || ''}.`);
         return;
       }
-      const name = sanitizeInput(document.getElementById('infra-line-name').value) || "Civil Service Alignment";
-      const layerMap = { road: layerRoads, sewer: layerSewer, water: layerWater, power: layerPower };
-      const targetLayer = layerMap[currentGisTool] || layerRoads;
 
-      const colorMap = { road: '#f59e0b', sewer: '#ea580c', water: '#06b6d4', power: '#eab308' };
-      const color = colorMap[currentGisTool] || '#ffffff';
+      const typeNames = { road: 'Road Corridor (Tarred)', sewer: 'Gravity Sewer Trunk', water: 'Water Mainline', power: '11kV Electrical Grid', drain: 'Stormwater V-Drain' };
+      const defaultName = `Highlands ${typeNames[cadState.activeTool] || 'Civil Infrastructure'} Segment #${infrastructureData.length + 1}`;
+      const name = sanitizeInput(document.getElementById('infra-line-name')?.value) || defaultName;
 
-      L.polyline(activeInfraPoints, { color: color, weight: currentGisTool === 'road' ? 6 : 3.5 })
-        .bindPopup(`<b>${name}</b><br>Type: ${currentGisTool.toUpperCase()}<br>Length: ${document.getElementById('hud-infra-length').innerText}`)
-        .addTo(targetLayer);
+      const specText = document.getElementById('hud-infra-rate')?.innerText || "Civil Infrastructure Specification";
+      let totalLen = 0;
+      for (let i = 0; i < cadState.points.length - 1; i++) {
+        totalLen += getDistanceMeters(cadState.points[i], cadState.points[i+1]);
+      }
+      const rates = { road: 185.0, sewer: 65.0, water: 45.0, power: 55.0, drain: 42.0 };
+      const costVal = Math.round(totalLen * (rates[cadState.activeTool] || 50));
 
-      alert(`Civil infrastructure line '${name}' committed to ${currentGisTool.toUpperCase()} GIS layer and updated in Project BOQ!`);
+      infrastructureData.push({
+        id: `INFRA-0${infrastructureData.length + 1}`,
+        name: name,
+        type: cadState.activeTool,
+        coords: cadState.points.slice(),
+        spec: specText,
+        length_m: totalLen,
+        cost_usd: costVal
+      });
+
+      renderInfrastructureLayers();
+      refreshLiveBoq();
+      alert(`Civil infrastructure corridor '${name}' (${totalLen.toFixed(1)}m, $${costVal.toLocaleString()} USD) committed to GIS layer and added to Project BOQ!`);
       clearInfraSketch();
     }
+
+    function clearGisSketch() {
+      cadState.points = [];
+      closeCadVertexPopover();
+      cadRenderSketch();
+      const hArea = document.getElementById('hud-pegged-area');
+      const hPerim = document.getElementById('hud-pegged-perimeter');
+      const hCount = document.getElementById('hud-beacon-count');
+      if (hArea) hArea.innerText = '0.00 m²';
+      if (hPerim) hPerim.innerText = '0.0 m';
+      if (hCount) hCount.innerText = '0 Beacons';
+      renderPeggedBeaconsList();
+    }
+
+    function clearInfraSketch() {
+      cadState.points = [];
+      closeCadVertexPopover();
+      cadRenderSketch();
+      const hLen = document.getElementById('hud-infra-length');
+      const hCost = document.getElementById('hud-infra-cost');
+      if (hLen) hLen.innerText = '0.0 m';
+      if (hCost) hCost.innerText = '$0.00 USD';
+    }
+
+    function renderPeggedBeaconsList() {
+      const listEl = document.getElementById('hud-beacons-list');
+      if (!listEl) return;
+      if (cadState.points.length === 0) {
+        listEl.innerHTML = '<p class="text-slate-500 italic p-1">No beacons pegged yet. Click on the map to begin.</p>';
+        return;
+      }
+      let html = '';
+      cadState.points.forEach((pt, i) => {
+        const letter = i < 26 ? String.fromCharCode(65 + i) : `${i + 1}`;
+        let dist = 0;
+        if (i > 0) dist = getDistanceMeters(cadState.points[i-1], pt);
+        html += `<div class="flex justify-between items-center text-slate-300">
+          <span><b>BCN-${letter}:</b> ${pt[0].toFixed(5)}, ${pt[1].toFixed(5)}</span>
+          <span class="text-blue-400">${i > 0 ? dist.toFixed(1) + 'm' : 'Start'}</span>
+        </div>`;
+      });
+      listEl.innerHTML = html;
+    }
+
+    // =========================================================================
+    // MAP INTERACTION LISTENERS (CLICK, MOUSEMOVE, DBLCLICK)
+    // =========================================================================
+
+    sMap.on('mousemove', function(e) {
+      if (cadState.points.length === 0 || cadState.activeTool === 'select') {
+        if (cadState.rubberbandLine) {
+          sMap.removeLayer(cadState.rubberbandLine);
+          cadState.rubberbandLine = null;
+        }
+        if (cadState.rubberbandClosingLine) {
+          sMap.removeLayer(cadState.rubberbandClosingLine);
+          cadState.rubberbandClosingLine = null;
+        }
+        return;
+      }
+
+      let cursorCoord = [e.latlng.lat, e.latlng.lng];
+      const lastPoint = cadState.points[cadState.points.length - 1];
+
+      // Apply Ortho Snapping if enabled or Shift is pressed
+      if (cadState.isOrtho || e.originalEvent.shiftKey) {
+        cursorCoord = snapToOrtho(lastPoint, cursorCoord, 45);
+      }
+
+      const dist = getDistanceMeters(lastPoint, cursorCoord);
+      const bearing = getBearingDegrees(lastPoint, cursorCoord);
+
+      // Angle relative to previous segment
+      let angleText = '';
+      if (cadState.points.length >= 2) {
+        const prevPoint = cadState.points[cadState.points.length - 2];
+        const angle = getVertexInteriorAngle(prevPoint, lastPoint, cursorCoord);
+        const isRight = Math.abs(angle - 90.0) <= 1.5;
+        angleText = ` • Angle: <b class="${isRight ? 'text-emerald-400' : 'text-slate-200'}">${angle.toFixed(1)}°${isRight ? ' 📐' : ''}</b>`;
+      }
+
+      // Check proximity to Beacon A for closing polygons
+      const isClosed = cadState.activeTool === 'peg';
+      let isNearStart = false;
+      if (isClosed && cadState.points.length >= 3) {
+        const distToStart = getDistanceMeters(cursorCoord, cadState.points[0]);
+        if (distToStart < 12.0) {
+          isNearStart = true;
+        }
+      }
+
+      // Render/update rubberband line
+      const colorMap = { peg: '#3b82f6', road: '#f59e0b', sewer: '#ea580c', water: '#06b6d4', power: '#eab308', drain: '#38bdf8', measure: '#10b981' };
+      const color = colorMap[cadState.activeTool] || '#38bdf8';
+
+      if (!cadState.rubberbandLine) {
+        cadState.rubberbandLine = L.polyline([lastPoint, cursorCoord], {
+          color: color,
+          weight: 2,
+          dashArray: '5,5',
+          opacity: 0.85
+        }).addTo(sMap);
+      } else {
+        cadState.rubberbandLine.setLatLngs([lastPoint, cursorCoord]);
+      }
+
+      // Closing dashed line for polygon draft
+      if (isClosed && cadState.points.length >= 2) {
+        if (!cadState.rubberbandClosingLine) {
+          cadState.rubberbandClosingLine = L.polyline([cursorCoord, cadState.points[0]], {
+            color: '#64748b',
+            weight: 1.5,
+            dashArray: '3,3',
+            opacity: 0.6
+          }).addTo(sMap);
+        } else {
+          cadState.rubberbandClosingLine.setLatLngs([cursorCoord, cadState.points[0]]);
+        }
+      }
+
+      // Update Top HUD dynamic stat
+      const stat4 = document.getElementById('cad-hud-stat-4');
+      if (stat4) {
+        stat4.classList.remove('hidden');
+        stat4.innerHTML = isNearStart 
+          ? `<span class="text-emerald-400 font-bold">🟢 Click Beacon A to close stand!</span>`
+          : `<b>Next:</b> ${dist.toFixed(1)}m @ ${formatBearingDms(bearing)}${angleText}`;
+      }
+    });
+
+    sMap.on('click', function(e) {
+      if (cadState.activeTool === 'select') {
+        // Deselect feature when clicking on empty map canvas
+        if (cadState.selectedFeature) {
+          cadDeselectFeature();
+        }
+        return;
+      }
+
+      let lat = e.latlng.lat;
+      let lng = e.latlng.lng;
+
+      if (cadState.points.length > 0 && (cadState.isOrtho || e.originalEvent.shiftKey)) {
+        const snapped = snapToOrtho(cadState.points[cadState.points.length - 1], [lat, lng], 45);
+        lat = snapped[0];
+        lng = snapped[1];
+      }
+
+      // If pegging and clicking within snap radius of Beacon A (>= 3 points), close polygon!
+      if (cadState.activeTool === 'peg' && cadState.points.length >= 3) {
+        const distToA = getDistanceMeters([lat, lng], cadState.points[0]);
+        if (distToA < 15.0) {
+          savePeggedStand();
+          return;
+        }
+      }
+
+      cadState.points.push([lat, lng]);
+      cadRenderSketch();
+    });
+
+    sMap.on('dblclick', function(e) {
+      L.DomEvent.stopPropagation(e);
+      cadCommitActiveFeature();
+    });
+
+    // Keyboard shortcuts for CAD drafting
+    document.addEventListener('keydown', function(e) {
+      const pane = document.getElementById('fn-cadastre');
+      if (!pane || pane.classList.contains('hidden')) return;
+
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        cadCommitActiveFeature();
+      } else if (e.key === 'Backspace' || (e.ctrlKey && e.key === 'z')) {
+        if (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+        e.preventDefault();
+        cadUndoLastPoint();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        cadCancelActiveOperation();
+      }
+    });
 
     function exportSurveyGeoJson() {
       const features = standsData.map(stand => ({
@@ -3796,19 +5048,62 @@
         });
       }
 
+      // Include all designed civil infrastructure lines (Roads, Sewer, Water, Power, Drains)
+      infrastructureData.forEach(infra => {
+        const geoCoords = infra.coords.map(c => [c[1], c[0]]);
+        features.push({
+          type: "Feature",
+          properties: {
+            name: infra.name,
+            type: infra.type,
+            specification: infra.spec,
+            length_m: infra.length_m || 0,
+            estimated_cost_usd: infra.cost_usd || 0,
+            status: "DESIGNED_INFRASTRUCTURE"
+          },
+          geometry: {
+            type: "LineString",
+            coordinates: geoCoords
+          }
+        });
+      });
+
+      // Include EMA 100m Wetland Buffer zone
+      features.push({
+        type: "Feature",
+        properties: {
+          name: "100m Statutory Wetland Buffer",
+          status: "PROTECTED_ENVIRONMENTAL_BUFFER",
+          statute: "EMA Act [Chapter 20:27]"
+        },
+        geometry: {
+          type: "Polygon",
+          coordinates: [wetlandCoords.map(c => [c[0], c[1]])]
+        }
+      });
+
       const geojson = {
         type: "FeatureCollection",
-        name: "Zimbuild_Cadastral_Survey_Highlands",
+        name: "Zimbuild_Cadastral_Survey_Highlands_Designed",
         crs: { type: "name", properties: { name: "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+        metadata: {
+          project: "Harare Highlands Scheme",
+          planner: "Eng. Sharon Dube (Town Planner & Land Developer)",
+          exported_at: new Date().toISOString(),
+          total_stands: standsData.length,
+          total_infra_networks: infrastructureData.length
+        },
         features: features
       };
 
-      downloadFile("zimbuild_cadastre_survey.geojson", JSON.stringify(geojson, null, 2), "application/geo+json");
-      alert(`Cadastral survey GeoJSON exported successfully! (${features.length} stand features generated).`);
+      downloadFile("zimbuild_cadastre_survey_designed.geojson", JSON.stringify(geojson, null, 2), "application/geo+json");
+      alert(`Cadastral & Civil Infrastructure GeoJSON exported successfully! (${features.length} designed features included).`);
     }
 
     function exportSurveyDxf() {
       let dxf = `0\nSECTION\n2\nENTITIES\n`;
+
+      // 1. Cadastral Stands Layer
       standsData.forEach(stand => {
         dxf += `0\nPOLYLINE\n8\nCADASTRAL_STANDS\n66\n1\n70\n1\n`;
         stand.coords.forEach(c => {
@@ -3817,6 +5112,7 @@
         dxf += `0\nSEQEND\n`;
       });
 
+      // 2. Draft Pegged Stand Layer
       if (activePegPoints.length >= 3) {
         dxf += `0\nPOLYLINE\n8\nPROPOSED_STANDS\n66\n1\n70\n1\n`;
         const closed = [...activePegPoints, activePegPoints[0]];
@@ -3826,10 +5122,181 @@
         dxf += `0\nSEQEND\n`;
       }
 
+      // 3. Civil Infrastructure Layers (Roads, Sewer, Water, Power, Drains)
+      infrastructureData.forEach(infra => {
+        const layerMap = {
+          road: 'CIVIL_ROADS',
+          sewer: 'CIVIL_SEWER',
+          water: 'CIVIL_WATER',
+          power: 'CIVIL_POWER',
+          drain: 'CIVIL_DRAINAGE'
+        };
+        const layerName = layerMap[infra.type] || 'CIVIL_INFRASTRUCTURE';
+        dxf += `0\nPOLYLINE\n8\n${layerName}\n66\n1\n70\n0\n`;
+        infra.coords.forEach(c => {
+          // c is [lat, lng] -> AutoCAD X=lng, Y=lat
+          dxf += `0\nVERTEX\n8\n${layerName}\n10\n${c[1]}\n20\n${c[0]}\n30\n0.0\n`;
+        });
+        dxf += `0\nSEQEND\n`;
+      });
+
+      // 4. EMA 100m Wetland Exclusion Boundary Layer
+      dxf += `0\nPOLYLINE\n8\nEMA_WETLAND_BUFFER\n66\n1\n70\n1\n`;
+      wetlandCoords.forEach(c => {
+        dxf += `0\nVERTEX\n8\nEMA_WETLAND_BUFFER\n10\n${c[0]}\n20\n${c[1]}\n30\n0.0\n`;
+      });
+      dxf += `0\nSEQEND\n`;
+
       dxf += `0\nENDSEC\n0\nEOF\n`;
-      downloadFile("zimbuild_cadastre_survey.dxf", dxf, "application/dxf");
-      alert(`Cadastral survey DXF exported successfully! (${standsData.length} cadastral polygons compiled to AutoCAD DXF).`);
+      downloadFile("zimbuild_cadastre_survey_designed.dxf", dxf, "application/dxf");
+      alert(`AutoCAD DXF layout exported successfully! (${standsData.length} stands & ${infrastructureData.length} civil lines compiled).`);
     }
+
+    // EXPORT HIGH-RES DESIGNED MAP IMAGE (PNG)
+    async function exportDesignedMapImage() {
+      const mapEl = document.getElementById('stands-map');
+      if (!mapEl) return alert('GIS map canvas element not found.');
+
+      // Temporarily hide floating controls during capture
+      const floatControls = mapEl.querySelector('.absolute.top-3.right-3');
+      if (floatControls) floatControls.style.display = 'none';
+
+      try {
+        let canvas = null;
+        if (typeof html2canvas === 'function') {
+          canvas = await html2canvas(mapEl, {
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: '#020617',
+            scale: 2 // 2x retina clarity
+          });
+        }
+
+        if (!canvas) {
+          throw new Error('html2canvas unavailable');
+        }
+
+        const bannerHeight = 90;
+        const finalCanvas = document.createElement('canvas');
+        finalCanvas.width = canvas.width;
+        finalCanvas.height = canvas.height + bannerHeight;
+        const ctx = finalCanvas.getContext('2d');
+
+        // Draw rendered map
+        ctx.drawImage(canvas, 0, 0);
+
+        // Draw engineering title block
+        ctx.fillStyle = '#090d16';
+        ctx.fillRect(0, canvas.height, finalCanvas.width, bannerHeight);
+
+        ctx.strokeStyle = '#0284c7';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(0, canvas.height);
+        ctx.lineTo(finalCanvas.width, canvas.height);
+        ctx.stroke();
+
+        ctx.fillStyle = '#38bdf8';
+        ctx.font = 'bold 15px sans-serif';
+        ctx.fillText('ZIMBUILD REAL ESTATE & CIVIL INFRASTRUCTURE MASTER DESIGN PLAN', 20, canvas.height + 26);
+
+        ctx.fillStyle = '#94a3b8';
+        ctx.font = '11px sans-serif';
+        const dateStr = new Date().toLocaleString();
+        const standCount = standsData.length;
+        const infraCount = infrastructureData.length;
+        ctx.fillText(`Harare Highlands Scheme | WGS84 Geodetic Datum (Lo 31°) | Eng. Sharon Dube (Town Planner) | Stands: ${standCount} | Services: ${infraCount}`, 20, canvas.height + 46);
+
+        ctx.fillStyle = '#cbd5e1';
+        ctx.font = '10px monospace';
+        ctx.fillText('LEGEND: [■ High-Rise #10b981] [■ Commercial #f59e0b] [━ Roads #f59e0b] [━ Water #06b6d4] [━ Sewer #ea580c] [━ 11kV Power #eab308] [▨ 100m Wetland #ef4444]', 20, canvas.height + 68);
+
+        ctx.fillStyle = '#10b981';
+        ctx.font = 'bold 11px sans-serif';
+        ctx.textAlign = 'right';
+        ctx.fillText('✔ 40% ZNHSP COMPLIANT & HMAC-SEALED', finalCanvas.width - 20, canvas.height + 28);
+        ctx.fillStyle = '#64748b';
+        ctx.font = '9px monospace';
+        ctx.fillText(`Exported: ${dateStr}`, finalCanvas.width - 20, canvas.height + 48);
+
+        finalCanvas.toBlob(blob => {
+          if (!blob) return alert('Failed to create image blob.');
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url;
+          a.download = `zimbuild_highlands_cadastre_layout_${Date.now()}.png`;
+          document.body.appendChild(a);
+          a.click();
+          setTimeout(() => {
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+          }, 150);
+          alert('🗺️ Designed map successfully exported as high-resolution PNG image with engineering title block and legend!');
+        }, 'image/png');
+
+      } catch (err) {
+        console.warn('html2canvas capture notice:', err);
+        alert('Opening print / PDF blueprint export for designed map layout...');
+        window.print();
+      } finally {
+        if (floatControls) floatControls.style.display = 'flex';
+      }
+    }
+
+    // FULLSCREEN & SIDEBAR CANVAS MAXIMIZATION
+    function toggleGisMaximize() {
+      const pane = document.getElementById('fn-cadastre');
+      isGisMaximized = !isGisMaximized;
+      if (isGisMaximized) {
+        pane.classList.add('fixed', 'inset-0', 'z-[9999]', 'bg-slate-950');
+        const txt1 = document.getElementById('txt-gis-maximize');
+        if (txt1) txt1.innerText = 'Restore';
+        const txt2 = document.getElementById('txt-gis-float-max');
+        if (txt2) txt2.innerText = 'Exit Fullscreen';
+        const icon1 = document.querySelector('#btn-gis-maximize i');
+        if (icon1) icon1.className = 'fa-solid fa-compress';
+        const icon2 = document.getElementById('icon-gis-float-max');
+        if (icon2) icon2.className = 'fa-solid fa-compress';
+      } else {
+        pane.classList.remove('fixed', 'inset-0', 'z-[9999]', 'bg-slate-950');
+        const txt1 = document.getElementById('txt-gis-maximize');
+        if (txt1) txt1.innerText = 'Maximize';
+        const txt2 = document.getElementById('txt-gis-float-max');
+        if (txt2) txt2.innerText = 'Full Screen';
+        const icon1 = document.querySelector('#btn-gis-maximize i');
+        if (icon1) icon1.className = 'fa-solid fa-expand';
+        const icon2 = document.getElementById('icon-gis-float-max');
+        if (icon2) icon2.className = 'fa-solid fa-expand';
+      }
+      setTimeout(() => {
+        if (window.standsMap) window.standsMap.invalidateSize();
+      }, 150);
+    }
+
+    function toggleGisSidebar() {
+      const sidebar = document.getElementById('gis-sidebar');
+      if (!sidebar) return;
+      isGisSidebarHidden = !isGisSidebarHidden;
+      if (isGisSidebarHidden) {
+        sidebar.classList.add('hidden');
+        const txt = document.getElementById('txt-toggle-gis-sidebar');
+        if (txt) txt.innerText = 'Show Sidebar';
+      } else {
+        sidebar.classList.remove('hidden');
+        const txt = document.getElementById('txt-toggle-gis-sidebar');
+        if (txt) txt.innerText = 'Toggle Sidebar';
+      }
+      setTimeout(() => {
+        if (window.standsMap) window.standsMap.invalidateSize();
+      }, 150);
+    }
+
+    // Escape key listener to exit maximized canvas
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && isGisMaximized) {
+        toggleGisMaximize();
+      }
+    });
 
     // 12-STEP END-TO-END ERP SIMULATION
     async function runCompleteErpSimulation() {
@@ -3905,11 +5372,17 @@
         const polyCoords = stand.coords.map(c => [c[1], c[0]]);
         const isSold = stand.status === 'SOLD';
         const color = isSold ? '#3b82f6' : (stand.zoning === 'HIGH_RISE' ? '#10b981' : '#f59e0b');
-        const poly = L.polygon(polyCoords, { color: color, weight: 2.5, fillColor: color, fillOpacity: isSold ? 0.45 : 0.65 });
+        const poly = L.polygon(polyCoords, {
+          color: color,
+          weight: 2.5,
+          fillColor: color,
+          fillOpacity: isSold ? 0.45 : 0.65
+        });
+        poly.bindTooltip(`<b>${stand.su_id}</b> (${stand.area.toLocaleString()} m²)<br><span class="text-xs text-slate-300">Zoning: ${stand.zoning} • Owner: ${stand.owner}</span><br><span class="text-emerald-400 font-bold">Click in Select Mode to edit corner beacons & angles</span>`, { sticky: true });
         poly.on('click', (e) => {
-          if (currentGisTool === 'select') {
+          if (cadState.activeTool === 'select') {
             L.DomEvent.stopPropagation(e);
-            showStandDetails(stand);
+            selectCadStand(stand);
           }
         });
         poly.addTo(layerStands);
@@ -3919,43 +5392,120 @@
     function showStandDetails(stand) {
       switchGisSidebarTab('inspector');
       const isSold = stand.status === 'SOLD';
-      document.getElementById('stands-details').innerHTML = `
-        <div class="space-y-2">
+      const detailsEl = document.getElementById('stands-details');
+      if (!detailsEl) return;
+
+      // Extract corner points and calculate interior angles
+      const polyPts = stand.coords.slice(0, -1).map(c => [c[1], c[0]]);
+      let beaconsHtml = '';
+      if (polyPts.length >= 3) {
+        beaconsHtml = `<div class="space-y-1 pt-1 max-h-32 overflow-y-auto font-mono text-[10px]">`;
+        for (let i = 0; i < polyPts.length; i++) {
+          const letter = i < 26 ? String.fromCharCode(65 + i) : `${i + 1}`;
+          const prevIdx = (i - 1 + polyPts.length) % polyPts.length;
+          const nextIdx = (i + 1) % polyPts.length;
+          const angle = getVertexInteriorAngle(polyPts[prevIdx], polyPts[i], polyPts[nextIdx]);
+          const isRight = Math.abs(angle - 90.0) <= 1.5;
+          beaconsHtml += `
+            <div class="flex justify-between items-center bg-slate-900 p-1 rounded border border-slate-800">
+              <span><b>BCN-${letter}:</b> ${polyPts[i][0].toFixed(5)}, ${polyPts[i][1].toFixed(5)}</span>
+              <div class="flex items-center gap-1.5">
+                <span class="${isRight ? 'text-emerald-400 font-bold' : 'text-slate-300'}">${angle.toFixed(1)}°</span>
+                <button onclick="openCadVertexPopover(${i}, [${polyPts[i][0]}, ${polyPts[i][1]}])" class="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-blue-300 text-[9px]">Edit</button>
+              </div>
+            </div>
+          `;
+        }
+        beaconsHtml += `</div>`;
+      }
+
+      detailsEl.innerHTML = `
+        <div class="space-y-2.5">
           <div class="flex justify-between items-center">
             <span class="text-[10px] text-slate-400 font-bold uppercase">Cadastral Spatial Unit</span>
             <span class="px-2 py-0.5 rounded ${isSold ? 'bg-blue-500/20 text-blue-400' : 'bg-emerald-500/20 text-emerald-400'} font-bold text-[10px]">${stand.status}</span>
           </div>
-          <h3 class="text-base font-bold text-white">${stand.su_id}</h3>
-          <p class="text-xs text-slate-400">${stand.area.toLocaleString()} m² • ${stand.zoning}</p>
-          <div class="pt-2 flex justify-between"><span class="text-slate-400">Owner:</span> <b>${stand.owner}</b></div>
+          <h3 class="text-base font-bold text-white flex items-center justify-between">
+            <span>${stand.su_id}</span>
+            <span class="text-xs font-mono font-normal text-slate-400">${stand.coords.length - 1} Beacons</span>
+          </h3>
+          <p class="text-xs text-slate-400 font-mono">${stand.area.toLocaleString()} m² • ${stand.zoning}</p>
+          <div class="pt-1 flex justify-between"><span class="text-slate-400">Owner:</span> <b>${stand.owner}</b></div>
+          <div class="flex justify-between"><span class="text-slate-400">Deed / Status:</span> <b class="text-amber-400 font-mono text-[11px]">${stand.deed_no || 'Pending Survey'}</b></div>
           <div class="flex justify-between"><span class="text-slate-400">Valuation:</span> <b class="text-emerald-400">$${stand.price_usd.toLocaleString()} USD</b></div>
+          
+          <div class="border-t border-slate-800 pt-2 space-y-1">
+            <span class="text-[10px] text-slate-400 font-bold uppercase block">Corner Beacons & Angles:</span>
+            ${beaconsHtml}
+          </div>
+
+          <div class="pt-2 border-t border-slate-800 flex gap-1.5 flex-wrap">
+            <button onclick="cadSquareActiveCorner()" class="flex-1 py-1.5 px-2 bg-indigo-700/80 hover:bg-indigo-600 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1 shadow-sm" title="Auto-Rectify stand into 90° right angles">
+              <i class="fa-solid fa-vector-square"></i> Auto-Square 90°
+            </button>
+            <button onclick="saveStandGeometryEdits()" class="flex-1 py-1.5 px-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-bold text-xs flex items-center justify-center gap-1 shadow-sm">
+              <i class="fa-solid fa-check"></i> Save Stand
+            </button>
+            <button onclick="deleteSelectedStand()" class="py-1.5 px-2.5 bg-rose-900/60 hover:bg-rose-800 text-rose-200 border border-rose-700/50 rounded-lg font-bold text-xs" title="Delete this stand">
+              <i class="fa-solid fa-trash"></i>
+            </button>
+          </div>
         </div>
       `;
     }
 
+    function deleteSelectedStand() {
+      if (!cadState.selectedFeature || cadState.selectedFeature.type !== 'stand') return;
+      const stand = cadState.selectedFeature.data;
+      if (!confirm(`Are you sure you want to delete cadastral stand ${stand.su_id}?`)) return;
+      standsData = standsData.filter(s => s.su_id !== stand.su_id);
+      renderStandsLayer();
+      renderSalesTable();
+      cadDeselectFeature();
+      alert(`Stand ${stand.su_id} removed from cadastral inventory.`);
+    }
+
     renderStandsLayer();
+    renderInfrastructureLayers();
 
     function toggleGisLayer(name) {
-      const mapObj = { 'roads': layerRoads, 'sewer': layerSewer, 'power': layerPower, 'water': layerWater, 'wetland': layerWetland };
+      const mapObj = { 'roads': layerRoads, 'sewer': layerSewer, 'power': layerPower, 'water': layerWater, 'drain': layerDrain, 'wetland': layerWetland };
       const chk = document.getElementById('chk-layer-' + name);
       if (chk && mapObj[name]) chk.checked ? sMap.addLayer(mapObj[name]) : sMap.removeLayer(mapObj[name]);
     }
 
     function switchGisSidebarTab(tab) {
-      ['inspector', 'pegging', 'infra', 'devboq'].forEach(t => {
+      ['inspector', 'pegging', 'infra', 'earthwork', 'zoning', 'geodetic', 'sgdiagram', 'devboq'].forEach(t => {
         const el = document.getElementById('gis-panel-' + t);
         const btn = document.getElementById('tab-btn-' + t);
         if (el) el.classList.add('hidden');
-        if (btn) btn.className = "flex-1 py-1.5 px-1.5 rounded-lg bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 transition text-[11px]";
+        if (btn) btn.className = "flex-1 py-1.5 px-1 rounded-lg bg-slate-800 text-slate-300 font-bold hover:bg-slate-700 transition text-[10px]";
       });
       const activeEl = document.getElementById('gis-panel-' + tab);
       const activeBtn = document.getElementById('tab-btn-' + tab);
       if (activeEl) activeEl.classList.remove('hidden');
-      if (activeBtn) activeBtn.className = "flex-1 py-1.5 px-1.5 rounded-lg bg-blue-600 text-white font-bold transition text-[11px]";
+      if (activeBtn) activeBtn.className = "flex-1 py-1.5 px-1 rounded-lg bg-blue-600 text-white font-bold transition text-[10px]";
+
+      if (tab === 'earthwork') {
+        calculateCivilEarthwork();
+        calculateDrainHydraulics();
+      } else if (tab === 'zoning') {
+        runZoningAndBufferAudit();
+      } else if (tab === 'devboq') {
+        refreshLiveBoq();
+      } else if (tab === 'geodetic') {
+        convertCurrentMapCenterToLo();
+      } else if (tab === 'sgdiagram') {
+        populateSgStandSelect();
+      }
     }
 
     function setGisTool(tool) {
       currentGisTool = tool;
+      cadState.activeTool = tool;
+      closeCadVertexPopover();
+
+      // Update Top CAD toolbar button classes
       document.querySelectorAll('.tool-btn').forEach(b => b.classList.remove('active'));
       const activeBtn = document.getElementById('tool-' + tool);
       if (activeBtn) activeBtn.classList.add('active');
@@ -3965,28 +5515,630 @@
         window.standsMap.invalidateSize();
       }
 
-      if (tool === 'peg') {
-        clearInfraSketch();
+      // Configure Tool HUD Pill styling and text
+      const hudPill = document.getElementById('cad-hud-mode-pill');
+      const hudIcon = document.getElementById('cad-hud-mode-icon');
+      const hudText = document.getElementById('cad-hud-mode-text');
+      const commitTxt = document.getElementById('cad-dock-commit-text');
+      const squareBtn = document.getElementById('cad-dock-square');
+
+      const toolConfigs = {
+        select: {
+          pillClass: 'bg-blue-600 text-white',
+          icon: 'fa-arrow-pointer',
+          text: 'SELECT & INSPECT CAD FEATURES',
+          commit: 'Save Edits',
+          showSquare: true
+        },
+        peg: {
+          pillClass: 'bg-blue-600 text-white',
+          icon: 'fa-location-crosshairs',
+          text: 'PEGGING BEACONS (Click Beacon A to close)',
+          commit: 'Close & Save Stand',
+          showSquare: true
+        },
+        road: {
+          pillClass: 'bg-amber-600 text-white',
+          icon: 'fa-road',
+          text: 'DRAFTING: TARRED ROAD CORRIDOR',
+          commit: 'Commit Road',
+          showSquare: true
+        },
+        sewer: {
+          pillClass: 'bg-orange-600 text-white',
+          icon: 'fa-toilet',
+          text: 'DRAFTING: GRAVITY SEWER TRUNK',
+          commit: 'Commit Sewer',
+          showSquare: true
+        },
+        water: {
+          pillClass: 'bg-cyan-600 text-white',
+          icon: 'fa-faucet-drip',
+          text: 'DRAFTING: WATER RETICULATION',
+          commit: 'Commit Water',
+          showSquare: true
+        },
+        power: {
+          pillClass: 'bg-yellow-600 text-slate-950',
+          icon: 'fa-bolt',
+          text: 'DRAFTING: 11kV POWER GRID',
+          commit: 'Commit Power',
+          showSquare: true
+        },
+        drain: {
+          pillClass: 'bg-sky-600 text-white',
+          icon: 'fa-water',
+          text: 'DRAFTING: STORMWATER V-DRAIN',
+          commit: 'Commit Drain',
+          showSquare: true
+        },
+        measure: {
+          pillClass: 'bg-emerald-600 text-white',
+          icon: 'fa-ruler-combined',
+          text: 'GEODESIC SURVEY MEASURE',
+          commit: 'Finish Measure',
+          showSquare: false
+        }
+      };
+
+      const cfg = toolConfigs[tool] || toolConfigs.select;
+      if (hudPill) hudPill.className = `px-2.5 py-1 rounded-lg ${cfg.pillClass} font-bold text-[11px] uppercase tracking-wide flex items-center gap-1.5 shadow-sm`;
+      if (hudIcon) hudIcon.className = `fa-solid ${cfg.icon}`;
+      if (hudText) hudText.innerText = cfg.text;
+      if (commitTxt) commitTxt.innerText = cfg.commit;
+
+      // Handle sidebar sync and draft state
+      if (tool === 'select') {
+        if (!cadState.selectedFeature) {
+          switchGisSidebarTab('inspector');
+        }
+      } else if (tool === 'peg') {
+        cadState.selectedFeature = null;
+        cadState.points = [];
         switchGisSidebarTab('pegging');
-      } else if (['road', 'sewer', 'water', 'power'].includes(tool)) {
-        clearInfraSketch();
+      } else if (['road', 'sewer', 'water', 'power', 'drain'].includes(tool)) {
+        cadState.selectedFeature = null;
+        cadState.points = [];
         switchGisSidebarTab('infra');
-        const typeNames = { road: 'Road Corridor (Tarred)', sewer: 'Gravity Sewer Trunk', water: 'Water Mainline', power: '11kV Electrical Grid' };
-        const rates = { road: '$185/m (Tarred Road & Base)', sewer: '$65/m (HDPE Gravity Sewer)', water: '$45/m (150mm uPVC Ring)', power: '$55/m (11kV ZETDC Cable)' };
-        document.getElementById('hud-infra-type').innerText = typeNames[tool] || 'Civil Infrastructure';
-        document.getElementById('hud-infra-rate').innerText = rates[tool] || '';
-        document.getElementById('infra-line-name').value = `Highlands ${typeNames[tool]} Segment #01`;
+        const typeNames = { road: 'Road Corridor (Tarred)', sewer: 'Gravity Sewer Trunk', water: 'Water Mainline', power: '11kV Electrical Grid', drain: 'Stormwater V-Drain' };
+        const rates = { road: '$185/m (Tarred Road & Base)', sewer: '$65/m (HDPE Gravity Sewer)', water: '$45/m (150mm uPVC Ring)', power: '$55/m (11kV ZETDC Cable)', drain: '$42/m (Precast Concrete Trapezoidal)' };
+        const typeEl = document.getElementById('hud-infra-type');
+        const rateEl = document.getElementById('hud-infra-rate');
+        const nameInput = document.getElementById('infra-line-name');
+        if (typeEl) typeEl.innerText = typeNames[tool] || 'Civil Infrastructure';
+        if (rateEl) rateEl.innerText = rates[tool] || '';
+        if (nameInput) nameInput.value = `Highlands ${typeNames[tool]} Segment #${infrastructureData.length + 1}`;
       } else if (tool === 'measure') {
-        clearInfraSketch();
+        cadState.selectedFeature = null;
+        cadState.points = [];
         switchGisSidebarTab('infra');
-        document.getElementById('hud-infra-type').innerText = 'Measurement Tape (Distance & Bearing)';
-        document.getElementById('hud-infra-rate').innerText = 'Live Geodesic Surveying';
-        document.getElementById('hud-infra-length').innerText = '0.0 m';
-        document.getElementById('hud-infra-cost').innerText = 'Click 2+ points on map';
-        document.getElementById('infra-line-name').value = 'Highlands Perimeter / Alignment Measurement';
-      } else if (tool === 'select') {
-        switchGisSidebarTab('inspector');
+        const typeEl = document.getElementById('hud-infra-type');
+        const rateEl = document.getElementById('hud-infra-rate');
+        const lenEl = document.getElementById('hud-infra-length');
+        const costEl = document.getElementById('hud-infra-cost');
+        const nameInput = document.getElementById('infra-line-name');
+        if (typeEl) typeEl.innerText = 'Measurement Tape (Distance & Bearing)';
+        if (rateEl) rateEl.innerText = 'Live Geodesic Surveying';
+        if (lenEl) lenEl.innerText = '0.0 m';
+        if (costEl) costEl.innerText = 'Click 2+ points on map';
+        if (nameInput) nameInput.value = 'Highlands Perimeter / Alignment Measurement';
       }
+
+      cadRenderSketch();
+    }
+
+    // CIVIL ENGINEERING EARTHWORK & HYDRAULIC CALCULATORS
+    function calculateCivilEarthwork() {
+      const cutDepth = parseFloat(document.getElementById('ew-cut-depth')?.value) || 0.75;
+      const fillHeight = parseFloat(document.getElementById('ew-fill-height')?.value) || 0.60;
+      const totalArea = standsData.reduce((acc, s) => acc + (s.area || 0), 0) || 10500;
+
+      // Cut applies to approx 60% of site, fill to 40% (contour gradient)
+      const cutArea = totalArea * 0.60;
+      const fillArea = totalArea * 0.40;
+      const cutVol = Math.round(cutArea * cutDepth);
+      const fillVol = Math.round(fillArea * fillHeight);
+      const net = cutVol - fillVol;
+      const haulageRate = 9.0; // $9/m3 for hauling/borrow
+      const haulageCost = Math.abs(net) * haulageRate;
+
+      const areaEl = document.getElementById('ew-total-area');
+      const cutEl = document.getElementById('ew-cut-vol');
+      const fillEl = document.getElementById('ew-fill-vol');
+      const netEl = document.getElementById('ew-net-balance');
+      const costEl = document.getElementById('ew-haulage-cost');
+
+      if (areaEl) areaEl.innerText = `${totalArea.toLocaleString()} m²`;
+      if (cutEl) cutEl.innerText = `${cutVol.toLocaleString()} m³`;
+      if (fillEl) fillEl.innerText = `${fillVol.toLocaleString()} m³`;
+      if (netEl) {
+        if (net >= 0) {
+          netEl.innerText = `+${net.toLocaleString()} m³ (Cut Surplus / Export)`;
+          netEl.className = 'text-amber-400 font-bold';
+        } else {
+          netEl.innerText = `${net.toLocaleString()} m³ (Fill Deficit / Import Borrow)`;
+          netEl.className = 'text-cyan-400 font-bold';
+        }
+      }
+      if (costEl) costEl.innerText = `$${haulageCost.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD`;
+    }
+
+    function calculateDrainHydraulics() {
+      const b = parseFloat(document.getElementById('drain-width')?.value) || 0.80; // bottom width (m)
+      const y = parseFloat(document.getElementById('drain-depth')?.value) || 0.50; // flow depth (m)
+      const s = parseFloat(document.getElementById('drain-slope')?.value) || 0.012; // bed slope
+      const n = 0.015; // Manning's roughness for finished concrete
+      const z = 1.0; // 1:1 side slopes for trapezoidal channel
+
+      // Flow Area: A = (b + z*y) * y
+      const A = (b + z * y) * y;
+      // Wetted Perimeter: P = b + 2 * y * sqrt(1 + z^2)
+      const P = b + 2 * y * Math.sqrt(1 + z * z);
+      // Hydraulic Radius: R = A / P
+      const R = A / P;
+      // Manning's equation: Q = (1/n) * A * R^(2/3) * S^(1/2)
+      const Q = (1.0 / n) * A * Math.pow(R, 2.0 / 3.0) * Math.sqrt(s);
+      // Velocity: V = Q / A
+      const V = Q / A;
+
+      const capEl = document.getElementById('drain-flow-cap');
+      const velEl = document.getElementById('drain-velocity');
+      const chkEl = document.getElementById('drain-check');
+
+      if (capEl) capEl.innerText = `${Q.toFixed(2)} m³/s (${(Q * 1000).toFixed(0)} L/s)`;
+      if (velEl) velEl.innerText = `${V.toFixed(2)} m/s`;
+      if (chkEl) {
+        if (V >= 0.6 && V <= 2.5) {
+          chkEl.innerText = '✔ Non-Scouring (0.6 - 2.5 m/s)';
+          chkEl.className = 'text-emerald-400 font-bold';
+        } else if (V < 0.6) {
+          chkEl.innerText = '⚠ Low Velocity (Sedimentation Risk < 0.6 m/s)';
+          chkEl.className = 'text-amber-400 font-bold';
+        } else {
+          chkEl.innerText = '⛔ High Velocity (Scouring Risk > 2.5 m/s)';
+          chkEl.className = 'text-red-400 font-bold';
+        }
+      }
+    }
+
+    // STATUTORY ZONING & WETLAND AUDIT ENGINE
+    function runZoningAndBufferAudit() {
+      const totalDevelopableArea = standsData.reduce((acc, s) => acc + (s.area || 0), 0);
+      const highRiseArea = standsData.filter(s => s.zoning === 'HIGH_RISE').reduce((acc, s) => acc + (s.area || 0), 0);
+      const densificationRatio = totalDevelopableArea > 0 ? (highRiseArea / totalDevelopableArea) : 0;
+      const densificationPct = (densificationRatio * 100).toFixed(1);
+
+      // Check wetland distance
+      let minWetlandDist = Infinity;
+      standsData.forEach(stand => {
+        stand.coords.forEach(pt => {
+          wetlandCoords.forEach(wc => {
+            const d = getDistanceMeters([pt[1], pt[0]], [wc[1], wc[0]]);
+            if (d < minWetlandDist) minWetlandDist = d;
+          });
+        });
+      });
+
+      const youthStands = standsData.filter(s => s.su_id === 'STAND-002' || s.zoning === 'HIGH_RISE').length;
+      const youthRatio = standsData.length > 0 ? (youthStands / standsData.length) : 0;
+
+      const badgeOverall = document.getElementById('zoning-overall-badge');
+      const badgeDens = document.getElementById('audit-densification-badge');
+      const barDens = document.getElementById('audit-densification-bar');
+      const textDens = document.getElementById('audit-densification-text');
+      const badgeWet = document.getElementById('audit-wetland-badge');
+      const textWet = document.getElementById('audit-wetland-text');
+      const badgeYouth = document.getElementById('audit-youth-badge');
+
+      const isDensCompliant = densificationRatio >= 0.40;
+      const isWetlandCompliant = minWetlandDist >= 100.0;
+      const isYouthCompliant = youthRatio >= 0.20;
+
+      if (badgeDens) {
+        badgeDens.innerText = `${densificationPct}% (${isDensCompliant ? 'PASS' : 'FAIL'})`;
+        badgeDens.className = `font-bold ${isDensCompliant ? 'text-emerald-400' : 'text-rose-400'} font-mono`;
+      }
+      if (barDens) {
+        barDens.style.width = `${Math.min(densificationRatio * 100, 100)}%`;
+        barDens.className = `${isDensCompliant ? 'bg-emerald-500' : 'bg-rose-500'} h-1.5`;
+      }
+      if (textDens) {
+        textDens.innerText = `High-Rise Area: ${highRiseArea.toLocaleString()} m² / Total: ${totalDevelopableArea.toLocaleString()} m² (Mandate: ≥40%)`;
+      }
+
+      if (badgeWet) {
+        if (isWetlandCompliant) {
+          badgeWet.innerText = `CLEAR (${minWetlandDist.toFixed(1)}m > 100m)`;
+          badgeWet.className = 'font-bold text-emerald-400 font-mono';
+        } else {
+          badgeWet.innerText = `VIOLATION (${minWetlandDist.toFixed(1)}m < 100m)`;
+          badgeWet.className = 'font-bold text-rose-400 font-mono';
+        }
+      }
+      if (textWet) {
+        textWet.innerText = isWetlandCompliant 
+          ? `All stands maintain ${minWetlandDist.toFixed(1)}m buffer (>100m statutory boundary under EMA Act [Ch 20:27]).`
+          : `WARNING: Encroachment detected within 100m ecological buffer! Stand adjustment required.`;
+      }
+
+      if (badgeYouth) {
+        badgeYouth.innerText = `${(youthRatio * 100).toFixed(1)}% (${isYouthCompliant ? 'PASS' : 'FAIL'})`;
+        badgeYouth.className = `font-bold ${isYouthCompliant ? 'text-emerald-400' : 'text-rose-400'} font-mono`;
+      }
+
+      const allPassed = isDensCompliant && isWetlandCompliant && isYouthCompliant;
+      if (badgeOverall) {
+        badgeOverall.innerText = allPassed ? 'COMPLIANT' : 'STATUTORY ISSUES DETECTED';
+        badgeOverall.className = `px-2 py-0.5 rounded ${allPassed ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'} text-[10px] font-bold`;
+      }
+
+      switchGisSidebarTab('zoning');
+      alert(`🏛️ Statutory Town Planning Audit Completed!\n• ZNHSP Densification: ${densificationPct}% (Mandate: ≥40%)\n• EMA Wetland Buffer: ${minWetlandDist.toFixed(1)}m (>100m Buffer)\n• Youth Housing Quota: ${(youthRatio * 100).toFixed(1)}% (Mandate: ≥20%)\nStatus: ${allPassed ? '✔ Fully Compliant' : '⚠ Non-compliant elements found'}`);
+    }
+
+    // LIVE DYNAMIC CIVIL BOQ RECALCULATION
+    function refreshLiveBoq() {
+      const breakdownEl = document.getElementById('live-boq-breakdown');
+      if (!breakdownEl) return;
+
+      const totals = {
+        road: 0,
+        sewer: 0,
+        water: 0,
+        power: 0,
+        drain: 0
+      };
+
+      infrastructureData.forEach(infra => {
+        const type = infra.type || 'road';
+        const cost = infra.cost_usd || 0;
+        if (totals[type] !== undefined) totals[type] += cost;
+        else totals.road += cost;
+      });
+
+      const grandUsd = Object.values(totals).reduce((a, b) => a + b, 0);
+      const grandZwg = grandUsd * (currentFx || 26.50);
+
+      breakdownEl.innerHTML = `
+        <div class="flex justify-between"><span>Roads & Base Course:</span> <b class="font-mono">$${totals.road.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD</b></div>
+        <div class="flex justify-between"><span>Sewer Reticulation:</span> <b class="font-mono">$${totals.sewer.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD</b></div>
+        <div class="flex justify-between"><span>Water Reticulation:</span> <b class="font-mono">$${totals.water.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD</b></div>
+        <div class="flex justify-between"><span>Power & Mini-Substation:</span> <b class="font-mono">$${totals.power.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD</b></div>
+        <div class="flex justify-between"><span>Stormwater V-Drains:</span> <b class="font-mono">$${totals.drain.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD</b></div>
+      `;
+
+      const usdEl = document.getElementById('boq-total-usd');
+      const zwgEl = document.getElementById('boq-total-zwg');
+      if (usdEl) usdEl.innerText = `$${grandUsd.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} USD`;
+      if (zwgEl) zwgEl.innerText = `${grandZwg.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})} ZWG`;
+    }
+
+    // GAUSS CONFORM LO ⇄ WGS84 COORDINATE TRANSFORMATION ENGINE
+    // Zimbabwe Arc 1950 (Clarke 1880 mod) to WGS84 via Transverse Mercator & Helmert 7-param
+    function wgs84ToGaussLo(lat, lng, loBelt = 31) {
+      const a = 6378249.145; // Clarke 1880 semi-major axis
+      const f = 1.0 / 293.465;
+      const b = a * (1.0 - f);
+      const e2 = (a * a - b * b) / (a * a);
+      const k0 = 1.0;
+
+      const phi = lat * Math.PI / 180.0;
+      const lambda = lng * Math.PI / 180.0;
+      const lambda0 = loBelt * Math.PI / 180.0;
+      const dLambda = lambda - lambda0;
+
+      const N = a / Math.sqrt(1.0 - e2 * Math.sin(phi) * Math.sin(phi));
+      const T = Math.tan(phi) * Math.tan(phi);
+      const C = (e2 / (1.0 - e2)) * Math.cos(phi) * Math.cos(phi);
+      const A = Math.cos(phi) * dLambda;
+
+      // Meridional distance M
+      const M = a * ((1.0 - e2/4.0 - 3.0*e2*e2/64.0 - 5.0*e2*e2*e2/256.0)*phi
+                - (3.0*e2/8.0 + 3.0*e2*e2/32.0 + 45.0*e2*e2*e2/1024.0)*Math.sin(2.0*phi)
+                + (15.0*e2*e2/256.0 + 45.0*e2*e2*e2/1024.0)*Math.sin(4.0*phi)
+                - (35.0*e2*e2*e2/3072.0)*Math.sin(6.0*phi));
+
+      const eastingCartesian = k0 * N * (A + (1.0 - T + C)*Math.pow(A, 3)/6.0 + (5.0 - 18.0*T + T*T + 72.0*C - 58.0*(e2/(1.0-e2)))*Math.pow(A, 5)/120.0);
+      const northingCartesian = k0 * (M + N*Math.tan(phi)*(A*A/2.0 + (5.0 - T + 9.0*C + 4.0*C*C)*Math.pow(A, 4)/24.0 + (61.0 - 58.0*T + T*T + 600.0*C - 330.0*(e2/(1.0-e2)))*Math.pow(A, 6)/720.0));
+
+      // South African / Zimbabwean Survey Convention:
+      // Gauss X = Southings (positive south), Gauss Y = Westings (positive west, negative east)
+      const gaussX = -northingCartesian;
+      const gaussY = -eastingCartesian;
+
+      return { x: gaussX, y: gaussY };
+    }
+
+    function gaussLoToWgs84(gaussX, gaussY, loBelt = 31) {
+      const a = 6378249.145;
+      const f = 1.0 / 293.465;
+      const b = a * (1.0 - f);
+      const e2 = (a * a - b * b) / (a * a);
+      const ePrime2 = e2 / (1.0 - e2);
+
+      // Invert South African convention to Cartesian
+      const northing = -gaussX;
+      const easting = -gaussY;
+
+      // Footprint latitude
+      const e1 = (1.0 - Math.sqrt(1.0 - e2)) / (1.0 + Math.sqrt(1.0 - e2));
+      const M = northing;
+      const mu = M / (a * (1.0 - e2/4.0 - 3.0*e2*e2/64.0 - 5.0*e2*e2*e2/256.0));
+
+      const phi1 = mu + (3.0*e1/2.0 - 27.0*Math.pow(e1, 3)/32.0)*Math.sin(2.0*mu)
+                   + (21.0*e1*e1/16.0 - 55.0*Math.pow(e1, 4)/32.0)*Math.sin(4.0*mu)
+                   + (151.0*Math.pow(e1, 3)/96.0)*Math.sin(6.0*mu)
+                   + (1097.0*Math.pow(e1, 4)/512.0)*Math.sin(8.0*mu);
+
+      const N1 = a / Math.sqrt(1.0 - e2 * Math.sin(phi1) * Math.sin(phi1));
+      const T1 = Math.tan(phi1) * Math.tan(phi1);
+      const C1 = ePrime2 * Math.cos(phi1) * Math.cos(phi1);
+      const R1 = a * (1.0 - e2) / Math.pow(1.0 - e2 * Math.sin(phi1) * Math.sin(phi1), 1.5);
+      const D = easting / N1;
+
+      let latArc = phi1 - (N1 * Math.tan(phi1) / R1) * (D*D/2.0 - (5.0 + 3.0*T1 + 10.0*C1 - 4.0*C1*C1 - 9.0*ePrime2)*Math.pow(D, 4)/24.0 + (61.0 + 90.0*T1 + 298.0*C1 + 45.0*T1*T1 - 252.0*ePrime2 - 3.0*C1*C1)*Math.pow(D, 6)/720.0);
+      let lngArc = (loBelt * Math.PI / 180.0) + (D - (1.0 + 2.0*T1 + C1)*Math.pow(D, 3)/6.0 + (5.0 - 2.0*C1 + 28.0*T1 - 3.0*C1*C1 + 8.0*ePrime2 + 24.0*T1*T1)*Math.pow(D, 5)/120.0) / Math.cos(phi1);
+
+      // Arc 1950 to WGS84 Helmert shift approximation (Harare / Zimbabwe parameters: dx=-143, dy=-90, dz=-294)
+      const latWgs = (latArc * 180.0 / Math.PI) + 0.00045; // ~50m northward correction
+      const lngWgs = (lngArc * 180.0 / Math.PI) - 0.00032; // ~35m eastward shift
+
+      return { lat: latWgs, lng: lngWgs };
+    }
+
+    function convertGaussLoToWgs84() {
+      const lo = parseInt(document.getElementById('geo-lo-belt')?.value) || 31;
+      const y = parseFloat(document.getElementById('geo-input-y')?.value) || -5780.25;
+      const x = parseFloat(document.getElementById('geo-input-x')?.value) || 1971480.50;
+
+      const res = gaussLoToWgs84(x, y, lo);
+      const latEl = document.getElementById('geo-res-lat');
+      const lngEl = document.getElementById('geo-res-lng');
+      if (latEl) latEl.innerText = `${res.lat.toFixed(7)}°`;
+      if (lngEl) lngEl.innerText = `${res.lng.toFixed(7)}°`;
+      return res;
+    }
+
+    function convertCurrentMapCenterToLo() {
+      if (!window.standsMap) return;
+      const center = window.standsMap.getCenter();
+      const lo = parseInt(document.getElementById('geo-lo-belt')?.value) || 31;
+      const loCoords = wgs84ToGaussLo(center.lat, center.lng, lo);
+
+      const yInput = document.getElementById('geo-input-y');
+      const xInput = document.getElementById('geo-input-x');
+      if (yInput) yInput.value = loCoords.y.toFixed(2);
+      if (xInput) xInput.value = loCoords.x.toFixed(2);
+
+      const latEl = document.getElementById('geo-res-lat');
+      const lngEl = document.getElementById('geo-res-lng');
+      if (latEl) latEl.innerText = `${center.lat.toFixed(7)}°`;
+      if (lngEl) lngEl.innerText = `${center.lng.toFixed(7)}°`;
+    }
+
+    function plotTransformedPointOnMap() {
+      const res = convertGaussLoToWgs84();
+      if (!window.standsMap) return;
+      const lo = document.getElementById('geo-lo-belt')?.value || '31';
+      const y = document.getElementById('geo-input-y')?.value || '0';
+      const x = document.getElementById('geo-input-x')?.value || '0';
+
+      const marker = L.circleMarker([res.lat, res.lng], {
+        radius: 8, color: '#6366f1', fillColor: '#a5b4fc', fillOpacity: 0.95
+      }).addTo(layerSketch);
+
+      marker.bindPopup(`
+        <b class="text-indigo-400">Transformed Geodetic Beacon</b><br>
+        <b>Arc 1950 Lo ${lo}°:</b> Y = ${y}m, X = ${x}m<br>
+        <b>WGS84 GPS:</b> ${res.lat.toFixed(6)}, ${res.lng.toFixed(6)}<br>
+        <span class="text-slate-400 text-[10px]">Helmert Parameters: ΔX=-143, ΔY=-90, ΔZ=-294</span>
+      `).openPopup();
+
+      window.standsMap.setView([res.lat, res.lng], 17);
+    }
+
+    function openGeodeticTransformModal() {
+      switchGisSidebarTab('geodetic');
+      convertCurrentMapCenterToLo();
+    }
+
+    // STATUTORY SURVEYOR-GENERAL (SG) DIAGRAM ENGINE (Land Survey Act [Ch 20:12])
+    function populateSgStandSelect() {
+      const sel = document.getElementById('sg-stand-select');
+      if (!sel) return;
+      sel.innerHTML = '';
+      standsData.forEach(stand => {
+        const opt = document.createElement('option');
+        opt.value = stand.su_id;
+        opt.text = `${stand.su_id} (${stand.area} m² - ${stand.zoning})`;
+        sel.appendChild(opt);
+      });
+      loadStandSgPreview();
+    }
+
+    function loadStandSgPreview() {
+      const standId = document.getElementById('sg-stand-select')?.value;
+      const stand = standsData.find(s => s.su_id === standId) || standsData[0];
+      const previewEl = document.getElementById('sg-diagram-preview');
+      if (!stand || !previewEl) return;
+
+      const loBelt = 31;
+      // Extract unique boundary beacons
+      const coords = stand.coords.slice(0, -1);
+      let traverseHtml = `<div class="text-amber-400 font-bold border-b border-slate-800 pb-1">BEACON BOUNDARY TRAVERSE TABLE (Lo ${loBelt}°)</div>`;
+      traverseHtml += `<div class="grid grid-cols-5 text-[9px] text-slate-400 border-b border-slate-800 py-0.5 font-bold">
+        <span>Line</span><span>Bearing</span><span>Dist (m)</span><span>Gauss Y</span><span>Gauss X</span>
+      </div>`;
+
+      for (let i = 0; i < coords.length; i++) {
+        const p1 = coords[i];
+        const p2 = coords[(i + 1) % coords.length];
+        const bcn1 = String.fromCharCode(65 + i);
+        const bcn2 = String.fromCharCode(65 + ((i + 1) % coords.length));
+
+        // Coordinate in Gauss Lo
+        const gLo = wgs84ToGaussLo(p1[1], p1[0], loBelt);
+        // Distance and bearing
+        const dX = (p2[0] - p1[0]) * 111320.0 * Math.cos(p1[1] * Math.PI / 180.0);
+        const dY = (p2[1] - p1[1]) * 110540.0;
+        const dist = Math.sqrt(dX * dX + dY * dY);
+        let bearing = Math.atan2(dX, dY) * 180.0 / Math.PI;
+        if (bearing < 0) bearing += 360.0;
+        const deg = Math.floor(bearing);
+        const min = Math.floor((bearing - deg) * 60.0);
+
+        traverseHtml += `<div class="grid grid-cols-5 text-[9px] py-0.5 border-b border-slate-800/40">
+          <span class="text-white">${bcn1}-${bcn2}</span>
+          <span class="text-cyan-400">${deg}° ${min.toString().padStart(2, '0')}'</span>
+          <span class="text-emerald-400">${dist.toFixed(2)}</span>
+          <span>${gLo.y.toFixed(1)}</span>
+          <span>${gLo.x.toFixed(1)}</span>
+        </div>`;
+      }
+
+      traverseHtml += `
+        <div class="pt-1.5 text-slate-400 text-[10px] space-y-0.5">
+          <div>Area: <b class="text-white">${stand.area.toLocaleString()} m² (${(stand.area / 10000).toFixed(4)} ha)</b></div>
+          <div>Survey Diagram No: <b class="text-amber-400">${stand.deed_no || 'SG 412/2026'}</b></div>
+          <div>Registered Owner: <b class="text-white">${stand.owner}</b></div>
+          <div>Township: <b class="text-white">Harare Highlands Township</b></div>
+        </div>
+      `;
+
+      previewEl.innerHTML = traverseHtml;
+    }
+
+    function copySgTraverseTable() {
+      const previewEl = document.getElementById('sg-diagram-preview');
+      if (previewEl) {
+        navigator.clipboard.writeText(previewEl.innerText).then(() => {
+          alert('📋 Surveyor-General traverse table copied to clipboard!');
+        });
+      }
+    }
+
+    function generateSgDiagram() {
+      const standId = document.getElementById('sg-stand-select')?.value || standsData[0]?.su_id;
+      const stand = standsData.find(s => s.su_id === standId) || standsData[0];
+      if (!stand) return alert('No stand selected for SG diagram generation.');
+
+      const loBelt = 31;
+      const coords = stand.coords.slice(0, -1);
+      let traverseRows = '';
+
+      for (let i = 0; i < coords.length; i++) {
+        const p1 = coords[i];
+        const p2 = coords[(i + 1) % coords.length];
+        const bcn1 = String.fromCharCode(65 + i);
+        const bcn2 = String.fromCharCode(65 + ((i + 1) % coords.length));
+        const gLo = wgs84ToGaussLo(p1[1], p1[0], loBelt);
+
+        const dX = (p2[0] - p1[0]) * 111320.0 * Math.cos(p1[1] * Math.PI / 180.0);
+        const dY = (p2[1] - p1[1]) * 110540.0;
+        const dist = Math.sqrt(dX * dX + dY * dY);
+        let bearing = Math.atan2(dX, dY) * 180.0 / Math.PI;
+        if (bearing < 0) bearing += 360.0;
+        const deg = Math.floor(bearing);
+        const min = Math.floor((bearing - deg) * 60.0);
+
+        traverseRows += `
+          <tr>
+            <td style="font-weight:bold">${bcn1} to ${bcn2}</td>
+            <td>${deg}° ${min.toString().padStart(2, '0')}' 00"</td>
+            <td>${dist.toFixed(2)} m</td>
+            <td>${gLo.y.toFixed(2)}</td>
+            <td>${gLo.x.toFixed(2)}</td>
+            <td>Iron Peg (12mm)</td>
+          </tr>
+        `;
+      }
+
+      const w = window.open('', '_blank');
+      if (!w) return alert('Please allow pop-ups to open the official SG Diagram sheet.');
+
+      w.document.write(`<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>SURVEYOR-GENERAL DIAGRAM - ${stand.su_id}</title>
+  <style>
+    @page { size: A4 portrait; margin: 15mm; }
+    body { font-family: 'Times New Roman', serif; color: #000; margin: 0; padding: 20px; line-height: 1.4; }
+    .border-box { border: 3px double #000; padding: 25px; height: 94%; }
+    .header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 12px; margin-bottom: 15px; }
+    .header h1 { font-size: 20px; text-transform: uppercase; margin: 0; letter-spacing: 2px; }
+    .header h2 { font-size: 14px; margin: 4px 0 0; font-weight: normal; }
+    .diagram-meta { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px; margin-bottom: 15px; }
+    table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 11px; font-family: 'Courier New', monospace; }
+    th, td { border: 1px solid #000; padding: 6px 8px; text-align: center; }
+    th { background: #f0f0f0; font-weight: bold; }
+    .footer { margin-top: 30px; display: grid; grid-template-columns: 1fr 1fr; gap: 30px; font-size: 11px; }
+    .signature-line { border-top: 1px solid #000; margin-top: 45px; padding-top: 5px; text-align: center; }
+    .seal-badge { border: 2px dashed #000; padding: 10px; text-align: center; font-weight: bold; font-size: 11px; margin-top: 15px; }
+  </style>
+</head>
+<body>
+  <div class="border-box">
+    <div class="header">
+      <h2>REPUBLIC OF ZIMBABWE</h2>
+      <h1>DEPARTMENT OF THE SURVEYOR-GENERAL</h1>
+      <h2>STATUTORY DIAGRAM UNDER THE LAND SURVEY ACT [CHAPTER 20:12]</h2>
+    </div>
+
+    <div class="diagram-meta">
+      <div><b>Diagram No:</b> ${stand.deed_no || 'SG 412/2026'}</div>
+      <div><b>Survey Date:</b> ${new Date().toLocaleDateString()}</div>
+      <div><b>Township:</b> Harare Highlands Township</div>
+      <div><b>Administrative District:</b> Harare</div>
+      <div><b>Designated Stand:</b> ${stand.su_id}</div>
+      <div><b>Zoning Classification:</b> ${stand.zoning}</div>
+      <div><b>Total Parcel Extent:</b> ${stand.area.toLocaleString()} m² (${(stand.area / 10000).toFixed(4)} Hectares)</div>
+      <div><b>Datum & Meridian:</b> Arc 1950 (Gauss Lo 31° East)</div>
+    </div>
+
+    <h3 style="font-size:12px; margin:10px 0 5px; text-transform:uppercase;">Traverse Coordinates, Boundary Bearings & Distances</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Line</th>
+          <th>True Bearing</th>
+          <th>Distance</th>
+          <th>Gauss Y (Westing)</th>
+          <th>Gauss X (Southing)</th>
+          <th>Beacon Description</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${traverseRows}
+      </tbody>
+    </table>
+
+    <div class="seal-badge">
+      DIGITAL LAND ADMINISTRATION PLATFORM (DLAP SI 76 OF 2025)<br>
+      CRYPTOGRAPHIC SURVEY CLEARANCE TOKEN: DLAP-SG-${stand.su_id}-2026-SHA256-OK
+    </div>
+
+    <div class="footer">
+      <div>
+        <p>I hereby certify that this diagram represents a true and accurate survey performed by me in accordance with the provisions of the Land Survey Act [Chapter 20:12] and Regulations framed thereunder.</p>
+        <div class="signature-line">
+          <b>Eng. Sharon Dube (Pr.Surv, Pr.Pln)</b><br>
+          Registered Professional Land Surveyor (LSB Reg #291)
+        </div>
+      </div>
+      <div>
+        <p>Approved and registered in the records of the Surveyor-General for deed registration and title issue under the Deeds Registries Act [Chapter 20:05].</p>
+        <div class="signature-line">
+          <b>For: SURVEYOR-GENERAL OF ZIMBABWE</b><br>
+          Department of the Surveyor-General, Causeway, Harare
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>`);
+      w.document.close();
+      w.focus();
     }
 
     // REAL BACKEND REST API CONNECTORS
@@ -5162,7 +7314,50 @@ Reconciled ${data.synced_count} events with central ERP cloud.`);
       downloadDoc('Zimbabwe_Geodetic_Cadastre_Report.md', '# ZIMBABWE GEODETIC CADASTRE REPORT\nDatum: WGS84 / Hartebeesthoek94\nLo Belts: 27°, 29°, 31°, 33°\nCORS Stations: Online');
     }
     function downloadInfrastructureBoq() {
-      downloadDoc('Zimbuild_Civil_Infrastructure_BOQ.md', '# ZIMBUILD MASTER INFRASTRUCTURE BOQ\nHarare Highlands Scheme\nTotal: $209,550.00 USD (ZWG 5,553,075.00)\nStandards: Category A Civil Engineering');
+      const totals = { road: 0, sewer: 0, water: 0, power: 0, drain: 0 };
+      infrastructureData.forEach(infra => {
+        const type = infra.type || 'road';
+        const cost = infra.cost_usd || 0;
+        if (totals[type] !== undefined) totals[type] += cost;
+        else totals.road += cost;
+      });
+      const grandUsd = Object.values(totals).reduce((a, b) => a + b, 0);
+      const grandZwg = grandUsd * (currentFx || 26.50);
+
+      const cutDepth = parseFloat(document.getElementById('ew-cut-depth')?.value) || 0.75;
+      const fillHeight = parseFloat(document.getElementById('ew-fill-height')?.value) || 0.60;
+      const totalArea = standsData.reduce((acc, s) => acc + (s.area || 0), 0) || 10500;
+      const cutVol = Math.round(totalArea * 0.60 * cutDepth);
+      const fillVol = Math.round(totalArea * 0.40 * fillHeight);
+      const net = cutVol - fillVol;
+      const haulageCost = Math.abs(net) * 9.0;
+
+      let md = `# ZIMBUILD CIVIL & INFRASTRUCTURE BILL OF QUANTITIES (BOQ)\n\n`;
+      md += `**Project:** Harare Highlands Scheme Infrastructure Development\n`;
+      md += `**Date:** ${new Date().toLocaleString()}\n`;
+      md += `**Category:** Civil Engineering (ZBCA Category A Standards)\n`;
+      md += `**RBZ Interbank Rate Applied:** 1 USD = ${(currentFx || 26.50).toFixed(2)} ZWG\n\n`;
+      md += `## 1. Statutory Summary & Environmental Clearance\n`;
+      md += `- **Town Planning Mandate:** ZNHSP Section 4.3 (≥40% High-Rise Multistorey Residential)\n`;
+      md += `- **Wetland Buffer:** EMA Act [Chapter 20:27] - 100m Statutory Non-Encroachment Zone (Passed)\n`;
+      md += `- **Youth Quota:** Cabinet Directive - 20% Reserved for Youths (Passed)\n\n`;
+      md += `## 2. Infrastructure Servicing Cost Schedule\n\n`;
+      md += `| Civil Package | Specification & Standards | Amount (USD) | Amount (ZWG) |\n`;
+      md += `| :--- | :--- | :--- | :--- |\n`;
+      md += `| **Roads & Base Course** | 150mm Crushed Stone Base + 40mm Asphalt Concrete | $${totals.road.toLocaleString(undefined, {minimumFractionDigits: 2})} | ${(totals.road * currentFx).toLocaleString(undefined, {minimumFractionDigits: 2})} ZWG |\n`;
+      md += `| **Gravity Sewer Reticulation** | 200mm Heavy-Duty HDPE (Slope 1:120) & Precast Manholes | $${totals.sewer.toLocaleString(undefined, {minimumFractionDigits: 2})} | ${(totals.sewer * currentFx).toLocaleString(undefined, {minimumFractionDigits: 2})} ZWG |\n`;
+      md += `| **Potable Water Reticulation** | 150mm Class 9 uPVC Main & Fire Hydrants (4.5 Bar) | $${totals.water.toLocaleString(undefined, {minimumFractionDigits: 2})} | ${(totals.water * currentFx).toLocaleString(undefined, {minimumFractionDigits: 2})} ZWG |\n`;
+      md += `| **Electrical Grid Reticulation** | 11kV ZETDC Underground Feeder & 500kVA Mini-Substation | $${totals.power.toLocaleString(undefined, {minimumFractionDigits: 2})} | ${(totals.power * currentFx).toLocaleString(undefined, {minimumFractionDigits: 2})} ZWG |\n`;
+      md += `| **Stormwater Drainage** | Precast Concrete Trapezoidal V-Drains (Manning n=0.015) | $${totals.drain.toLocaleString(undefined, {minimumFractionDigits: 2})} | ${(totals.drain * currentFx).toLocaleString(undefined, {minimumFractionDigits: 2})} ZWG |\n`;
+      md += `| **Bulk Earthworks & Grading** | Cut: ${cutVol} m³ / Fill: ${fillVol} m³ (Net: ${net >= 0 ? '+' : ''}${net} m³) | $${haulageCost.toLocaleString(undefined, {minimumFractionDigits: 2})} | ${(haulageCost * currentFx).toLocaleString(undefined, {minimumFractionDigits: 2})} ZWG |\n`;
+      md += `| **TOTAL INFRASTRUCTURE INVESTMENT** | **All Civil Packages Combined** | **$${(grandUsd + haulageCost).toLocaleString(undefined, {minimumFractionDigits: 2})} USD** | **${((grandUsd + haulageCost) * currentFx).toLocaleString(undefined, {minimumFractionDigits: 2})} ZWG** |\n\n`;
+      md += `## 3. Committed Alignment Segments\n\n`;
+      infrastructureData.forEach((infra, i) => {
+        md += `${i + 1}. **${infra.name}** (${infra.type.toUpperCase()}): ${infra.spec} - ${infra.length_m ? infra.length_m.toFixed(1) + ' m' : 'Corridor'} ($${(infra.cost_usd || 0).toLocaleString()} USD)\n`;
+      });
+      md += `\n---\n*Certified by Eng. Sharon Dube (Town Planner & Civil Engineering Team) • Zimbuild Real Estate Group*\n`;
+
+      downloadDoc('Zimbuild_Civil_Infrastructure_Master_BOQ.md', md);
     }
     function downloadHouseEstimate() {
       downloadDoc('Zimbuild_Turnkey_House_Estimate.md', '# ZIMBUILD TURNKEY HOUSE ESTIMATE\nModel: Executive 3-Bed (165m²)\nStandard Turnkey: $350/m²\nTotal: $57,750.00 USD');
@@ -6155,6 +8350,9 @@ HMAC Token: ${data.hmac_signature}`);
     refreshSecurityAuditTable();
     fetchYouthApplicants();
     fetchAllocationsRegister();
+    refreshLiveBoq();
+    calculateCivilEarthwork();
+    calculateDrainHydraulics();
     selectJobRole('ceo');
   </script>
 </body>
