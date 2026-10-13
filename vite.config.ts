@@ -7,5 +7,8 @@ export default defineConfig({
   server: {
     port: 1420,
     strictPort: true,
+  },
+  test: {
+    exclude: ['zhms-api/**', 'node_modules/**']
   }
 });
