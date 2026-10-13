@@ -432,21 +432,21 @@ export const InteractiveLeafletMap: React.FC<InteractiveLeafletMapProps> = ({
         <button
           onClick={handleZoomIn}
           className="p-2 bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700/80 rounded-lg shadow-lg backdrop-blur transition"
-          title="Zoom In"
+          title="Zoom In" aria-label="Zoom In"
         >
           <ZoomIn className="w-4 h-4" />
         </button>
         <button
           onClick={handleZoomOut}
           className="p-2 bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700/80 rounded-lg shadow-lg backdrop-blur transition"
-          title="Zoom Out"
+          title="Zoom Out" aria-label="Zoom Out"
         >
           <ZoomOut className="w-4 h-4" />
         </button>
         <button
           onClick={handleRecenter}
           className="p-2 bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700/80 rounded-lg shadow-lg backdrop-blur transition"
-          title="Reset View"
+          title="Reset View" aria-label="Reset View"
         >
           <Compass className="w-4 h-4" />
         </button>
@@ -457,7 +457,7 @@ export const InteractiveLeafletMap: React.FC<InteractiveLeafletMapProps> = ({
               ? 'bg-emerald-950/90 text-emerald-400 border-emerald-600/80' 
               : 'bg-slate-900/90 hover:bg-slate-800 text-indigo-400 border-slate-700/80'
           }`}
-          title={`Active: ${mapTileTheme.toUpperCase()} (Click to switch Offline/Dark/Street)`}
+          title={`Active: ${mapTileTheme.toUpperCase()} (Click to switch Offline/Dark/Street)`} aria-label={`Toggle map layer theme, currently ${mapTileTheme}`}
         >
           <Layers className="w-4 h-4" />
         </button>
