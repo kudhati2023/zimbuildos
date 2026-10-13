@@ -580,7 +580,7 @@ export default function AntigravityEnterpriseDesktop() {
 
         {/* System Indicator */}
         <div className="flex items-center space-x-3 text-xs font-mono">
-          <button onClick={loadData} className="text-slate-400 hover:text-indigo-400 p-1">
+          <button onClick={loadData} className="text-slate-400 hover:text-indigo-400 p-1" aria-label="Refresh data">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-indigo-400' : ''}`} />
           </button>
           <div className={`flex items-center space-x-2 px-3 py-1 rounded-full border ${
@@ -595,7 +595,7 @@ export default function AntigravityEnterpriseDesktop() {
               <span className="text-slate-300" title={session.roles.join(', ')}>
                 {session.sub} <span className="text-indigo-400">[{session.roles.join(', ') || 'APPLICANT'}]</span>
               </span>
-              <button onClick={handleSignOut} className="text-slate-400 hover:text-rose-400 p-1" title="Sign out">
+              <button onClick={handleSignOut} className="text-slate-400 hover:text-rose-400 p-1" title="Sign out" aria-label="Sign out">
                 <LogOut className="w-4 h-4" />
               </button>
             </div>
@@ -608,7 +608,7 @@ export default function AntigravityEnterpriseDesktop() {
                 placeholder="Paste access token"
                 className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-100 w-40 focus:outline-none focus:border-indigo-500"
               />
-              <button type="submit" disabled={!tokenInput.trim()} className="text-indigo-400 hover:text-indigo-300 disabled:opacity-40 p-1" title="Sign in">
+              <button type="submit" disabled={!tokenInput.trim()} className="text-indigo-400 hover:text-indigo-300 disabled:opacity-40 p-1" title="Sign in" aria-label="Sign in">
                 <LogIn className="w-4 h-4" />
               </button>
             </form>
@@ -623,7 +623,7 @@ export default function AntigravityEnterpriseDesktop() {
             <AlertTriangle className="w-4 h-4 text-rose-400" />
             <span>{errorMsg}</span>
           </div>
-          <button onClick={() => setErrorMsg(null)} className="text-rose-400 font-bold">×</button>
+          <button onClick={() => setErrorMsg(null)} className="text-rose-400 font-bold" aria-label="Dismiss error">×</button>
         </div>
       )}
       {successMsg && (
@@ -632,7 +632,7 @@ export default function AntigravityEnterpriseDesktop() {
             <CheckCircle className="w-4 h-4 text-emerald-400" />
             <span>{successMsg}</span>
           </div>
-          <button onClick={() => setSuccessMsg(null)} className="text-emerald-400 font-bold">×</button>
+          <button onClick={() => setSuccessMsg(null)} className="text-emerald-400 font-bold" aria-label="Dismiss success message">×</button>
         </div>
       )}
 
