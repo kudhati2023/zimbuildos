@@ -155,6 +155,22 @@ export default function AntigravityEnterpriseDesktop() {
     });
   }, [gisStands, standSearch, statusFilter]);
 
+  // Memoized public register metrics and filtered lists
+  const publicRegisterMetrics = useMemo(() => {
+    return {
+      availableStandsCount: publicStands.filter(s => s.status === 'AVAILABLE').length,
+      activeStandsCount: publicStands.filter(s => s.status === 'RESERVED' || s.status === 'ALLOCATED').length,
+      youthStandsCount: publicStands.filter(s => s.quota_category === 'YOUTH').length,
+      uniqueSchemes: Array.from(new Set(publicStands.map(s => s.scheme_name))),
+    };
+  }, [publicStands]);
+
+  const filteredPublicStands = useMemo(() => {
+    return publicStands
+      .filter(s => !publicSchemeFilter || s.scheme_name === publicSchemeFilter)
+      .filter(s => !publicStandSearch || s.stand_number.toLowerCase().includes(publicStandSearch.toLowerCase()));
+  }, [publicStands, publicSchemeFilter, publicStandSearch]);
+
   // Servicing editor starts from what the server has recorded for the selected stand
   useEffect(() => {
     setServicingDraft(activeStand ? activeStand.servicing : null);
@@ -1169,21 +1185,21 @@ export default function AntigravityEnterpriseDesktop() {
               <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl">
                 <span className="text-[10px] text-slate-400 font-bold uppercase block">Available for Booking</span>
                 <span className="text-2xl font-bold text-emerald-400 mt-1 block">
-                  {publicStands.filter(s => s.status === 'AVAILABLE').length} Stands
+                  {publicRegisterMetrics.availableStandsCount} Stands
                 </span>
                 <span className="text-[10px] text-slate-400 mt-1 block">Public FCFS Open Pool</span>
               </div>
               <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl">
                 <span className="text-[10px] text-slate-400 font-bold uppercase block">Active / Reserved</span>
                 <span className="text-2xl font-bold text-blue-400 mt-1 block">
-                  {publicStands.filter(s => s.status === 'RESERVED' || s.status === 'ALLOCATED').length} Stands
+                  {publicRegisterMetrics.activeStandsCount} Stands
                 </span>
                 <span className="text-[10px] text-slate-400 mt-1 block">Under Contract / Servicing</span>
               </div>
               <div className="bg-slate-900/80 border border-emerald-500/30 bg-emerald-950/20 p-4 rounded-xl">
                 <span className="text-[10px] text-emerald-400 font-bold uppercase block">Youth Quota (40% Mandate)</span>
                 <span className="text-2xl font-bold text-emerald-300 mt-1 block">
-                  {publicStands.filter(s => s.quota_category === 'YOUTH').length} Stands
+                  {publicRegisterMetrics.youthStandsCount} Stands
                 </span>
                 <span className="text-[10px] text-emerald-400 mt-1 block">ZNHSP Statutory Youth Share</span>
               </div>
@@ -1245,7 +1261,7 @@ export default function AntigravityEnterpriseDesktop() {
                     className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-100 text-xs"
                   >
                     <option value="">All Schemes</option>
-                    {Array.from(new Set(publicStands.map(s => s.scheme_name))).map(sch => (
+                    {publicRegisterMetrics.uniqueSchemes.map(sch => (
                       <option key={sch} value={sch}>{sch}</option>
                     ))}
                   </select>
@@ -1267,9 +1283,7 @@ export default function AntigravityEnterpriseDesktop() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800">
-                    {publicStands
-                      .filter(s => !publicSchemeFilter || s.scheme_name === publicSchemeFilter)
-                      .filter(s => !publicStandSearch || s.stand_number.toLowerCase().includes(publicStandSearch.toLowerCase()))
+                    {filteredPublicStands
                       .map((s, idx) => (
                         <tr key={idx} className="hover:bg-slate-800/40">
                           <td className="p-2.5 font-bold text-white">{s.stand_number}</td>
