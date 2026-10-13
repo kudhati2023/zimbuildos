@@ -155,6 +155,16 @@ export default function AntigravityEnterpriseDesktop() {
     });
   }, [gisStands, standSearch, statusFilter]);
 
+  // ⚡ Bolt: Memoize filtered array properties.
+  // 💡 What: Replaced inline array `.filter()` operations with `useMemo`.
+  // 🎯 Why: To prevent expensive recalculations and unnecessary re-renders of the App component.
+  // 📊 Impact: O(n) array traversals only occur when data actually changes.
+  const availablePublicStandsCount = useMemo(() => publicStands.filter(s => s.status === 'AVAILABLE').length, [publicStands]);
+  const activeReservedPublicStandsCount = useMemo(() => publicStands.filter(s => s.status === 'RESERVED' || s.status === 'ALLOCATED').length, [publicStands]);
+  const youthPublicStandsCount = useMemo(() => publicStands.filter(s => s.quota_category === 'YOUTH').length, [publicStands]);
+  const approvedApplications = useMemo(() => applications.filter(a => a.status === 'APPROVED'), [applications]);
+  const availableStands = useMemo(() => stands.filter(s => s.status === 'AVAILABLE'), [stands]);
+
   // Servicing editor starts from what the server has recorded for the selected stand
   useEffect(() => {
     setServicingDraft(activeStand ? activeStand.servicing : null);
@@ -1169,21 +1179,21 @@ export default function AntigravityEnterpriseDesktop() {
               <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl">
                 <span className="text-[10px] text-slate-400 font-bold uppercase block">Available for Booking</span>
                 <span className="text-2xl font-bold text-emerald-400 mt-1 block">
-                  {publicStands.filter(s => s.status === 'AVAILABLE').length} Stands
+                  {availablePublicStandsCount} Stands
                 </span>
                 <span className="text-[10px] text-slate-400 mt-1 block">Public FCFS Open Pool</span>
               </div>
               <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl">
                 <span className="text-[10px] text-slate-400 font-bold uppercase block">Active / Reserved</span>
                 <span className="text-2xl font-bold text-blue-400 mt-1 block">
-                  {publicStands.filter(s => s.status === 'RESERVED' || s.status === 'ALLOCATED').length} Stands
+                  {activeReservedPublicStandsCount} Stands
                 </span>
                 <span className="text-[10px] text-slate-400 mt-1 block">Under Contract / Servicing</span>
               </div>
               <div className="bg-slate-900/80 border border-emerald-500/30 bg-emerald-950/20 p-4 rounded-xl">
                 <span className="text-[10px] text-emerald-400 font-bold uppercase block">Youth Quota (40% Mandate)</span>
                 <span className="text-2xl font-bold text-emerald-300 mt-1 block">
-                  {publicStands.filter(s => s.quota_category === 'YOUTH').length} Stands
+                  {youthPublicStandsCount} Stands
                 </span>
                 <span className="text-[10px] text-emerald-400 mt-1 block">ZNHSP Statutory Youth Share</span>
               </div>
@@ -1543,7 +1553,7 @@ export default function AntigravityEnterpriseDesktop() {
                   className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-100"
                 >
                   <option value="">-- Choose Approved Applicant --</option>
-                  {applications.filter(a => a.status === 'APPROVED').map(a => (
+                  {approvedApplications.map(a => (
                     <option key={a.application_id} value={a.application_id}>
                       {a.first_name} {a.last_name} ({a.national_id}) · {a.quota_category} · Queued {new Date(a.first_submitted_at).toLocaleDateString()}
                     </option>
@@ -1559,7 +1569,7 @@ export default function AntigravityEnterpriseDesktop() {
                   className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-100"
                 >
                   <option value="">-- Choose Available Stand --</option>
-                  {stands.filter(s => s.status === 'AVAILABLE').map(s => (
+                  {availableStands.map(s => (
                     <option key={s.parcel_id} value={s.parcel_id}>
                       {s.stand_number} · {s.scheme_name} ({s.area_sqm} m² - ${parseFloat(s.price_usd).toLocaleString()} USD){s.quota_category !== 'GENERAL' ? ` · ${s.quota_category} quota` : ''}
                     </option>
