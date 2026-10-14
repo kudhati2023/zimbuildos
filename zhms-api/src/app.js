@@ -269,6 +269,26 @@ export function createApp(db, services, config) {
     } catch (e) { next(e); }
   });
 
+  // 7c. Surveyor-General (SG) Coordinate Schedule Parser
+  app.post('/api/v1/gis/sg-schedule/parse', authenticate(config), requireRole(ROLES.LAND_OFFICER, ROLES.ENGINEER, ROLES.ADMIN), async (req, res, next) => {
+    try {
+      const { parseSGCoordinateSchedule } = await import('./gisService.js');
+      const text = req.body?.scheduleText ?? '';
+      const opts = {
+        centralMeridian: Number(req.body?.centralMeridian ?? 31),
+        originLat: Number(req.body?.originLat ?? -17.8292)
+      };
+      res.json(parseSGCoordinateSchedule(text, opts));
+    } catch (e) { next(e); }
+  });
+
+  // 7d. Utility Infrastructure Networks (water, sewer, 11kV electrical corridors)
+  app.get('/api/v1/gis/developments/:id/utility-infrastructure', async (req, res, next) => {
+    try {
+      res.json(await services.gis.getUtilityInfrastructureNetwork(req.params.id));
+    } catch (e) { next(e); }
+  });
+
   app.get('/api/v1/gis/zoning-summary', async (_req, res, next) => {
     try {
       res.json({ developments: await services.gis.zoningSummary() });
@@ -359,7 +379,45 @@ export function createApp(db, services, config) {
     } catch (e) { next(e); }
   });
 
-  // 10. Payment gateway webhooks (EcoCash, bank, O'mari). Authenticated by HMAC signature, not JWT.
+  // 10. Payment gateway webhooks (EcoCash, bank, O'mari, Innbucks). Authenticated by HMAC signature, not JWT.
+  // 10a. Provider-specific inbound adapter endpoint (normalises provider format into canonical ZHMS payload)
+  app.post('/api/v1/webhooks/adapters/:provider', async (req, res, next) => {
+    try {
+      const provider = String(req.params.provider).toLowerCase();
+      let canonical;
+      let channel;
+
+      if (provider === 'ecocash') {
+        const { PaymentGatewayAdapter } = await import('./gatewayAdapters.js');
+        canonical = PaymentGatewayAdapter.normaliseEcoCash(req.body);
+        channel = 'ECOCASH';
+      } else if (provider === 'onemoney' || provider === 'omari') {
+        const { PaymentGatewayAdapter } = await import('./gatewayAdapters.js');
+        canonical = PaymentGatewayAdapter.normaliseOneMoney(req.body);
+        channel = 'OMARI';
+      } else if (provider === 'innbucks') {
+        const { PaymentGatewayAdapter } = await import('./gatewayAdapters.js');
+        canonical = PaymentGatewayAdapter.normaliseInnbucks(req.body);
+        channel = 'BANK_TRANSFER';
+      } else {
+        return res.status(404).json({ error: 'UNKNOWN_PROVIDER', message: `No adapter for provider ${provider}` });
+      }
+
+      // Check signature on the inbound request using the channel's secret
+      const problem = checkWebhookSignature({
+        rawBody: req.rawBody,
+        timestamp: req.get('x-zhms-timestamp'),
+        signature: req.get('x-zhms-signature'),
+        secret: config.webhookSecrets?.[channel],
+      });
+      if (problem) securityEvent('WEBHOOK_SIGNATURE_REJECTED', { req, channel: channel.slice(0, 20), reason: problem });
+      if (problem === 'CHANNEL_NOT_CONFIGURED') return res.status(404).json({ error: problem, message: 'No webhook configured for this channel' });
+      if (problem) return res.status(401).json({ error: problem, message: 'Webhook signature rejected' });
+
+      res.json(await services.inbox.receiveWebhook(channel, canonical));
+    } catch (e) { next(e); }
+  });
+
   app.post('/api/v1/webhooks/payments/:channel', async (req, res, next) => {
     try {
       const channel = String(req.params.channel).toUpperCase();

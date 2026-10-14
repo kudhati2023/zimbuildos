@@ -1,0 +1,350 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+enum UserRole {
+  LAND_DEVELOPER
+  LAND_SURVEYOR
+  CIVIL_ENGINEER
+  LAND_SALES_AGENT
+  PROJECT_MANAGER
+  EXECUTIVE_MANAGEMENT
+  FINANCE_ACCOUNTANT
+  MARKETING_SPECIALIST
+  HR_MANAGER
+  OPERATIONS_DIRECTOR
+  ADMIN
+}
+
+enum CdeWorkflowState {
+  WIP
+  Shared
+  Published
+  Archived
+}
+
+enum ParcelAcquisitionType {
+  Outright
+  JointVenture
+  JointDevelopment
+}
+
+enum UnitInventoryStatus {
+  Available
+  Reserved
+  Booked
+  Sold
+  Blocked
+}
+
+enum DefectSeverity {
+  MINOR
+  MODERATE
+  CRITICAL
+  FATAL
+}
+
+enum ChangeOrderStatus {
+  DRAFT
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  DISPUTED
+}
+
+model User {
+  id           String      @id @default(uuid())
+  email        String      @unique
+  fullName     String
+  role         UserRole    @default(CIVIL_ENGINEER)
+  isActive     Boolean     @default(true)
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  cdeDocuments CdeDocument[]
+  inspections  TqmSiteInspection[]
+  units        RealEstateUnit[]
+  commissions  SalesCommission[]
+
+  @@map("users")
+}
+
+model ImmutableAuditLog {
+  id            String   @id @default(uuid())
+  userId        String?
+  action        String
+  entityName    String
+  entityId      String
+  previousState Json?
+  newState      Json?
+  ipAddress     String?
+  createdAt     DateTime @default(now())
+
+  @@index([entityName, entityId])
+  @@index([createdAt])
+  @@map("immutable_audit_logs")
+}
+
+model ErpProject {
+  id                 String       @id @default(uuid())
+  code               String       @unique
+  name               String
+  description        String?
+  baseCurrency       String       @default("USD")
+  plannedValuePv     Decimal      @default(0.00) @db.Decimal(16, 2)
+  earnedValueEv      Decimal      @default(0.00) @db.Decimal(16, 2)
+  actualCostAc       Decimal      @default(0.00) @db.Decimal(16, 2)
+  contingencyReserve Decimal      @default(0.00) @db.Decimal(16, 2)
+  isActive           Boolean      @default(true)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  parcels            LandParcel[]
+  cdeDocuments       CdeDocument[]
+  costCodes          BoqCostCode[]
+  inspections        TqmSiteInspection[]
+  aiaApplications    AiaPaymentApplication[]
+  changeItems        PotentialChangeItem[]
+  purchaseOrders     PurchaseOrder[]
+
+  @@map("erp_projects")
+}
+
+model CdeDocument {
+  id             String           @id @default(uuid())
+  projectId      String
+  documentNumber String
+  title          String
+  fileUri        String
+  fileHashSha256 String
+  cdeState       CdeWorkflowState @default(WIP)
+  revision       String           @default("P01.01")
+  authorId       String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  project        ErpProject       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  author         User?            @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@unique([projectId, documentNumber, revision])
+  @@map("cde_documents")
+}
+
+model LandParcel {
+  id              String                @id @default(uuid())
+  projectId       String
+  parcelId        String                @unique
+  titleDeedRef    String?
+  zoningType      String
+  legalStatus     String                @default("Clean Title")
+  acquisitionType ParcelAcquisitionType @default(Outright)
+  boundaryGeoJson Json
+  grossAreaSqm    Decimal               @db.Decimal(12, 2)
+  createdAt       DateTime              @default(now())
+  updatedAt       DateTime              @updatedAt
+
+  project         ErpProject            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  proformaRuns    ProformaRun[]
+  units           RealEstateUnit[]
+
+  @@map("land_parcels")
+}
+
+model ProformaRun {
+  id                       String      @id @default(uuid())
+  parcelId                 String
+  runLabel                 String
+  grossRealizationValue    Decimal     @db.Decimal(16, 2)
+  constructionHardSoftCost Decimal     @db.Decimal(16, 2)
+  financeCosts             Decimal     @db.Decimal(16, 2)
+  targetDeveloperMargin    Decimal     @db.Decimal(16, 2)
+  residualLandValue        Decimal     @db.Decimal(16, 2)
+  unleveredIrr             Decimal     @db.Decimal(6, 4)
+  leveredIrr               Decimal     @db.Decimal(6, 4)
+  npv                      Decimal     @db.Decimal(16, 2)
+  minDscr                  Decimal     @db.Decimal(6, 3)
+  createdAt                DateTime    @default(now())
+
+  parcel                   LandParcel  @relation(fields: [parcelId], references: [id], onDelete: Cascade)
+
+  @@map("proforma_feasibility_runs")
+}
+
+model RealEstateUnit {
+  id                   String              @id @default(uuid())
+  parcelId             String
+  unitNumber           String
+  blockPhase           String?
+  lotAreaSqm           Decimal             @db.Decimal(10, 2)
+  listPriceUsd         Decimal             @db.Decimal(14, 2)
+  status               UnitInventoryStatus @default(Available)
+  reservedById         String?
+  reservationExpiresAt DateTime?
+  version              Int                 @default(1)
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  parcel               LandParcel          @relation(fields: [parcelId], references: [id], onDelete: Cascade)
+  reservedBy           User?               @relation(fields: [reservedById], references: [id], onDelete: SetNull)
+  commissions          SalesCommission[]
+
+  @@unique([parcelId, unitNumber])
+  @@index([status])
+  @@map("real_estate_units")
+}
+
+model SalesCommission {
+  id                    String         @id @default(uuid())
+  unitId                String
+  agentId               String
+  tierLevel             Int            @default(1)
+  commissionRatePct     Decimal        @db.Decimal(5, 2)
+  commissionAmountUsd   Decimal        @db.Decimal(12, 2)
+  triggerMilestonePct   Decimal        @default(20.00) @db.Decimal(5, 2)
+  downpaymentVerifiedPct Decimal       @default(0.00) @db.Decimal(5, 2)
+  isAuthorized          Boolean        @default(false)
+  paidAt                DateTime?
+  createdAt             DateTime       @default(now())
+
+  unit                  RealEstateUnit @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  agent                 User           @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@map("sales_commissions")
+}
+
+model BoqCostCode {
+  id                String       @id @default(uuid())
+  projectId         String
+  costCode          String
+  wbsElement        String
+  description       String
+  unitOfMeasure     String
+  budgetedQuantity  Decimal      @default(0.000) @db.Decimal(14, 3)
+  budgetedUnitRate  Decimal      @default(0.00) @db.Decimal(14, 2)
+  budgetedTotalUsd  Decimal      @default(0.00) @db.Decimal(16, 2)
+  actualQuantity    Decimal      @default(0.000) @db.Decimal(14, 3)
+  actualCostUsd     Decimal      @default(0.00) @db.Decimal(16, 2)
+  createdAt         DateTime     @default(now())
+
+  project           ErpProject   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  purchaseOrders    PurchaseOrder[]
+
+  @@unique([projectId, costCode])
+  @@map("boq_cost_codes")
+}
+
+model TqmSiteInspection {
+  id                String         @id @default(uuid())
+  projectId         String
+  inspectorId       String
+  locationDesc      String
+  inspectionStage   String
+  defectSeverity    DefectSeverity @default(MINOR)
+  defectDescription String?
+  photoUrls         Json           @default("[]")
+  isResolved        Boolean        @default(false)
+  resolvedAt        DateTime?
+  createdAt         DateTime       @default(now())
+
+  project           ErpProject     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  inspector         User           @relation(fields: [inspectorId], references: [id], onDelete: Cascade)
+
+  @@map("tqm_site_inspections")
+}
+
+model AiaPaymentApplication {
+  id                       String     @id @default(uuid())
+  projectId                String
+  applicationNumber        Int
+  periodTo                 DateTime
+  contractSumToDate        Decimal    @db.Decimal(16, 2)
+  totalCompletedAndStored  Decimal    @db.Decimal(16, 2)
+  retainagePercentage      Decimal    @default(10.00) @db.Decimal(5, 2)
+  retainageWithheldUsd     Decimal    @db.Decimal(16, 2)
+  totalEarnedLessRetainage Decimal    @db.Decimal(16, 2)
+  previousCertificatesUsd  Decimal    @default(0.00) @db.Decimal(16, 2)
+  currentPaymentDueUsd     Decimal    @db.Decimal(16, 2)
+  lienWaiverReceived       Boolean    @default(false)
+  isCertified              Boolean    @default(false)
+  certifiedAt              DateTime?
+  createdAt                DateTime   @default(now())
+
+  project                  ErpProject @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, applicationNumber])
+  @@map("aia_payment_applications")
+}
+
+model PotentialChangeItem {
+  id                       String            @id @default(uuid())
+  projectId                String
+  pciCode                  String
+  title                    String
+  description              String?
+  costImpactUsd            Decimal           @db.Decimal(14, 2)
+  scheduleImpactDays       Int               @default(0)
+  status                   ChangeOrderStatus @default(DRAFT)
+  contingencyReserveApplied Decimal          @default(0.00) @db.Decimal(14, 2)
+  approvedAt               DateTime?
+  createdAt                DateTime          @default(now())
+
+  project                  ErpProject        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, pciCode])
+  @@map("potential_change_items")
+}
+
+model PurchaseOrder {
+  id              String            @id @default(uuid())
+  projectId       String
+  poNumber        String            @unique
+  vendorName      String
+  costCodeId      String?
+  orderedQuantity Decimal           @db.Decimal(14, 3)
+  unitPriceUsd    Decimal           @db.Decimal(14, 2)
+  totalAmountUsd  Decimal           @db.Decimal(16, 2)
+  createdAt       DateTime          @default(now())
+
+  project         ErpProject        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  costCode        BoqCostCode?      @relation(fields: [costCodeId], references: [id], onDelete: SetNull)
+  deliveryNotes   SiteDeliveryNote[]
+  vendorInvoices  VendorInvoice[]
+
+  @@map("purchase_orders")
+}
+
+model SiteDeliveryNote {
+  id                 String        @id @default(uuid())
+  poId               String
+  deliveryNoteNumber String
+  deliveredQuantity  Decimal       @db.Decimal(14, 3)
+  photoEvidenceUrl   String
+  gpsLatitude        Decimal       @db.Decimal(9, 6)
+  gpsLongitude       Decimal       @db.Decimal(9, 6)
+  deliveryTimestamp  DateTime      @default(now())
+
+  purchaseOrder      PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
+
+  @@map("site_delivery_notes")
+}
+
+model VendorInvoice {
+  id                 String        @id @default(uuid())
+  poId               String
+  invoiceNumber      String
+  invoicedQuantity   Decimal       @db.Decimal(14, 3)
+  invoicedTotalUsd   Decimal       @db.Decimal(16, 2)
+  matchStatus        String        @default("PENDING_MATCH")
+  discrepancyDetails Json?
+  createdAt          DateTime      @default(now())
+
+  purchaseOrder      PurchaseOrder @relation(fields: [poId], references: [id], onDelete: Cascade)
+
+  @@map("vendor_invoices")
+}

@@ -9,6 +9,7 @@ import socketserver
 import json
 import os
 import urllib.parse
+from datetime import datetime
 from typing import Dict, Any
 
 from src.security.security_guard import security_guard, SecurityGuard
@@ -33,8 +34,41 @@ from src.erp.project_engineering_suite import (
     MortgageFinancingEngine,
     MunicipalPermitManager
 )
+from src.real_estate_erp.services import (
+    LandDeveloperService,
+    LandSurveyorService,
+    CivilDesignService,
+    LandSalesService,
+    ProjectManagerService,
+    ExecutiveManagementService,
+    FinanceAccountingService,
+    MarketingService,
+    HrPayrollService,
+    OperationsService
+)
+from src.real_estate_erp.schemas import (
+    ProFormaRequestDTO,
+    SensitivityStressTestDTO,
+    CoordinateConversionRequestDTO,
+    LotSubdivisionRequestDTO,
+    CommissionCalculationDTO,
+    EvmMetricsDTO,
+    AiaG702BillingDTO,
+    ChangeOrderCreateDTO,
+    PortfolioProjectSummaryDTO,
+    MultiCurrencyFxConversionDTO,
+    CamReconciliationDTO,
+    LeadWebhookDTO,
+    CampaignPerformanceDTO,
+    MobileGeofencedCheckInDTO,
+    SiteWorkerPayrollDTO,
+    ThreeWayMatchVerificationDTO,
+    PlantAssetUsageDTO
+)
+from src.real_estate_erp.tasks import ERPTaskQueue
 
 PORT = int(os.environ.get("PORT", 8000))
+RATE_LIMIT_MAX = int(os.environ.get("RATE_LIMIT_MAX", 500))
 
 # Initialize Singleton ERP Engines
 portfolio_mgr = PortfolioManager()
@@ -171,6 +205,35 @@ outbound_messages_store = [
     }
 ]
 
+# ==============================================================================
+# ISO/IEC 27001:2022 A.8.12 DATA LEAKAGE PREVENTION & PII MASKING HELPERS
+# ==============================================================================
+def mask_national_id(national_id: str) -> str:
+    """Masks citizen national ID for data minimization (ISO A.8.12): 63-2948192-A-24 -> 63-******-A-24"""
+    if not national_id:
+        return ""
+    parts = str(national_id).strip().split("-")
+    if len(parts) == 4:
+        return f"{parts[0]}-******-{parts[2]}-{parts[3]}"
+    s = str(national_id).strip()
+    return f"{s[:3]}******{s[-3:]}" if len(s) > 6 else "***"
+
+
+def mask_phone_number(phone: str) -> str:
+    """Masks phone number: +263 772 123456 -> +263 77****456"""
+    if not phone:
+        return ""
+    s = str(phone).strip()
+    return f"{s[:8]}****{s[-3:]}" if len(s) >= 11 else f"{s[:4]}****"
+
+
+def mask_email_address(email: str) -> str:
+    """Masks email address: tatenda.chitsike@gmail.com -> t***@gmail.com"""
+    if not email or "@" not in str(email):
+        return "***"
+    user, domain = str(email).strip().split("@", 1)
+    return f"{user[0]}***@{domain}"
+
 
 class SecureERPRequestHandler(http.server.SimpleHTTPRequestHandler):
     """Custom HTTP Request Handler enforcing security headers and routing API calls."""
@@ -189,24 +252,47 @@ class SecureERPRequestHandler(http.server.SimpleHTTPRequestHandler):
         )
         super().end_headers()
 
+    def _get_allowed_origin(self) -> str:
+        """Dynamically validates and resolves CORS origin (ISO 27001 A.8.26)."""
+        origin = self.headers.get("Origin", "")
+        configured_origins = os.environ.get("CORS_ORIGINS", "")
+        if configured_origins:
+            allowed_list = [o.strip() for o in configured_origins.split(",") if o.strip()]
+            if origin in allowed_list:
+                return origin
+            if os.environ.get("NODE_ENV") == "production":
+                return allowed_list[0] if allowed_list else "null"
+
+        # Safe development/local origins
+        if origin and (
+            origin.startswith("http://localhost:") or
+            origin.startswith("http://127.0.0.1:") or
+            origin.startswith("tauri://") or
+            origin.startswith("https://tauri.localhost")
+        ):
+            return origin
+
+        return "*" if os.environ.get("NODE_ENV") != "production" else "null"
+
     def do_OPTIONS(self):
-        """Handle CORS pre-flight requests safely."""
+        """Handle CORS pre-flight requests safely (ISO A.8.26)."""
         self.send_response(200)
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Origin", self._get_allowed_origin())
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.send_header("Access-Control-Allow-Headers", "Content-Type, X-User-Role, Authorization")
+        self.send_header("Access-Control-Max-Age", "86400")
         self.end_headers()
 
     def _send_json(self, status_code: int, data: Dict[str, Any]):
         self.send_response(status_code)
         self.send_header("Content-Type", "application/json")
-        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Origin", self._get_allowed_origin())
         self.end_headers()
         self.wfile.write(json.dumps(data).encode("utf-8"))
 
     def _check_rate_limit(self) -> bool:
         client_ip = self.client_address[0] if self.client_address else "127.0.0.1"
-        if not security_guard.check_rate_limit(client_ip):
+        if not security_guard.check_rate_limit(client_ip, limit=RATE_LIMIT_MAX):
             security_guard.log_security_event(
                 user_role="anonymous",
                 action="RATE_LIMIT_EXCEEDED",
@@ -222,13 +308,28 @@ class SecureERPRequestHandler(http.server.SimpleHTTPRequestHandler):
         return True
 
     def _check_rbac(self, required_permission: str) -> bool:
-        """Verifies caller has permission based on X-User-Role header."""
-        user_role = self.headers.get("X-User-Role", "ceo").lower()
+        """Verifies caller has permission based on authenticated role (ISO 27001 A.8.26)."""
+        raw_role = self.headers.get("X-User-Role")
+        if not raw_role or not raw_role.strip():
+            security_guard.log_security_event(
+                user_role="anonymous",
+                action="UNAUTHENTICATED_ACCESS_DENIED",
+                details=f"Missing X-User-Role header for protected action '{required_permission}'.",
+                status="DENIED"
+            )
+            self._send_json(401, {
+                "error": "Unauthorized",
+                "message": "Missing authentication credentials or X-User-Role header.",
+                "security_status": "AUTHENTICATION_REQUIRED"
+            })
+            return False
+
+        user_role = raw_role.strip().lower()
         if not security_guard.check_permission(user_role, required_permission):
             security_guard.log_security_event(
                 user_role=user_role,
                 action="PERMISSION_DENIED",
-                details=f"Forbidden attempt to execute '{required_permission}'.",
+                details=f"Forbidden attempt by role '{user_role}' to execute '{required_permission}'.",
                 status="DENIED"
             )
             self._send_json(403, {
@@ -240,8 +341,16 @@ class SecureERPRequestHandler(http.server.SimpleHTTPRequestHandler):
         return True
 
     def _parse_post_body(self) -> Dict[str, Any]:
-        content_length = int(self.headers.get("Content-Length", 0))
+        """Safely parses JSON POST body with strict size bounds (ISO 27001 A.8.28 DoS protection)."""
+        raw_cl = self.headers.get("Content-Length", "0")
+        try:
+            content_length = int(raw_cl)
+        except (ValueError, TypeError):
+            return {}
         if content_length <= 0:
+            return {}
+        # Enforce 1MB max body limit
+        if content_length > 1_048_576:
             return {}
         body = self.rfile.read(content_length)
         try:
@@ -258,7 +367,7 @@ class SecureERPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
         # REST API Routes
         if path.startswith("/api/"):
-            user_role = self.headers.get("X-User-Role", "ceo").lower()
+            user_role = (self.headers.get("X-User-Role") or "anonymous").strip().lower()
 
             if path == "/api/health":
                 self._send_json(200, {"status": "HEALTHY", "service": "Zimbuild Secure ERP Gateway", "timestamp": "2026-10-09"})
@@ -295,8 +404,14 @@ class SecureERPRequestHandler(http.server.SimpleHTTPRequestHandler):
             if path == "/api/inventory":
                 if not self._check_rbac("view_inventory"):
                     return
-                inv_summary = inventory_mgr.get_inventory_summary()
-                self._send_json(200, inv_summary)
+                materials = inventory_mgr.get_stock_levels()
+                self._send_json(200, {
+                    "total_materials": len(materials),
+                    "low_stock_count": sum(1 for m in materials if m["is_low_stock"]),
+                    "total_valuation_usd": round(sum(m["total_valuation_usd"] for m in materials), 2),
+                    "total_valuation_zwg": round(sum(m["total_valuation_zwg"] for m in materials), 2),
+                    "materials": materials,
+                })
                 return
 
             if path == "/api/financials":
@@ -469,20 +584,41 @@ class SecureERPRequestHandler(http.server.SimpleHTTPRequestHandler):
             # YOUTH APPLICANTS, TRANSPARENT ALLOCATIONS & MESSAGING ROUTES
             # =========================================================
             if path == "/api/youth/applicants":
+                if not self._check_rbac("view_allocations"):
+                    return
+                # ISO A.8.12 Data Minimisation & PII Masking
+                sanitized_applicants = [
+                    {
+                        **app,
+                        "national_id": mask_national_id(app.get("national_id", "")),
+                        "phone": mask_phone_number(app.get("phone", "")),
+                        "email": mask_email_address(app.get("email", "")),
+                    }
+                    for app in youth_applicants_store
+                ]
                 self._send_json(200, {
-                    "total_applicants": len(youth_applicants_store),
-                    "applicants": youth_applicants_store,
+                    "total_applicants": len(sanitized_applicants),
+                    "applicants": sanitized_applicants,
                     "statutory_quota_mandate_pct": 25.0
                 })
                 return
 
             if path == "/api/allocations/register":
+                if not self._check_rbac("view_allocations"):
+                    return
+                sanitized_allocations = [
+                    {
+                        **alloc,
+                        "buyer_phone": mask_phone_number(alloc.get("buyer_phone", ""))
+                    }
+                    for alloc in allocations_store
+                ]
                 total_cost = sum(a["total_cost_usd"] for a in allocations_store)
                 total_paid = sum(a["paid_to_date_usd"] for a in allocations_store)
                 total_balance = sum(a["balance_usd"] for a in allocations_store)
                 youth_count = sum(1 for a in allocations_store if a["category"] == "YOUTH_QUOTA")
                 self._send_json(200, {
-                    "allocations": allocations_store,
+                    "allocations": sanitized_allocations,
                     "metrics": {
                         "total_stands_allocated": len(allocations_store),
                         "total_contract_value_usd": total_cost,
@@ -495,16 +631,121 @@ class SecureERPRequestHandler(http.server.SimpleHTTPRequestHandler):
                 return
 
             if path == "/api/messaging/outbox":
+                if not self._check_rbac("view_audit_trail"):
+                    return
+                sanitized_messages = [
+                    {
+                        **msg,
+                        "recipient": mask_phone_number(msg.get("recipient", ""))
+                    }
+                    for msg in outbound_messages_store
+                ]
                 self._send_json(200, {
-                    "total_messages": len(outbound_messages_store),
-                    "messages": outbound_messages_store
+                    "total_messages": len(sanitized_messages),
+                    "messages": sanitized_messages
                 })
+                return
+
+            # =========================================================
+            # REAL ESTATE & BUILDING CONSTRUCTION ERP SUITE GET ROUTES
+            # =========================================================
+            if path == "/api/erp/predictive-risk-alert":
+                query = urllib.parse.parse_qs(url.query)
+                cpi = float(query.get("cpi", [0.88])[0])
+                spi = float(query.get("spi", [0.82])[0])
+                deadline_days = int(query.get("deadline_days_remaining", [10])[0])
+                eval_res = ExecutiveManagementService.evaluate_predictive_risk(cpi, spi, deadline_days)
+                self._send_json(200, eval_res.model_dump())
+                return
+
+            if path.startswith("/api/erp/jobs/") and path.endswith("/status"):
+                job_id = path.split("/")[4]
+                status_res = ERPTaskQueue.get_job_status(job_id)
+                if not status_res:
+                    self._send_json(404, {"error": "Job Not Found", "job_id": job_id})
+                    return
+                self._send_json(200, status_res)
                 return
 
             self._send_json(404, {"error": "API Route Not Found"})
             return
 
-        # Otherwise serve static files safely
+        # =====================================================================
+        # STATIC ASSET PROTECTION (ISO A.8.28 & A.8.12)
+        # Prevent Source Code, Configuration, and Repository Disclosure
+        # =====================================================================
+        decoded_path = urllib.parse.unquote(url.path).replace("\\", "/")
+        clean_path = os.path.normpath(decoded_path).lstrip("/\\")
+        base_dir = os.path.abspath(os.getcwd())
+        full_path = os.path.abspath(os.path.join(base_dir, clean_path))
+
+        # Path traversal guard
+        if ".." in decoded_path or "/." in decoded_path or not full_path.startswith(base_dir):
+            security_guard.log_security_event(
+                user_role="anonymous",
+                action="PATH_TRAVERSAL_BLOCKED",
+                details=f"Forbidden path traversal probe: {url.path}",
+                status="BLOCKED"
+            )
+            self._send_json(403, {"error": "Forbidden", "message": "Access denied.", "security_status": "PATH_TRAVERSAL_BLOCKED"})
+            return
+
+        # The prototype ERP page lives in erp.html; index.html is the React (Vite) client entry and is not
+        # runnable unbuilt, so the root and legacy /index.html links keep opening the ERP page here.
+        if clean_path in ("", ".", "index", "index.html", "erp", "erp.html"):
+            self.path = "/erp.html"
+            clean_path = "erp.html"
+            full_path = os.path.join(base_dir, "erp.html")
+
+        # Prohibited file extensions & sensitive filenames
+        _, ext = os.path.splitext(clean_path.lower())
+        filename = os.path.basename(clean_path).lower()
+        path_parts = [p.lower() for p in clean_path.replace("\\", "/").split("/") if p]
+
+        prohibited_exts = {
+            ".py", ".pyc", ".env", ".ts", ".tsx", ".rs", ".sql", ".sqlite",
+            ".db", ".sh", ".cmd", ".bat", ".toml", ".yml", ".yaml", ".lock",
+            ".jsonl", ".log", ".dump", ".bak"  # runtime logs and backups must never be downloadable
+        }
+        prohibited_files = {
+            "package.json", "package-lock.json", "tsconfig.json", "requirements.txt",
+            "cargo.toml", "cargo.lock", "server.py", "main.py", "build_full_frontend.py",
+            "build_full_enterprise_erp.py", "generate_erp_platform.py"
+        }
+        prohibited_dirs = {
+            ".git", ".agents", ".gemini", ".refact", "__pycache__", ".pytest_cache",
+            "tests", "src", "contracts", "spatial", "config", "tools", "zhms-api", "src-tauri"
+        }
+
+        is_prohibited = (
+            ext in prohibited_exts or
+            filename in prohibited_files or
+            any(p.startswith(".") for p in path_parts) or
+            any(p in prohibited_dirs for p in path_parts)
+        )
+
+        if is_prohibited:
+            security_guard.log_security_event(
+                user_role="anonymous",
+                action="SOURCE_CODE_ACCESS_BLOCKED",
+                details=f"Blocked attempt to access protected source/config file: {url.path}",
+                status="BLOCKED"
+            )
+            self._send_json(403, {
+                "error": "Forbidden",
+                "message": "Direct access to source code, configurations, or repository assets is prohibited (ISO 27001 A.8.28).",
+                "security_status": "SOURCE_CODE_ACCESS_BLOCKED"
+            })
+            return
+
+        if not os.path.exists(full_path) or os.path.isdir(full_path):
+            self._send_json(404, {
+                "error": "Not Found",
+                "message": f"Resource '{url.path}' not found."
+            })
+            return
+
+        # Otherwise serve allowed public static files safely
         super().do_GET()
 
     def do_POST(self):
@@ -518,7 +759,7 @@ class SecureERPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self._send_json(404, {"error": "Not Found"})
             return
 
-        user_role = self.headers.get("X-User-Role", "ceo").lower()
+        user_role = (self.headers.get("X-User-Role") or "anonymous").strip().lower()
         body = self._parse_post_body()
 
         # 1. Tenant Screening
@@ -551,7 +792,11 @@ class SecureERPRequestHandler(http.server.SimpleHTTPRequestHandler):
             cert_amt = float(body.get("certified_amount", 13500.0))
             variations = float(body.get("variations", 750.0))
             
-            app = job_costing_mgr.certify_payment_application(app_id, cert_amt, variations)
+            try:
+                app = job_costing_mgr.certify_payment_application(app_id, cert_amt, variations)
+            except ValueError as e:
+                self._send_json(404, {"error": str(e)})
+                return
             sig = security_guard.sign_transaction({"app_id": app.app_id, "net": app.net_payable_amount_usd})
             security_guard.log_security_event(user_role, "CERTIFY_PAYMENT", f"Certified {app_id} for ${app.net_payable_amount_usd}")
 
@@ -1359,6 +1604,8 @@ class SecureERPRequestHandler(http.server.SimpleHTTPRequestHandler):
         # 38. Youth Mobile Registration Endpoint
         # =========================================================
         if path == "/api/youth/register":
+            if not self._check_rbac("youth_register"):
+                return
             name = security_guard.sanitize(body.get("full_name", ""))
             nat_id = security_guard.sanitize(body.get("national_id", ""))
             dob = security_guard.sanitize(body.get("dob", ""))
@@ -1427,6 +1674,8 @@ class SecureERPRequestHandler(http.server.SimpleHTTPRequestHandler):
         # 39. Automated SMS / WhatsApp Payment Reminder Dispatcher
         # =========================================================
         if path == "/api/messaging/send-reminder":
+            if not self._check_rbac("send_reminder"):
+                return
             alloc_id = security_guard.sanitize(body.get("allocation_id", ""))
             channel = security_guard.sanitize(body.get("channel", "WHATSAPP")) # WHATSAPP or SMS
             msg_type = security_guard.sanitize(body.get("type", "PAYMENT_REMINDER")) # PAYMENT_REMINDER or STATEMENT
@@ -1514,6 +1763,132 @@ class SecureERPRequestHandler(http.server.SimpleHTTPRequestHandler):
             })
             return
 
+        # =========================================================
+        # REAL ESTATE & BUILDING CONSTRUCTION ERP SUITE POST ROUTES
+        # =========================================================
+        if path == "/api/erp/land-developer/proforma-rlv":
+            req_dto = ProFormaRequestDTO(**body)
+            res = LandDeveloperService.calculate_rlv_and_proforma(req_dto)
+            self._send_json(200, res.model_dump())
+            return
+
+        if path == "/api/erp/land-developer/sensitivity-stress-test":
+            stress_dto = SensitivityStressTestDTO(**body)
+            res = LandDeveloperService.sensitivity_stress_test(stress_dto)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/land-surveyor/convert-coordinates":
+            coord_dto = CoordinateConversionRequestDTO(**body)
+            res = LandSurveyorService.convert_wgs84_to_projected(coord_dto)
+            self._send_json(200, res.model_dump())
+            return
+
+        if path == "/api/erp/land-surveyor/subdivide-parcel":
+            subdiv_dto = LotSubdivisionRequestDTO(**body)
+            res = LandSurveyorService.subdivide_lot_polygon(subdiv_dto)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/civil-design/parse-boq":
+            csv_content = body.get("csv_content", "")
+            res = CivilDesignService.parse_boq_csv_and_map(csv_content)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/civil-design/tqm-inspection-routing":
+            severity = body.get("defect_severity", "MINOR")
+            desc = body.get("defect_description", "")
+            res = CivilDesignService.evaluate_inspection_severity_routing(severity, desc)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/land-sales/calculate-commission":
+            comm_dto = CommissionCalculationDTO(**body)
+            res = LandSalesService.calculate_commission(comm_dto)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/project-manager/calculate-evm":
+            evm_dto = EvmMetricsDTO(**body)
+            res = ProjectManagerService.calculate_evm(evm_dto)
+            self._send_json(200, res.model_dump())
+            return
+
+        if path == "/api/erp/project-manager/certify-aia-g702":
+            aia_dto = AiaG702BillingDTO(**body)
+            res = ProjectManagerService.certify_aia_g702_billing(aia_dto)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/project-manager/process-change-order":
+            co_dto = ChangeOrderCreateDTO(**body)
+            res = ProjectManagerService.process_change_order(co_dto)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/executive/portfolio-aggregation":
+            projects_data = [PortfolioProjectSummaryDTO(**p) for p in body.get("projects", [])]
+            res = ExecutiveManagementService.aggregate_portfolio(projects_data)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/finance/calculate-fx":
+            fx_dto = MultiCurrencyFxConversionDTO(**body)
+            res = FinanceAccountingService.calculate_fx_gain_loss(fx_dto)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/finance/reconcile-cam":
+            cam_dto = CamReconciliationDTO(**body)
+            res = FinanceAccountingService.reconcile_cam_expenses(cam_dto)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/marketing/lead-webhook":
+            lead_dto = LeadWebhookDTO(**body)
+            agents = ["agent_alpha@zimbuild.co.zw", "agent_bravo@zimbuild.co.zw"]
+            res = MarketingService.score_and_route_lead(lead_dto, agents)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/marketing/campaign-performance":
+            camp_dto = CampaignPerformanceDTO(**body)
+            res = MarketingService.calculate_campaign_romi(camp_dto)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/hr/geofence-checkin":
+            geo_dto = MobileGeofencedCheckInDTO(**body)
+            res = HrPayrollService.verify_geofenced_check_in(geo_dto)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/hr/calculate-payroll":
+            pay_dto = SiteWorkerPayrollDTO(**body)
+            res = HrPayrollService.calculate_payroll(pay_dto)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/operations/three-way-match":
+            match_dto = ThreeWayMatchVerificationDTO(**body)
+            res = OperationsService.verify_three_way_match(match_dto)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/operations/plant-asset-utilization":
+            plant_dto = PlantAssetUsageDTO(**body)
+            res = OperationsService.log_plant_equipment_utilization(plant_dto)
+            self._send_json(200, res)
+            return
+
+        if path == "/api/erp/jobs/enqueue":
+            t_name = body.get("task_name", "")
+            p_load = body.get("payload", {})
+            job_id = ERPTaskQueue.enqueue(t_name, p_load)
+            self._send_json(200, {"job_id": job_id, "status": "QUEUED"})
+            return
+
         self._send_json(404, {"error": "API Endpoint Not Found"})
 
 
@@ -1524,8 +1899,11 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
 
 def run_server(port: int = PORT):
     handler = SecureERPRequestHandler
-    with ThreadedTCPServer(("", port), handler) as httpd:
-        print(f"[SECURE] Zimbuild Secure ERP Platform running on http://localhost:{port} (PORT {port})")
+    # The caller's role comes from an unverified X-User-Role header, so this server must not be reachable from
+    # other machines. Localhost only by default; containers set HOST=0.0.0.0 and publish the port to 127.0.0.1.
+    host = os.environ.get("HOST", "127.0.0.1")
+    with ThreadedTCPServer((host, port), handler) as httpd:
+        print(f"[SECURE] Zimbuild prototype ERP running on http://{host}:{port} (not for public exposure)")
         httpd.serve_forever()
 
 

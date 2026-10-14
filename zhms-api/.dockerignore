@@ -1,0 +1,8 @@
+# Build context for zhms-api/Dockerfile (COPY . .). Dependencies are installed by `npm ci` inside the image;
+# secrets come from the container environment, never from files baked into the image.
+.env
+.env.*
+!.env.example
+node_modules
+tests
+*.log

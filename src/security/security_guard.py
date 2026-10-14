@@ -8,12 +8,26 @@ import hmac
 import hashlib
 import html
 import os
+import threading
 import time
+import json
 from typing import Dict, List, Optional, Set, Any
 from datetime import datetime
 
-# Server-side cryptographic secret for signing immutable transactions
-HMAC_SECRET = os.environ.get("ZIMBUILD_HMAC_SECRET", "zimbuild-secure-erp-signing-key-2026").encode()
+# Server-side cryptographic secret management (ISO 27001 A.8.24)
+def get_hmac_secret() -> bytes:
+    """Retrieves HMAC cryptographic secret strictly adhering to ISO 27001 A.8.24 key management."""
+    secret = os.environ.get("ZIMBUILD_HMAC_SECRET")
+    env_mode = (os.environ.get("NODE_ENV") or os.environ.get("ZIMBUILD_ENV") or "development").lower()
+    if env_mode == "production":
+        if not secret or len(secret) < 32:
+            raise ValueError(
+                "ISO 27001 A.8.24: ZIMBUILD_HMAC_SECRET must be explicitly set and >= 32 characters in production."
+            )
+        return secret.encode("utf-8")
+    if secret:
+        return secret.encode("utf-8")
+    return b"dev_ephemeral_hmac_key_32_characters_minimum_2026"
 
 # Role-Based Access Control (RBAC) Permissions Matrix
 ROLE_PERMISSIONS: Dict[str, Set[str]] = {
@@ -79,9 +93,13 @@ ROLE_PERMISSIONS: Dict[str, Set[str]] = {
 class SecurityGuard:
     """Enterprise security gateway enforcing RBAC, input sanitization, and cryptographic audits."""
 
-    def __init__(self):
+    def __init__(self, audit_log_path: Optional[str] = None, log_file_path: Optional[str] = None):
         self.audit_log: List[Dict] = []
+        # The server is threaded: reading the chain head and appending must be one step, or two concurrent
+        # requests link to the same predecessor and the chain forks (a false tamper alarm).
+        self._audit_lock = threading.Lock()
         self.rate_limits: Dict[str, List[float]] = {}
+        self.audit_log_path = log_file_path or audit_log_path or os.environ.get("AUDIT_LOG_FILE", "audit_events.jsonl")
         self._seed_initial_audit()
 
     def _seed_initial_audit(self):
@@ -115,9 +133,9 @@ class SecurityGuard:
 
     @staticmethod
     def sign_transaction(data: Dict) -> str:
-        """Generates an immutable HMAC-SHA256 signature for a transaction payload."""
+        """Generates an immutable HMAC-SHA256 signature for a transaction payload (ISO 27001 A.8.24)."""
         payload_str = "|".join(f"{k}:{v}" for k, v in sorted(data.items()))
-        signature = hmac.new(HMAC_SECRET, payload_str.encode(), hashlib.sha256).hexdigest()
+        signature = hmac.new(get_hmac_secret(), payload_str.encode(), hashlib.sha256).hexdigest()
         return signature
 
     @staticmethod
@@ -126,27 +144,51 @@ class SecurityGuard:
         expected_sig = SecurityGuard.sign_transaction(data)
         return hmac.compare_digest(expected_sig, signature)
 
-    def log_security_event(self, user_role: str, action: str, details: str, status: str = "SUCCESS", metadata: Optional[Dict] = None) -> Dict:
-        """Appends an event to the tamper-evident audit ledger with cryptographic hash linking."""
-        timestamp = datetime.now().isoformat()
-        prev_hash = self.audit_log[-1]["event_hash"] if self.audit_log else "GENESIS_HASH_0000000000"
-        
-        event_payload = {
-            "index": len(self.audit_log) + 1,
-            "timestamp": timestamp,
-            "user_role": user_role,
-            "action": action,
-            "status": status,
-            "details": self.sanitize(details),
-            "prev_hash": prev_hash,
-            "metadata": metadata or {}
-        }
-        
-        raw_to_hash = f"{event_payload['index']}:{timestamp}:{user_role}:{action}:{status}:{event_payload['details']}:{prev_hash}"
-        event_hash = hashlib.sha256(raw_to_hash.encode()).hexdigest()
-        event_payload["event_hash"] = event_hash
+    def log_security_event(
+        self,
+        user_role: str,
+        action: str,
+        details: str,
+        status: str = "SUCCESS",
+        metadata: Optional[Dict] = None,
+        actor_id: Optional[str] = None
+    ) -> Dict:
+        """Appends an event to the tamper-evident audit ledger with cryptographic hash linking and append-only file persistence (ISO A.8.16)."""
+        # ISO A.8.12 / A.8.16 Actor pseudonymization (SHA-256)
+        actor_source = actor_id or user_role
+        actor_pseudonym = hashlib.sha256(str(actor_source).encode("utf-8")).hexdigest()
+        safe_details = self.sanitize(details)
 
-        self.audit_log.append(event_payload)
+        with self._audit_lock:
+            timestamp = datetime.now().isoformat()
+            prev_hash = self.audit_log[-1]["event_hash"] if self.audit_log else "GENESIS_HASH_0000000000"
+
+            event_payload = {
+                "index": len(self.audit_log) + 1,
+                "timestamp": timestamp,
+                "user_role": user_role,
+                "actor_pseudonym": actor_pseudonym,
+                "action": action,
+                "status": status,
+                "details": safe_details,
+                "prev_hash": prev_hash,
+                "metadata": metadata or {}
+            }
+
+            raw_to_hash = f"{event_payload['index']}:{timestamp}:{user_role}:{action}:{status}:{event_payload['details']}:{prev_hash}"
+            event_hash = hashlib.sha256(raw_to_hash.encode()).hexdigest()
+            event_payload["event_hash"] = event_hash
+
+            self.audit_log.append(event_payload)
+
+            # Persistent append-only audit stream (ISO A.8.16)
+            if self.audit_log_path:
+                try:
+                    with open(self.audit_log_path, "a", encoding="utf-8") as f:
+                        f.write(json.dumps(event_payload) + "\n")
+                except Exception:
+                    pass
+
         return event_payload
 
     def get_audit_trail(self, limit: int = 50) -> List[Dict]:
@@ -186,7 +228,8 @@ class SecurityGuard:
         return {
             "valid": len(tampered) == 0,
             "tampered_indices": tampered,
-            "total_blocks": len(self.audit_log)
+            "total_blocks": len(self.audit_log),
+            "total_events": len(self.audit_log)
         }
 
 

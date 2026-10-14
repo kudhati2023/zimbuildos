@@ -587,3 +587,192 @@ def test_api_mortgage_and_permits_endpoints():
         sign_res = json.loads(resp.read().decode())
         assert sign_res["status"] == "PASSED"
         assert "hmac_signature" in sign_res
+
+
+# ==============================================================================
+# ISO/IEC 27001:2022 ANNEX A CRITICAL SECURITY REGRESSION SUITE
+# ==============================================================================
+
+def test_iso_27001_unauthenticated_request_blocked():
+    """ISO A.8.26: Protected endpoints must return 401 when X-User-Role is missing."""
+    req = urllib.request.Request(f"{BASE_URL}/api/portfolio")
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        urllib.request.urlopen(req)
+    assert exc.value.code == 401
+    body = json.loads(exc.value.read().decode())
+    assert body["security_status"] == "AUTHENTICATION_REQUIRED"
+
+
+def test_iso_27001_pii_redaction_and_access_control():
+    """ISO A.8.12: Citizen PII (National ID, Phone, Email) must be masked in API output."""
+    # Unauthenticated request blocked
+    req_unauth = urllib.request.Request(f"{BASE_URL}/api/youth/applicants")
+    with pytest.raises(urllib.error.HTTPError) as exc:
+        urllib.request.urlopen(req_unauth)
+    assert exc.value.code == 401
+
+    # Authenticated request returns masked PII
+    req = urllib.request.Request(
+        f"{BASE_URL}/api/youth/applicants",
+        headers={"X-User-Role": "sales"}
+    )
+    with urllib.request.urlopen(req) as resp:
+        assert resp.status == 200
+        data = json.loads(resp.read().decode())
+        assert len(data["applicants"]) > 0
+        for app in data["applicants"]:
+            assert "******" in app["national_id"], f"Unmasked National ID found: {app['national_id']}"
+            assert "****" in app["phone"], f"Unmasked Phone found: {app['phone']}"
+            assert "***@" in app["email"], f"Unmasked Email found: {app['email']}"
+
+
+def test_iso_27001_allocations_and_messaging_pii_masked():
+    """ISO A.8.12: Buyer phone numbers in allocations and outbox must be masked."""
+    # Allocations
+    req = urllib.request.Request(
+        f"{BASE_URL}/api/allocations/register",
+        headers={"X-User-Role": "sales"}
+    )
+    with urllib.request.urlopen(req) as resp:
+        assert resp.status == 200
+        data = json.loads(resp.read().decode())
+        for a in data["allocations"]:
+            assert "****" in a["buyer_phone"], f"Unmasked phone: {a['buyer_phone']}"
+
+    # Messaging outbox
+    req_msg = urllib.request.Request(
+        f"{BASE_URL}/api/messaging/outbox",
+        headers={"X-User-Role": "sysadmin"}
+    )
+    with urllib.request.urlopen(req_msg) as resp:
+        assert resp.status == 200
+        data = json.loads(resp.read().decode())
+        for m in data["messages"]:
+            assert "****" in m["recipient"], f"Unmasked recipient: {m['recipient']}"
+
+
+def test_iso_27001_source_code_disclosure_blocked():
+    """ISO A.8.28: Direct requests for .py, .json, and config files must be blocked (403)."""
+    prohibited_paths = [
+        "/server.py",
+        "/main.py",
+        "/package.json",
+        "/requirements.txt",
+        "/tests/conftest.py",
+        "/.git/config",
+        "/.env"
+    ]
+    for path in prohibited_paths:
+        req = urllib.request.Request(f"{BASE_URL}{path}")
+        with pytest.raises(urllib.error.HTTPError) as exc:
+            urllib.request.urlopen(req)
+        assert exc.value.code == 403, f"Path {path} did not return 403 (got {exc.value.code})"
+        body = json.loads(exc.value.read().decode())
+        assert body["security_status"] in ("SOURCE_CODE_ACCESS_BLOCKED", "PATH_TRAVERSAL_BLOCKED")
+
+
+def test_iso_27001_public_static_assets_allowed():
+    """ISO A.8.28: Legitimate public assets like index.html must remain accessible."""
+    req = urllib.request.Request(f"{BASE_URL}/index.html")
+    with urllib.request.urlopen(req) as resp:
+        assert resp.status == 200
+        content = resp.read().decode("utf-8", errors="ignore")
+        assert "<!DOCTYPE html>" in content
+
+
+def test_iso_27001_cors_and_security_headers():
+    """ISO A.8.26: CORS preflight must return appropriate origin, and enterprise security headers must be present."""
+    # OPTIONS request with local dev origin
+    req = urllib.request.Request(
+        f"{BASE_URL}/api/health",
+        headers={"Origin": "http://localhost:1420"},
+        method="OPTIONS"
+    )
+    with urllib.request.urlopen(req) as resp:
+        assert resp.status == 200
+        headers = dict(resp.headers)
+        assert headers.get("Access-Control-Allow-Origin") == "http://localhost:1420"
+        assert "POST" in headers.get("Access-Control-Allow-Methods", "")
+        assert "X-User-Role" in headers.get("Access-Control-Allow-Headers", "")
+
+    # GET response must carry ISO security headers
+    get_req = urllib.request.Request(f"{BASE_URL}/api/health")
+    with urllib.request.urlopen(get_req) as resp:
+        headers = dict(resp.headers)
+        assert headers.get("X-Content-Type-Options") == "nosniff"
+        assert headers.get("X-Frame-Options") == "SAMEORIGIN"
+        assert "Content-Security-Policy" in headers
+
+
+def test_iso_27001_subresource_integrity_attributes():
+    """ISO A.8.30: External CDN dependencies must declare Subresource Integrity (SRI) hashes."""
+    req = urllib.request.Request(f"{BASE_URL}/index.html")
+    with urllib.request.urlopen(req) as resp:
+        content = resp.read().decode("utf-8")
+        assert 'integrity="sha384-' in content
+        assert 'crossorigin="anonymous"' in content
+        assert "leaflet@1.9.4" in content
+        assert "font-awesome/6.4.0" in content
+
+
+# ==============================================================================
+# COMPREHENSIVE ERP MODULES FUNCTIONAL TESTS
+# ==============================================================================
+
+def test_api_crm_pipeline_and_inquiries():
+    """CRM: Pipeline metrics, digital inquiries, and channels CX endpoints."""
+    # Pipeline summary for CEO
+    req = urllib.request.Request(f"{BASE_URL}/api/crm/pipeline", headers={"X-User-Role": "ceo"})
+    with urllib.request.urlopen(req) as resp:
+        assert resp.status == 200
+        data = json.loads(resp.read().decode())
+        assert "total_deals_count" in data
+        assert "total_pipeline_value_usd" in data
+
+    # Digital channels metrics
+    req2 = urllib.request.Request(f"{BASE_URL}/api/crm/channels/metrics", headers={"X-User-Role": "ceo"})
+    with urllib.request.urlopen(req2) as resp:
+        assert resp.status == 200
+        data2 = json.loads(resp.read().decode())
+        assert isinstance(data2, dict)
+
+
+def test_api_supply_chain_wms_stock_and_mrp():
+    """Supply Chain: WMS inventory stock, warehouse locations, and MRP BOM explosion."""
+    req = urllib.request.Request(f"{BASE_URL}/api/supplychain/wms/stock", headers={"X-User-Role": "ceo"})
+    with urllib.request.urlopen(req) as resp:
+        assert resp.status == 200
+        data = json.loads(resp.read().decode())
+        assert "stock" in data
+        assert "locations" in data
+
+    # MRP Explosion
+    req2 = urllib.request.Request(
+        f"{BASE_URL}/api/supplychain/mfg/explode?code=PREFAB-WALL-STD&qty=20",
+        headers={"X-User-Role": "ceo"}
+    )
+    with urllib.request.urlopen(req2) as resp:
+        assert resp.status == 200
+        data2 = json.loads(resp.read().decode())
+        assert data2.get("success") is True
+        assert data2.get("product_code") == "PREFAB-WALL-STD"
+
+
+def test_api_fleet_and_field_service_summary():
+    """Fleet & Field Service: Equipment appraisal and work orders overview."""
+    req = urllib.request.Request(f"{BASE_URL}/api/fleet/summary", headers={"X-User-Role": "ceo"})
+    with urllib.request.urlopen(req) as resp:
+        assert resp.status == 200
+        data = json.loads(resp.read().decode())
+        assert "total_fleet_assets" in data
+        assert "total_net_book_value_usd" in data
+
+    req2 = urllib.request.Request(f"{BASE_URL}/api/fieldservice/summary", headers={"X-User-Role": "ceo"})
+    with urllib.request.urlopen(req2) as resp:
+        assert resp.status == 200
+        data2 = json.loads(resp.read().decode())
+        assert isinstance(data2, dict)
+
+
+
+
