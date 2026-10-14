@@ -8,6 +8,7 @@ import hmac
 import hashlib
 import html
 import os
+import threading
 import time
 import json
 from typing import Dict, List, Optional, Set, Any
@@ -94,6 +95,9 @@ class SecurityGuard:
 
     def __init__(self, audit_log_path: Optional[str] = None, log_file_path: Optional[str] = None):
         self.audit_log: List[Dict] = []
+        # The server is threaded: reading the chain head and appending must be one step, or two concurrent
+        # requests link to the same predecessor and the chain forks (a false tamper alarm).
+        self._audit_lock = threading.Lock()
         self.rate_limits: Dict[str, List[float]] = {}
         self.audit_log_path = log_file_path or audit_log_path or os.environ.get("AUDIT_LOG_FILE", "audit_events.jsonl")
         self._seed_initial_audit()
@@ -150,38 +154,40 @@ class SecurityGuard:
         actor_id: Optional[str] = None
     ) -> Dict:
         """Appends an event to the tamper-evident audit ledger with cryptographic hash linking and append-only file persistence (ISO A.8.16)."""
-        timestamp = datetime.now().isoformat()
-        prev_hash = self.audit_log[-1]["event_hash"] if self.audit_log else "GENESIS_HASH_0000000000"
-        
         # ISO A.8.12 / A.8.16 Actor pseudonymization (SHA-256)
         actor_source = actor_id or user_role
         actor_pseudonym = hashlib.sha256(str(actor_source).encode("utf-8")).hexdigest()
-        
-        event_payload = {
-            "index": len(self.audit_log) + 1,
-            "timestamp": timestamp,
-            "user_role": user_role,
-            "actor_pseudonym": actor_pseudonym,
-            "action": action,
-            "status": status,
-            "details": self.sanitize(details),
-            "prev_hash": prev_hash,
-            "metadata": metadata or {}
-        }
-        
-        raw_to_hash = f"{event_payload['index']}:{timestamp}:{user_role}:{action}:{status}:{event_payload['details']}:{prev_hash}"
-        event_hash = hashlib.sha256(raw_to_hash.encode()).hexdigest()
-        event_payload["event_hash"] = event_hash
+        safe_details = self.sanitize(details)
 
-        self.audit_log.append(event_payload)
+        with self._audit_lock:
+            timestamp = datetime.now().isoformat()
+            prev_hash = self.audit_log[-1]["event_hash"] if self.audit_log else "GENESIS_HASH_0000000000"
 
-        # Persistent append-only audit stream (ISO A.8.16)
-        if self.audit_log_path:
-            try:
-                with open(self.audit_log_path, "a", encoding="utf-8") as f:
-                    f.write(json.dumps(event_payload) + "\n")
-            except Exception:
-                pass
+            event_payload = {
+                "index": len(self.audit_log) + 1,
+                "timestamp": timestamp,
+                "user_role": user_role,
+                "actor_pseudonym": actor_pseudonym,
+                "action": action,
+                "status": status,
+                "details": safe_details,
+                "prev_hash": prev_hash,
+                "metadata": metadata or {}
+            }
+
+            raw_to_hash = f"{event_payload['index']}:{timestamp}:{user_role}:{action}:{status}:{event_payload['details']}:{prev_hash}"
+            event_hash = hashlib.sha256(raw_to_hash.encode()).hexdigest()
+            event_payload["event_hash"] = event_hash
+
+            self.audit_log.append(event_payload)
+
+            # Persistent append-only audit stream (ISO A.8.16)
+            if self.audit_log_path:
+                try:
+                    with open(self.audit_log_path, "a", encoding="utf-8") as f:
+                        f.write(json.dumps(event_payload) + "\n")
+                except Exception:
+                    pass
 
         return event_payload
 

@@ -8,7 +8,7 @@ services:
     restart: always
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-zhms}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ChangeMeSecureZimbuild2026!}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required. Set it in .env (see .env.example)}
       POSTGRES_DB: ${POSTGRES_DB:-zhms}
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -67,19 +67,27 @@ services:
     environment:
       NODE_ENV: production
       PORT: 5000
-      DATABASE_URL: postgres://${POSTGRES_USER:-zhms}:${POSTGRES_PASSWORD:-ChangeMeSecureZimbuild2026!}@postgres:5432/${POSTGRES_DB:-zhms}
-      JWT_SECRET: ${JWT_SECRET:-a_very_strong_and_secure_jwt_secret_min_32_characters_for_production}
+      DATABASE_URL: postgres://${POSTGRES_USER:-zhms}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required. Set it in .env (see .env.example)}@postgres:5432/${POSTGRES_DB:-zhms}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET (>= 32 chars) is required. Set it in .env (see .env.example)}
       CORS_ORIGINS: ${CORS_ORIGINS:-https://zhms.zimbuild.co.zw,https://portal.zimbuild.co.zw}
       TRUST_PROXY: "true"
       ENABLE_PAYMENT_SIMULATOR: "false"
-      WEBHOOK_SECRET_ECOCASH: ${WEBHOOK_SECRET_ECOCASH:-ecocash_prod_hmac_secret_key_32_chars_long}
-      WEBHOOK_SECRET_BANK_TRANSFER: ${WEBHOOK_SECRET_BANK_TRANSFER:-bank_transfer_prod_secret_32_chars_long}
-      WEBHOOK_SECRET_OMARI: ${WEBHOOK_SECRET_OMARI:-omari_prod_secret_token_32_chars_long}
-      WEBHOOK_SECRET_DEBIT_ORDER: ${WEBHOOK_SECRET_DEBIT_ORDER:-debit_order_prod_secret_32_chars_long}
+      # Optional: a channel without a secret simply rejects webhooks.
+      WEBHOOK_SECRET_ECOCASH: ${WEBHOOK_SECRET_ECOCASH:-}
+      WEBHOOK_SECRET_BANK_TRANSFER: ${WEBHOOK_SECRET_BANK_TRANSFER:-}
+      WEBHOOK_SECRET_OMARI: ${WEBHOOK_SECRET_OMARI:-}
+      WEBHOOK_SECRET_DEBIT_ORDER: ${WEBHOOK_SECRET_DEBIT_ORDER:-}
       JOB_INTERVAL_MINUTES: 15
       LOG_MESSAGE_BODIES: "false"
     ports:
       - "127.0.0.1:5000:5000"
+    healthcheck:
+      # Healthy once migrations have run and the server listens (busybox wget is in the alpine image).
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:5000/healthz >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
     networks:
       - zhms-internal
       - zhms-public
@@ -90,7 +98,7 @@ services:
           memory: 2048M
 
   # -------------------------------------------------------------------------
-  # 3. Zimbuild Enterprise ERP & Security Engine (Python 3.11 Backend)
+  # 4. Prototype ERP (Python 3.11). NOT published through nginx: its roles are not authenticated.
   # -------------------------------------------------------------------------
   zhms-erp-python:
     build:
@@ -101,7 +109,9 @@ services:
     environment:
       PORT: 8000
       NODE_ENV: production
-      SECURITY_AUDIT_LOG: /var/log/zhms/security_audit.jsonl
+      HOST: 0.0.0.0                      # inside the container; published to 127.0.0.1 only (below)
+      AUDIT_LOG_FILE: /var/log/zhms/security_audit.jsonl   # outside the served directory
+      ZIMBUILD_HMAC_SECRET: ${ZIMBUILD_HMAC_SECRET:?ZIMBUILD_HMAC_SECRET (>= 32 chars) is required. Set it in .env (see .env.example)}
     volumes:
       - zhms-logs:/var/log/zhms
     ports:
@@ -116,15 +126,15 @@ services:
           memory: 2048M
 
   # -------------------------------------------------------------------------
-  # 4. Production Edge Reverse Proxy & TLS Gateway (Nginx Hardened)
+  # 5. Production Edge Reverse Proxy & TLS Gateway (Nginx Hardened)
   # -------------------------------------------------------------------------
   nginx:
     image: nginx:alpine-slim
     container_name: zhms-edge-proxy
     restart: always
     depends_on:
-      - zhms-api
-      - zhms-erp-python
+      zhms-api:
+        condition: service_healthy
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/ssl:/etc/nginx/ssl:ro

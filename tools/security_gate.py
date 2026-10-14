@@ -64,14 +64,14 @@ def run_secret_scan() -> bool:
 
 def verify_sri_hashes() -> bool:
     print("[2/4] Verifying Subresource Integrity (SRI) on Public CDNs (ISO A.8.30)...")
-    index_html = ROOT_DIR / "index.html"
+    index_html = ROOT_DIR / "erp.html"  # prototype page with CDN assets; index.html is the bundled React entry
     if not index_html.exists():
-        print("  [FAIL] index.html not found.")
+        print("  [FAIL] erp.html not found.")
         return False
 
     content = index_html.read_text(encoding="utf-8")
     if 'integrity="sha384-' not in content:
-        print("  [FAIL] Missing required sha384 Subresource Integrity hashes in index.html.")
+        print("  [FAIL] Missing required sha384 Subresource Integrity hashes in erp.html.")
         return False
     if 'crossorigin="anonymous"' not in content:
         print("  [FAIL] Missing required crossorigin='anonymous' attribute on SRI assets.")

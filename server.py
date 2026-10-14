@@ -690,11 +690,12 @@ class SecureERPRequestHandler(http.server.SimpleHTTPRequestHandler):
             self._send_json(403, {"error": "Forbidden", "message": "Access denied.", "security_status": "PATH_TRAVERSAL_BLOCKED"})
             return
 
-        # Default route to index.html
-        if clean_path in ("", ".", "index", "index.html"):
-            self.path = "/index.html"
-            clean_path = "index.html"
-            full_path = os.path.join(base_dir, "index.html")
+        # The prototype ERP page lives in erp.html; index.html is the React (Vite) client entry and is not
+        # runnable unbuilt, so the root and legacy /index.html links keep opening the ERP page here.
+        if clean_path in ("", ".", "index", "index.html", "erp", "erp.html"):
+            self.path = "/erp.html"
+            clean_path = "erp.html"
+            full_path = os.path.join(base_dir, "erp.html")
 
         # Prohibited file extensions & sensitive filenames
         _, ext = os.path.splitext(clean_path.lower())
@@ -703,7 +704,8 @@ class SecureERPRequestHandler(http.server.SimpleHTTPRequestHandler):
 
         prohibited_exts = {
             ".py", ".pyc", ".env", ".ts", ".tsx", ".rs", ".sql", ".sqlite",
-            ".db", ".sh", ".cmd", ".bat", ".toml", ".yml", ".yaml", ".lock"
+            ".db", ".sh", ".cmd", ".bat", ".toml", ".yml", ".yaml", ".lock",
+            ".jsonl", ".log", ".dump", ".bak"  # runtime logs and backups must never be downloadable
         }
         prohibited_files = {
             "package.json", "package-lock.json", "tsconfig.json", "requirements.txt",
@@ -1897,8 +1899,11 @@ class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
 
 def run_server(port: int = PORT):
     handler = SecureERPRequestHandler
-    with ThreadedTCPServer(("", port), handler) as httpd:
-        print(f"[SECURE] Zimbuild Secure ERP Platform running on http://localhost:{port} (PORT {port})")
+    # The caller's role comes from an unverified X-User-Role header, so this server must not be reachable from
+    # other machines. Localhost only by default; containers set HOST=0.0.0.0 and publish the port to 127.0.0.1.
+    host = os.environ.get("HOST", "127.0.0.1")
+    with ThreadedTCPServer((host, port), handler) as httpd:
+        print(f"[SECURE] Zimbuild prototype ERP running on http://{host}:{port} (not for public exposure)")
         httpd.serve_forever()
 
 

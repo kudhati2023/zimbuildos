@@ -3258,13 +3258,10 @@ def build_erp_html():
 '''
 
 if __name__ == "__main__":
+    # erp.html is now the maintained source of the prototype page (it carries fixes this generator does not
+    # know about), and index.html is the React client entry. Never overwrite either: write a separate file
+    # that can be diffed against erp.html by hand.
     html_content = build_erp_html()
-    with open("index.html", "w", encoding="utf-8") as f:
+    with open("erp.generated.html", "w", encoding="utf-8") as f:
         f.write(html_content.strip())
-    with open("src/frontend/index.html", "w", encoding="utf-8") as f:
-        f.write(html_content.strip())
-    with open("build_full_frontend.py", "w", encoding="utf-8") as f:
-        f.write(html_content.strip())
-    with open("generate_erp_platform.py", "w", encoding="utf-8") as f:
-        f.write(html_content.strip())
-    print("Successfully built secured and synchronized ERP frontend across all target files!")
+    print("Wrote erp.generated.html. erp.html was NOT changed; diff the two and port changes by hand.")

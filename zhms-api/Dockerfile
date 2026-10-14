@@ -5,7 +5,9 @@ WORKDIR /usr/src/app
 
 # Install build dependencies
 COPY package*.json ./
-RUN npm ci --only=production
+# --omit=dev (npm >= 7). The old --only=production flag is ignored by current npm and pulled in dev
+# dependencies such as embedded-postgres.
+RUN npm ci --omit=dev
 
 COPY . .
 

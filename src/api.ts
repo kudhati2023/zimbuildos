@@ -16,7 +16,9 @@ import type {
   Subcontract, SubcontractDetail, Subcontractor, Tender, TenderDetail,
 } from './types';
 
-export const API_BASE = (import.meta.env.VITE_API_BASE ?? 'http://localhost:5000/api/v1').replace(/\/$/, '');
+// Development talks to zhms-api directly; a production web build is served by nginx on the same origin as the
+// API (/api/v1). A desktop (Tauri) build has no web origin and must set VITE_API_BASE explicitly.
+export const API_BASE = (import.meta.env.VITE_API_BASE ?? (import.meta.env.DEV ? 'http://localhost:5000/api/v1' : '/api/v1')).replace(/\/$/, '');
 export const ERP_BASE = (import.meta.env.VITE_ERP_BASE ?? 'http://localhost:8000').replace(/\/$/, '');
 const TOKEN_KEY = 'zhms_token';
 

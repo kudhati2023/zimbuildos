@@ -1,0 +1,36 @@
+# Build context for Dockerfile.python (COPY . .). Keep secrets, data and unrelated trees out of the image.
+
+# Secrets and local configuration
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+nginx/ssl
+
+# Data, logs, backups
+backups/
+*.dump
+*.jsonl
+*.log
+
+# Version control, editors, AI-tool state
+.git
+.github
+.agents
+.gemini
+.refact
+.vscode
+.idea
+
+# Other applications and build output (the Python ERP needs none of these)
+node_modules
+zhms-api
+src-tauri
+dist
+docs
+
+# Python caches
+**/__pycache__
+**/*.pyc
+.pytest_cache

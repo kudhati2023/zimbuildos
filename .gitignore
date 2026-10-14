@@ -13,3 +13,9 @@ __pycache__/
 
 # Local agent/editor state
 .refact/
+
+# Runtime logs, database backups and generator output (not source)
+audit_events.jsonl
+*.log
+backups/
+erp.generated.html

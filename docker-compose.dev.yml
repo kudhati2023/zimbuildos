@@ -1,0 +1,32 @@
+# Development database: PostgreSQL 16 + PostGIS 3.4 (same image family as production).
+# Runs beside any PostgreSQL already installed on the machine — it listens on localhost:54320 only.
+#
+#   docker compose -f docker-compose.dev.yml up -d        # start
+#   docker compose -f docker-compose.dev.yml down         # stop (data is kept in the named volume)
+#
+# Then set in zhms-api/.env:
+#   DATABASE_URL=postgres://zhms:zhms_dev@localhost:54320/zhms
+#   ZHMS_SPATIAL=1
+# and for full-coverage tests (PostGIS migrations included):
+#   TEST_ADMIN_URL=postgres://zhms:zhms_dev@localhost:54320/postgres npm run test:api
+services:
+  postgis-dev:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: zhms-postgis-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: zhms
+      POSTGRES_PASSWORD: zhms_dev          # local development only; never used in production
+      POSTGRES_DB: zhms
+    ports:
+      - "127.0.0.1:54320:5432"
+    volumes:
+      - zhms-dev-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U zhms -d zhms"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  zhms-dev-pgdata:
