@@ -1,0 +1,3 @@
+## 2026-10-29 - Inline Array Operations in Large Monolithic React Components
+**Learning:** In very large, monolithic React components like `App.tsx` where many states trigger re-renders (like switching tabs or updating simple UI states), performing inline `O(N)` array operations like `.filter().length` or chained `.filter().map()` on datasets (e.g. `publicStands`) severely impacts render performance because they are recalculated every time the component updates, even when the underlying data hasn't changed.
+**Action:** Always extract expensive array operations and derived dataset calculations into `useMemo` hooks with tight dependency arrays, especially in components that manage significant portions of the application state.
