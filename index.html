@@ -3,7 +3,10 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Zimbuild Real Estate & Construction ERP Platform (LAS-ERP)</title>
+  <title>Zimbuild Real Estate & Construction ERP Platform</title>
+  <meta name="description" content="Unified Commercial Land Administration System (LAS), Turnkey Construction, Quota Allocations, GIS Cadastre and Dual-Currency ERP Platform." />
+  <meta property="og:title" content="Zimbuild Real Estate & Construction ERP Platform" />
+  <meta property="og:description" content="Unified Commercial Land Administration System (LAS), Turnkey Construction, Quota Allocations, GIS Cadastre and Dual-Currency ERP Platform." />
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -62,6 +65,10 @@
         <button onclick="openModal('modal-erp-simulation')" class="px-3 py-1 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black rounded-lg text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition cursor-pointer">
           <i class="fa-solid fa-play"></i> ⚡ Run Full ERP Simulation
         </button>
+        <!-- Antigravity React Client Switcher -->
+        <a href="/antigravity.html" class="px-3 py-1 bg-gradient-to-r from-indigo-500 to-indigo-600 hover:from-indigo-400 hover:to-indigo-500 text-white font-bold rounded-lg text-xs flex items-center gap-1.5 shadow-md shadow-indigo-500/20 transition cursor-pointer">
+          <i class="fa-solid fa-atom"></i> ⚛️ Antigravity React Client
+        </a>
         <select id="role-select" onchange="selectJobRole(this.value)" class="bg-slate-900 border border-slate-700 text-white rounded-lg px-2.5 py-1 text-xs font-semibold focus:outline-none focus:border-teal-500">
           <option value="ceo" selected>👑 Group CEO / Executive</option>
           <option value="portfolio">🏢 Property & Portfolio Manager</option>

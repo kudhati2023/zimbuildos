@@ -580,6 +580,13 @@ export default function AntigravityEnterpriseDesktop() {
 
         {/* System Indicator */}
         <div className="flex items-center space-x-3 text-xs font-mono">
+          <a
+            href="/"
+            className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30 font-bold transition flex items-center space-x-1"
+            title="Switch to 23-Module Enterprise ERP"
+          >
+            <span>🏢 Enterprise ERP</span>
+          </a>
           <button onClick={loadData} className="text-slate-400 hover:text-indigo-400 p-1">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-indigo-400' : ''}`} />
           </button>

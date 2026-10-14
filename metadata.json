@@ -1,0 +1,8 @@
+{
+  "name": "Zimbuild Real Estate & Construction ERP Platform",
+  "description": "Unified Commercial Land Administration System (LAS), Turnkey Construction, Quota Allocations, GIS Cadastre and Dual-Currency ERP Platform.",
+  "permissions": [],
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

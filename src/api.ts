@@ -16,8 +16,8 @@ import type {
   Subcontract, SubcontractDetail, Subcontractor, Tender, TenderDetail,
 } from './types';
 
-export const API_BASE = (import.meta.env.VITE_API_BASE ?? 'http://localhost:5000/api/v1').replace(/\/$/, '');
-export const ERP_BASE = (import.meta.env.VITE_ERP_BASE ?? 'http://localhost:8000').replace(/\/$/, '');
+export const API_BASE = (import.meta.env.VITE_API_BASE ?? '/api/v1').replace(/\/$/, '');
+export const ERP_BASE = (import.meta.env.VITE_ERP_BASE ?? '').replace(/\/$/, '');
 const TOKEN_KEY = 'zhms_token';
 
 export class ApiError extends Error {
