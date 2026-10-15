@@ -337,9 +337,10 @@ export class JobCostService {
    * weighted milestone progress. All arithmetic is in integer cents.
    */
   async jobCostReport(projectId, asOf = todayHarare()) {
-    const project = await this.getProject(projectId);
-    const { rows: lines } = await this.db.query(
-      `SELECT l.line_id, l.cost_code, l.description, l.category, l.original_budget_usd, l.budget_quantity, l.unit,
+    const [project, { rows: lines }, { rows: milestones }, [monthly, materialUse, plantUse, labourUse]] = await Promise.all([
+      this.getProject(projectId),
+      this.db.query(
+        `SELECT l.line_id, l.cost_code, l.description, l.category, l.original_budget_usd, l.budget_quantity, l.unit,
               COALESCE((SELECT sum(amount_usd) FROM budget_adjustments a WHERE a.line_id = l.line_id), 0) AS adjustments_usd,
               COALESCE((SELECT sum(amount_usd) FROM cost_entries e WHERE e.line_id = l.line_id), 0) AS actual_usd,
               (SELECT sum(quantity) FROM cost_entries e WHERE e.line_id = l.line_id AND e.unit = l.unit) AS actual_quantity,
@@ -351,7 +352,35 @@ export class JobCostService {
                             JOIN subcontracts s ON s.subcontract_id = cl.subcontract_id
                            WHERE s.line_id = l.line_id AND s.status = 'ACTIVE' AND cl.status IN ('CERTIFIED','PAID')
                            GROUP BY cl.subcontract_id) c), 0) AS committed_certified_usd
-         FROM project_budget_lines l WHERE l.project_id = $1 ORDER BY l.cost_code`, [projectId]);
+         FROM project_budget_lines l WHERE l.project_id = $1 ORDER BY l.cost_code`, [projectId]
+      ),
+      this.db.query(
+        `SELECT weight_percent, percent_complete, planned_start::text AS planned_start, planned_finish::text AS planned_finish
+         FROM project_milestones WHERE project_id = $1`, [projectId]
+      ),
+      Promise.all([
+        this.db.query(
+          `SELECT to_char(e.entry_date, 'YYYY-MM') AS month, l.category, sum(e.amount_usd) AS amount_usd
+             FROM cost_entries e JOIN project_budget_lines l ON l.line_id = e.line_id
+            WHERE e.project_id = $1 GROUP BY 1, 2 ORDER BY 1, 2`, [projectId]
+        ),
+        this.db.query(
+          `SELECT e.material_code, m.name, m.unit, sum(e.quantity) AS quantity, sum(e.amount_usd) AS amount_usd
+             FROM cost_entries e JOIN materials m ON m.material_code = e.material_code
+            WHERE e.project_id = $1 GROUP BY e.material_code, m.name, m.unit ORDER BY sum(e.amount_usd) DESC`, [projectId]
+        ),
+        this.db.query(
+          `SELECT q.equipment_id, q.asset_tag, q.name, sum(e.quantity) AS hours, sum(e.amount_usd) AS amount_usd
+             FROM cost_entries e JOIN equipment q ON q.equipment_id = e.equipment_id
+            WHERE e.project_id = $1 GROUP BY q.equipment_id ORDER BY sum(e.amount_usd) DESC`, [projectId]
+        ),
+        this.db.query(
+          `SELECT e.unit, count(DISTINCT e.worker_ref)::int AS workers, sum(e.quantity) AS quantity, sum(e.amount_usd) AS amount_usd
+             FROM cost_entries e JOIN project_budget_lines l ON l.line_id = e.line_id
+            WHERE e.project_id = $1 AND l.category = 'LABOUR' GROUP BY e.unit`, [projectId]
+        ),
+      ]),
+    ]);
 
     const out = lines.map((l) => {
       const revised = numericToCents(l.original_budget_usd) + numericToCents(l.adjustments_usd);
@@ -391,9 +420,6 @@ export class JobCostService {
     const bac = sum(out, 'revised');
     const ac = sum(out, 'actual');
     const forecast = sum(out, 'forecast');
-    const { rows: milestones } = await this.db.query(
-      `SELECT weight_percent, percent_complete, planned_start::text AS planned_start, planned_finish::text AS planned_finish
-         FROM project_milestones WHERE project_id = $1`, [projectId]);
     const progress = progressSummary(milestones, asOf);
     const ev = Math.round((bac * progress.percentComplete) / 100);
     const pv = Math.round((bac * progress.plannedPercent) / 100);
@@ -402,24 +428,6 @@ export class JobCostService {
     // Estimate at completion: performance-based when there is progress to judge by, otherwise the cost forecast.
     const eac = cpi ? Math.round(bac / cpi) : forecast;
 
-    const [monthly, materialUse, plantUse, labourUse] = await Promise.all([
-      this.db.query(
-        `SELECT to_char(e.entry_date, 'YYYY-MM') AS month, l.category, sum(e.amount_usd) AS amount_usd
-           FROM cost_entries e JOIN project_budget_lines l ON l.line_id = e.line_id
-          WHERE e.project_id = $1 GROUP BY 1, 2 ORDER BY 1, 2`, [projectId]),
-      this.db.query(
-        `SELECT e.material_code, m.name, m.unit, sum(e.quantity) AS quantity, sum(e.amount_usd) AS amount_usd
-           FROM cost_entries e JOIN materials m ON m.material_code = e.material_code
-          WHERE e.project_id = $1 GROUP BY e.material_code, m.name, m.unit ORDER BY sum(e.amount_usd) DESC`, [projectId]),
-      this.db.query(
-        `SELECT q.equipment_id, q.asset_tag, q.name, sum(e.quantity) AS hours, sum(e.amount_usd) AS amount_usd
-           FROM cost_entries e JOIN equipment q ON q.equipment_id = e.equipment_id
-          WHERE e.project_id = $1 GROUP BY q.equipment_id ORDER BY sum(e.amount_usd) DESC`, [projectId]),
-      this.db.query(
-        `SELECT e.unit, count(DISTINCT e.worker_ref)::int AS workers, sum(e.quantity) AS quantity, sum(e.amount_usd) AS amount_usd
-           FROM cost_entries e JOIN project_budget_lines l ON l.line_id = e.line_id
-          WHERE e.project_id = $1 AND l.category = 'LABOUR' GROUP BY e.unit`, [projectId]),
-    ]);
     const contract = numericToCents(project.contract_value_usd);
 
     return {
