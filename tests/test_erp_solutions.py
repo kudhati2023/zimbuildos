@@ -195,3 +195,29 @@ def test_lean_construction_toc_and_offline_sync():
     sync_result = lean.process_sync_queue()
     assert sync_result["synced_count"] >= 1
     assert evt.synced_to_cloud is True
+
+
+def test_site_operations_log_equipment_shift():
+    sm = SiteOperationsManager()
+
+    # Happy path: log equipment shift for an existing asset
+    asset_id = "PLANT-01"
+    initial_eq = sm.equipment_fleet[asset_id]
+    initial_op_hours = initial_eq.operating_hours
+    initial_idle_hours = initial_eq.idle_downtime_hours
+    initial_fuel = initial_eq.fuel_consumed_liters
+
+    op_hours_to_add = 10.0
+    idle_hours_to_add = 2.5
+    fuel_to_add = 55.0
+
+    sm.log_equipment_shift(asset_id, op_hours_to_add, idle_hours_to_add, fuel_to_add)
+
+    updated_eq = sm.equipment_fleet[asset_id]
+    assert updated_eq.operating_hours == initial_op_hours + op_hours_to_add
+    assert updated_eq.idle_downtime_hours == initial_idle_hours + idle_hours_to_add
+    assert updated_eq.fuel_consumed_liters == initial_fuel + fuel_to_add
+
+    # Edge case: log equipment shift for a non-existent asset
+    # This should not raise any exceptions
+    sm.log_equipment_shift("NON-EXISTENT-PLANT", 5.0, 1.0, 20.0)
