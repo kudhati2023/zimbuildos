@@ -155,6 +155,14 @@ export default function AntigravityEnterpriseDesktop() {
     });
   }, [gisStands, standSearch, statusFilter]);
 
+  const filteredPublicStands = useMemo(() => {
+    return publicStands.filter(s => {
+      const matchesScheme = !publicSchemeFilter || s.scheme_name === publicSchemeFilter;
+      const matchesSearch = !publicStandSearch || s.stand_number.toLowerCase().includes(publicStandSearch.toLowerCase());
+      return matchesScheme && matchesSearch;
+    });
+  }, [publicStands, publicSchemeFilter, publicStandSearch]);
+
   // Servicing editor starts from what the server has recorded for the selected stand
   useEffect(() => {
     setServicingDraft(activeStand ? activeStand.servicing : null);
@@ -1274,10 +1282,7 @@ export default function AntigravityEnterpriseDesktop() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800">
-                    {publicStands
-                      .filter(s => !publicSchemeFilter || s.scheme_name === publicSchemeFilter)
-                      .filter(s => !publicStandSearch || s.stand_number.toLowerCase().includes(publicStandSearch.toLowerCase()))
-                      .map((s, idx) => (
+                    {filteredPublicStands.map((s, idx) => (
                         <tr key={idx} className="hover:bg-slate-800/40">
                           <td className="p-2.5 font-bold text-white">{s.stand_number}</td>
                           <td className="p-2.5">{s.scheme_name}</td>
