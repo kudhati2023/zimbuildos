@@ -5,7 +5,7 @@ Provides integrated facades for WMS, Purchase & Vendor, and Manufacturing PLM.
 
 from typing import Dict, Any, List
 from .warehouse_wms import WarehouseManagementSystem, StockItem, WarehouseLocation, StockTransferNote
-from .purchase_vendor import PurchaseVendorManager, VendorProfile, MaterialRequisition, VendorQuote, PurchaseOrder, VendorInvoice
+from .purchase_vendor import PurchaseVendorManager, MaterialRequisition, VendorQuote, PurchaseOrder, VendorInvoice
 from .manufacturing_plm import ManufacturingPLMManager, BillOfMaterials, BOMComponent, ProductionWorkOrder, EngineeringChangeOrder
 
 class SupplyChainCoordinator:
