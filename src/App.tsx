@@ -155,6 +155,29 @@ export default function AntigravityEnterpriseDesktop() {
     });
   }, [gisStands, standSearch, statusFilter]);
 
+  const filteredPublicStands = useMemo(() => {
+    return publicStands
+      .filter(s => !publicSchemeFilter || s.scheme_name === publicSchemeFilter)
+      .filter(s => !publicStandSearch || s.stand_number.toLowerCase().includes(publicStandSearch.toLowerCase()));
+  }, [publicStands, publicSchemeFilter, publicStandSearch]);
+
+  const publicSchemes = useMemo(() => {
+    return Array.from(new Set(publicStands.map(s => s.scheme_name)));
+  }, [publicStands]);
+
+  const approvedApplications = useMemo(() => {
+    return applications.filter(a => a.status === 'APPROVED');
+  }, [applications]);
+
+  const availableStands = useMemo(() => {
+    return stands.filter(s => s.status === 'AVAILABLE');
+  }, [stands]);
+
+  const filteredCrmInquiries = useMemo(() => {
+    return crmInquiries.filter(i => inquiryChannelFilter === 'ALL' || i.source_channel === inquiryChannelFilter);
+  }, [crmInquiries, inquiryChannelFilter]);
+
+
   // Servicing editor starts from what the server has recorded for the selected stand
   useEffect(() => {
     setServicingDraft(activeStand ? activeStand.servicing : null);
@@ -1252,7 +1275,7 @@ export default function AntigravityEnterpriseDesktop() {
                     className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-100 text-xs"
                   >
                     <option value="">All Schemes</option>
-                    {Array.from(new Set(publicStands.map(s => s.scheme_name))).map(sch => (
+                    {publicSchemes.map(sch => (
                       <option key={sch} value={sch}>{sch}</option>
                     ))}
                   </select>
@@ -1274,10 +1297,7 @@ export default function AntigravityEnterpriseDesktop() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800">
-                    {publicStands
-                      .filter(s => !publicSchemeFilter || s.scheme_name === publicSchemeFilter)
-                      .filter(s => !publicStandSearch || s.stand_number.toLowerCase().includes(publicStandSearch.toLowerCase()))
-                      .map((s, idx) => (
+                    {filteredPublicStands.map((s, idx) => (
                         <tr key={idx} className="hover:bg-slate-800/40">
                           <td className="p-2.5 font-bold text-white">{s.stand_number}</td>
                           <td className="p-2.5">{s.scheme_name}</td>
@@ -1550,7 +1570,7 @@ export default function AntigravityEnterpriseDesktop() {
                   className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-100"
                 >
                   <option value="">-- Choose Approved Applicant --</option>
-                  {applications.filter(a => a.status === 'APPROVED').map(a => (
+                  {approvedApplications.map(a => (
                     <option key={a.application_id} value={a.application_id}>
                       {a.first_name} {a.last_name} ({a.national_id}) · {a.quota_category} · Queued {new Date(a.first_submitted_at).toLocaleDateString()}
                     </option>
@@ -1566,7 +1586,7 @@ export default function AntigravityEnterpriseDesktop() {
                   className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-100"
                 >
                   <option value="">-- Choose Available Stand --</option>
-                  {stands.filter(s => s.status === 'AVAILABLE').map(s => (
+                  {availableStands.map(s => (
                     <option key={s.parcel_id} value={s.parcel_id}>
                       {s.stand_number} · {s.scheme_name} ({s.area_sqm} m² - ${parseFloat(s.price_usd).toLocaleString()} USD){s.quota_category !== 'GENERAL' ? ` · ${s.quota_category} quota` : ''}
                     </option>
@@ -2593,7 +2613,7 @@ export default function AntigravityEnterpriseDesktop() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800/60 font-mono text-[11px]">
-                          {(crmInquiries.filter(i => inquiryChannelFilter === 'ALL' || i.source_channel === inquiryChannelFilter)).map(inq => (
+                          {filteredCrmInquiries.map(inq => (
                             <tr key={inq.inquiry_id} className="hover:bg-slate-800/40 transition">
                               <td className="p-2.5 text-amber-400 font-bold">{inq.inquiry_id}</td>
                               <td className="p-2.5 font-sans font-semibold text-white">
