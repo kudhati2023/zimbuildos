@@ -123,6 +123,19 @@ export default function AntigravityEnterpriseDesktop() {
     return Math.floor(diff / (365.25 * 24 * 3600 * 1000));
   }, [youthForm.dateOfBirth]);
 
+  // ⚡ Bolt Performance Optimization: Extract expensive array filtering to useMemo hooks
+  // This prevents O(N) inline array re-allocations on every single render cycle,
+  // which is critical for large datasets like publicStands and crmInquiries.
+  const filteredPublicStands = useMemo(() => {
+    return publicStands
+      .filter(s => !publicSchemeFilter || s.scheme_name === publicSchemeFilter)
+      .filter(s => !publicStandSearch || s.stand_number.toLowerCase().includes(publicStandSearch.toLowerCase()));
+  }, [publicStands, publicSchemeFilter, publicStandSearch]);
+
+  const filteredCrmInquiries = useMemo(() => {
+    return crmInquiries.filter(i => inquiryChannelFilter === 'ALL' || i.source_channel === inquiryChannelFilter);
+  }, [crmInquiries, inquiryChannelFilter]);
+
   // GIS & Spatial Cadastre State
   const [selectedDevId, setSelectedDevId] = useState<string>('');
   const [developments, setDevelopments] = useState<HousingDevelopment[]>([]);
@@ -1274,10 +1287,7 @@ export default function AntigravityEnterpriseDesktop() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800">
-                    {publicStands
-                      .filter(s => !publicSchemeFilter || s.scheme_name === publicSchemeFilter)
-                      .filter(s => !publicStandSearch || s.stand_number.toLowerCase().includes(publicStandSearch.toLowerCase()))
-                      .map((s, idx) => (
+                    {filteredPublicStands.map((s, idx) => (
                         <tr key={idx} className="hover:bg-slate-800/40">
                           <td className="p-2.5 font-bold text-white">{s.stand_number}</td>
                           <td className="p-2.5">{s.scheme_name}</td>
@@ -2593,7 +2603,7 @@ export default function AntigravityEnterpriseDesktop() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800/60 font-mono text-[11px]">
-                          {(crmInquiries.filter(i => inquiryChannelFilter === 'ALL' || i.source_channel === inquiryChannelFilter)).map(inq => (
+                          {filteredCrmInquiries.map(inq => (
                             <tr key={inq.inquiry_id} className="hover:bg-slate-800/40 transition">
                               <td className="p-2.5 text-amber-400 font-bold">{inq.inquiry_id}</td>
                               <td className="p-2.5 font-sans font-semibold text-white">
