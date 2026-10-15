@@ -337,21 +337,26 @@ export class JobCostService {
    * weighted milestone progress. All arithmetic is in integer cents.
    */
   async jobCostReport(projectId, asOf = todayHarare()) {
-    const project = await this.getProject(projectId);
-    const { rows: lines } = await this.db.query(
-      `SELECT l.line_id, l.cost_code, l.description, l.category, l.original_budget_usd, l.budget_quantity, l.unit,
-              COALESCE((SELECT sum(amount_usd) FROM budget_adjustments a WHERE a.line_id = l.line_id), 0) AS adjustments_usd,
-              COALESCE((SELECT sum(amount_usd) FROM cost_entries e WHERE e.line_id = l.line_id), 0) AS actual_usd,
-              (SELECT sum(quantity) FROM cost_entries e WHERE e.line_id = l.line_id AND e.unit = l.unit) AS actual_quantity,
-              COALESCE((SELECT sum(s.original_value_usd + COALESCE((SELECT sum(v.amount_usd) FROM subcontract_variations v
-                                                                    WHERE v.subcontract_id = s.subcontract_id), 0))
-                          FROM subcontracts s WHERE s.line_id = l.line_id AND s.status = 'ACTIVE'), 0) AS committed_usd,
-              COALESCE((SELECT sum(c.certified) FROM (
-                          SELECT max(cl.certified_cumulative_usd) AS certified FROM subcontract_claims cl
-                            JOIN subcontracts s ON s.subcontract_id = cl.subcontract_id
-                           WHERE s.line_id = l.line_id AND s.status = 'ACTIVE' AND cl.status IN ('CERTIFIED','PAID')
-                           GROUP BY cl.subcontract_id) c), 0) AS committed_certified_usd
-         FROM project_budget_lines l WHERE l.project_id = $1 ORDER BY l.cost_code`, [projectId]);
+    const [project, { rows: lines }, { rows: milestones }] = await Promise.all([
+      this.getProject(projectId),
+      this.db.query(
+        `SELECT l.line_id, l.cost_code, l.description, l.category, l.original_budget_usd, l.budget_quantity, l.unit,
+                COALESCE((SELECT sum(amount_usd) FROM budget_adjustments a WHERE a.line_id = l.line_id), 0) AS adjustments_usd,
+                COALESCE((SELECT sum(amount_usd) FROM cost_entries e WHERE e.line_id = l.line_id), 0) AS actual_usd,
+                (SELECT sum(quantity) FROM cost_entries e WHERE e.line_id = l.line_id AND e.unit = l.unit) AS actual_quantity,
+                COALESCE((SELECT sum(s.original_value_usd + COALESCE((SELECT sum(v.amount_usd) FROM subcontract_variations v
+                                                                      WHERE v.subcontract_id = s.subcontract_id), 0))
+                            FROM subcontracts s WHERE s.line_id = l.line_id AND s.status = 'ACTIVE'), 0) AS committed_usd,
+                COALESCE((SELECT sum(c.certified) FROM (
+                            SELECT max(cl.certified_cumulative_usd) AS certified FROM subcontract_claims cl
+                              JOIN subcontracts s ON s.subcontract_id = cl.subcontract_id
+                             WHERE s.line_id = l.line_id AND s.status = 'ACTIVE' AND cl.status IN ('CERTIFIED','PAID')
+                             GROUP BY cl.subcontract_id) c), 0) AS committed_certified_usd
+           FROM project_budget_lines l WHERE l.project_id = $1 ORDER BY l.cost_code`, [projectId]),
+      this.db.query(
+        `SELECT weight_percent, percent_complete, planned_start::text AS planned_start, planned_finish::text AS planned_finish
+           FROM project_milestones WHERE project_id = $1`, [projectId])
+    ]);
 
     const out = lines.map((l) => {
       const revised = numericToCents(l.original_budget_usd) + numericToCents(l.adjustments_usd);
@@ -391,9 +396,6 @@ export class JobCostService {
     const bac = sum(out, 'revised');
     const ac = sum(out, 'actual');
     const forecast = sum(out, 'forecast');
-    const { rows: milestones } = await this.db.query(
-      `SELECT weight_percent, percent_complete, planned_start::text AS planned_start, planned_finish::text AS planned_finish
-         FROM project_milestones WHERE project_id = $1`, [projectId]);
     const progress = progressSummary(milestones, asOf);
     const ev = Math.round((bac * progress.percentComplete) / 100);
     const pv = Math.round((bac * progress.plannedPercent) / 100);
