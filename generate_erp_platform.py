@@ -2249,6 +2249,7 @@
       sysadmin: { name: "SecOps Administrator", title: "SECURITY & AUDIT ADMINISTRATOR", sub: "Zero-Trust Architecture & MCP Gateway", startFn: "sysadmin" }
     };
 
+    let cachedFuncTabs = null;
     function selectJobRole(role) {
       currentJobRole = role;
       const conf = roleConfig[role] || roleConfig.ceo;
@@ -2256,12 +2257,18 @@
       document.getElementById('active-user-badge').innerText = conf.title;
       document.getElementById('active-user-sub').innerText = conf.sub;
 
-      document.querySelectorAll('#master-nav-bar .func-tab').forEach(tab => {
-        const allowedRoles = tab.getAttribute('data-roles').split(',');
-        if (role === 'ceo' || allowedRoles.includes(role)) {
-          tab.classList.remove('hidden');
+      if (!cachedFuncTabs) {
+        cachedFuncTabs = Array.from(document.querySelectorAll('#master-nav-bar .func-tab')).map(tab => ({
+          element: tab,
+          allowedRoles: tab.getAttribute('data-roles').split(',')
+        }));
+      }
+
+      cachedFuncTabs.forEach(item => {
+        if (role === 'ceo' || item.allowedRoles.includes(role)) {
+          item.element.classList.remove('hidden');
         } else {
-          tab.classList.add('hidden');
+          item.element.classList.add('hidden');
         }
       });
 
