@@ -155,6 +155,28 @@ export default function AntigravityEnterpriseDesktop() {
     });
   }, [gisStands, standSearch, statusFilter]);
 
+  // Memoize public register statistics to avoid O(N) recalculation on every render
+  const publicStandsStats = useMemo(() => {
+    let available = 0, active = 0, youth = 0;
+    for (const s of publicStands) {
+      if (s.status === 'AVAILABLE') available++;
+      else if (s.status === 'RESERVED' || s.status === 'ALLOCATED') active++;
+      if (s.quota_category === 'YOUTH') youth++;
+    }
+    return { available, active, youth };
+  }, [publicStands]);
+
+  // Memoize the public register search filter
+  const filteredPublicStands = useMemo(() => {
+    if (!publicStands.length) return [];
+    const q = (publicStandSearch || '').toLowerCase();
+    return publicStands.filter(s => {
+      const matchScheme = !publicSchemeFilter || s.scheme_name === publicSchemeFilter;
+      const matchSearch = !q || s.stand_number.toLowerCase().includes(q);
+      return matchScheme && matchSearch;
+    });
+  }, [publicStands, publicSchemeFilter, publicStandSearch]);
+
   // Servicing editor starts from what the server has recorded for the selected stand
   useEffect(() => {
     setServicingDraft(activeStand ? activeStand.servicing : null);
@@ -1176,21 +1198,21 @@ export default function AntigravityEnterpriseDesktop() {
               <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl">
                 <span className="text-[10px] text-slate-400 font-bold uppercase block">Available for Booking</span>
                 <span className="text-2xl font-bold text-emerald-400 mt-1 block">
-                  {publicStands.filter(s => s.status === 'AVAILABLE').length} Stands
+                  {publicStandsStats.available} Stands
                 </span>
                 <span className="text-[10px] text-slate-400 mt-1 block">Public FCFS Open Pool</span>
               </div>
               <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl">
                 <span className="text-[10px] text-slate-400 font-bold uppercase block">Active / Reserved</span>
                 <span className="text-2xl font-bold text-blue-400 mt-1 block">
-                  {publicStands.filter(s => s.status === 'RESERVED' || s.status === 'ALLOCATED').length} Stands
+                  {publicStandsStats.active} Stands
                 </span>
                 <span className="text-[10px] text-slate-400 mt-1 block">Under Contract / Servicing</span>
               </div>
               <div className="bg-slate-900/80 border border-emerald-500/30 bg-emerald-950/20 p-4 rounded-xl">
                 <span className="text-[10px] text-emerald-400 font-bold uppercase block">Youth Quota (40% Mandate)</span>
                 <span className="text-2xl font-bold text-emerald-300 mt-1 block">
-                  {publicStands.filter(s => s.quota_category === 'YOUTH').length} Stands
+                  {publicStandsStats.youth} Stands
                 </span>
                 <span className="text-[10px] text-emerald-400 mt-1 block">ZNHSP Statutory Youth Share</span>
               </div>
@@ -1274,10 +1296,7 @@ export default function AntigravityEnterpriseDesktop() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800">
-                    {publicStands
-                      .filter(s => !publicSchemeFilter || s.scheme_name === publicSchemeFilter)
-                      .filter(s => !publicStandSearch || s.stand_number.toLowerCase().includes(publicStandSearch.toLowerCase()))
-                      .map((s, idx) => (
+                    {filteredPublicStands.map((s, idx) => (
                         <tr key={idx} className="hover:bg-slate-800/40">
                           <td className="p-2.5 font-bold text-white">{s.stand_number}</td>
                           <td className="p-2.5">{s.scheme_name}</td>
