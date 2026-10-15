@@ -205,17 +205,41 @@ export class GisService {
       }
       if (problems.length) throw badRequest('GEOJSON_REJECTED', `${problems.length} feature(s) failed validation; nothing was imported`, problems);
 
-      for (const r of rows) {
+      if (rows.length > 0) {
         await client.query(
-          `INSERT INTO la_spatial_unit (stand_number, scheme_name, site_location, area_sqm, price_usd, surveyor_general_ref,
-                                        status, quota_category, development_id, zoning_type, land_constraint,
-                                        boundary_geojson, center_lat, center_lng, dimensions)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)`,
-          [r.standNumber, dev.name, typeof r.p.site_location === 'string' ? r.p.site_location : dev.province,
-            Number.isFinite(Number(r.p.area_sqm)) && Number(r.p.area_sqm) > 0 ? Number(r.p.area_sqm) : r.shape.areaSqm,
-            centsToNumeric(r.priceCents), r.p.surveyor_general_ref ?? null,
-            r.constraint ? 'WITHDRAWN' : 'AVAILABLE', r.quota, developmentId, r.zoning, r.constraint,
-            JSON.stringify(r.geometry), r.shape.centroid.lat, r.shape.centroid.lng, r.shape.dimensions]);
+          `INSERT INTO la_spatial_unit (
+            stand_number, scheme_name, site_location, area_sqm, price_usd, surveyor_general_ref,
+            status, quota_category, development_id, zoning_type, land_constraint,
+            boundary_geojson, center_lat, center_lng, dimensions
+          )
+          SELECT s.stand_number, s.scheme_name, s.site_location, s.area_sqm, s.price_usd, s.surveyor_general_ref,
+                 s.status, s.quota_category, s.development_id, s.zoning_type, s.land_constraint,
+                 s.boundary_geojson, s.center_lat, s.center_lng, s.dimensions
+          FROM unnest(
+            $1::text[], $2::text[], $3::text[], $4::numeric[], $5::numeric[], $6::text[],
+            $7::text[], $8::text[], $9::text[], $10::text[], $11::text[],
+            $12::jsonb[], $13::numeric[], $14::numeric[], $15::jsonb[]
+          ) AS s(stand_number, scheme_name, site_location, area_sqm, price_usd, surveyor_general_ref,
+                 status, quota_category, development_id, zoning_type, land_constraint,
+                 boundary_geojson, center_lat, center_lng, dimensions)`,
+          [
+            rows.map((r) => r.standNumber),
+            rows.map(() => dev.name),
+            rows.map((r) => typeof r.p.site_location === 'string' ? r.p.site_location : dev.province),
+            rows.map((r) => Number.isFinite(Number(r.p.area_sqm)) && Number(r.p.area_sqm) > 0 ? Number(r.p.area_sqm) : r.shape.areaSqm),
+            rows.map((r) => centsToNumeric(r.priceCents)),
+            rows.map((r) => r.p.surveyor_general_ref ?? null),
+            rows.map((r) => r.constraint ? 'WITHDRAWN' : 'AVAILABLE'),
+            rows.map((r) => r.quota),
+            rows.map(() => developmentId),
+            rows.map((r) => r.zoning),
+            rows.map((r) => r.constraint),
+            rows.map((r) => JSON.stringify(r.geometry)),
+            rows.map((r) => r.shape.centroid.lat),
+            rows.map((r) => r.shape.centroid.lng),
+            rows.map((r) => r.shape.dimensions ? JSON.stringify(r.shape.dimensions) : null)
+          ]
+        );
       }
       await audit(client, actor, 'STANDS_IMPORTED', 'developments', developmentId, {
         count: rows.length, standNumbers: rows.map((r) => r.standNumber),
