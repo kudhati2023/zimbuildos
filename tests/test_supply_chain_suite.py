@@ -173,3 +173,60 @@ def test_supply_chain_coordinator_end_to_end():
     assert assembly["quantity_manufactured"] == 5
     assert assembly["qc_pass_rate_pct"] > 98.0
     assert assembly["inbound_stock"] >= 85 # previously 80 + 5
+
+def test_assemble_and_stock_prefab_exact_deductions():
+    coordinator = SupplyChainCoordinator(fx_rate=26.50)
+
+    product_code = "PREFAB-WALL-STD"
+    quantity = 2
+    destination = "SITE-KADOMA-02"
+
+    # Capture initial central store quantities for raw materials
+    bom = next(b for b in coordinator.manufacturing.bom_registry.values() if b.product_code == product_code)
+
+    initial_stock = {}
+    for comp in bom.components:
+        if comp.raw_material_id in coordinator.wms.catalog:
+            initial_stock[comp.raw_material_id] = coordinator.wms.catalog[comp.raw_material_id].central_store_qty
+
+    initial_prefab_qty = coordinator.wms.catalog[product_code].site_allocations.get(destination, 0)
+
+    # Perform assembly
+    result = coordinator.assemble_and_stock_prefab(product_code, quantity, destination_site=destination)
+
+    assert result["success"] is True
+
+    # Verify exact deductions
+    for comp in bom.components:
+        if comp.raw_material_id in coordinator.wms.catalog:
+            expected_deduction = comp.required_quantity * quantity
+            current_stock = coordinator.wms.catalog[comp.raw_material_id].central_store_qty
+            assert current_stock == initial_stock[comp.raw_material_id] - expected_deduction
+
+    # Verify stock addition at target site
+    current_prefab_qty = coordinator.wms.catalog[product_code].site_allocations.get(destination, 0)
+    assert current_prefab_qty == initial_prefab_qty + quantity
+
+
+def test_assemble_and_stock_prefab_bom_not_found():
+    coordinator = SupplyChainCoordinator(fx_rate=26.50)
+    result = coordinator.assemble_and_stock_prefab("INVALID-CODE-123", 10)
+
+    assert result["success"] is False
+    assert "BOM not found" in result["error"]
+
+
+def test_assemble_and_stock_prefab_insufficient_stock():
+    coordinator = SupplyChainCoordinator(fx_rate=26.50)
+    product_code = "PREFAB-WALL-STD"
+
+    bom = next(b for b in coordinator.manufacturing.bom_registry.values() if b.product_code == product_code)
+    comp = bom.components[0]
+
+    # Intentionally empty the central stock for one component
+    coordinator.wms.catalog[comp.raw_material_id].central_store_qty = 0
+
+    result = coordinator.assemble_and_stock_prefab(product_code, 1)
+
+    assert result["success"] is False
+    assert "Insufficient raw material" in result["error"]
