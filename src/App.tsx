@@ -161,6 +161,49 @@ export default function AntigravityEnterpriseDesktop() {
     setCertificateRef(activeStand?.servicing_certificate_ref ?? '');
   }, [activeStand]);
 
+  // Performance Optimizations: Memoize expensive filtering operations
+  const publicStandsMetrics = useMemo(() => {
+    let available = 0;
+    let activeOrReserved = 0;
+    let youthQuota = 0;
+    const schemes = new Set<string>();
+
+    for (const s of publicStands) {
+      if (s.status === 'AVAILABLE') available++;
+      if (s.status === 'RESERVED' || s.status === 'ALLOCATED') activeOrReserved++;
+      if (s.quota_category === 'YOUTH') youthQuota++;
+      schemes.add(s.scheme_name);
+    }
+
+    return {
+      available,
+      activeOrReserved,
+      youthQuota,
+      schemes: Array.from(schemes)
+    };
+  }, [publicStands]);
+
+  const filteredPublicStands = useMemo(() => {
+    const q = publicStandSearch.toLowerCase();
+    return publicStands.filter(s => {
+      if (publicSchemeFilter && s.scheme_name !== publicSchemeFilter) return false;
+      if (q && !s.stand_number.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [publicStands, publicSchemeFilter, publicStandSearch]);
+
+  const approvedApplications = useMemo(() => {
+    return applications.filter(a => a.status === 'APPROVED');
+  }, [applications]);
+
+  const availableStands = useMemo(() => {
+    return stands.filter(s => s.status === 'AVAILABLE');
+  }, [stands]);
+
+  const filteredCrmInquiries = useMemo(() => {
+    return crmInquiries.filter(i => inquiryChannelFilter === 'ALL' || i.source_channel === inquiryChannelFilter);
+  }, [crmInquiries, inquiryChannelFilter]);
+
   // Load everything from zhms-api. Failures are shown, never replaced with demo data.
   const loadData = async () => {
     setLoading(true);
@@ -1176,21 +1219,21 @@ export default function AntigravityEnterpriseDesktop() {
               <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl">
                 <span className="text-[10px] text-slate-400 font-bold uppercase block">Available for Booking</span>
                 <span className="text-2xl font-bold text-emerald-400 mt-1 block">
-                  {publicStands.filter(s => s.status === 'AVAILABLE').length} Stands
+                  {publicStandsMetrics.available} Stands
                 </span>
                 <span className="text-[10px] text-slate-400 mt-1 block">Public FCFS Open Pool</span>
               </div>
               <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl">
                 <span className="text-[10px] text-slate-400 font-bold uppercase block">Active / Reserved</span>
                 <span className="text-2xl font-bold text-blue-400 mt-1 block">
-                  {publicStands.filter(s => s.status === 'RESERVED' || s.status === 'ALLOCATED').length} Stands
+                  {publicStandsMetrics.activeOrReserved} Stands
                 </span>
                 <span className="text-[10px] text-slate-400 mt-1 block">Under Contract / Servicing</span>
               </div>
               <div className="bg-slate-900/80 border border-emerald-500/30 bg-emerald-950/20 p-4 rounded-xl">
                 <span className="text-[10px] text-emerald-400 font-bold uppercase block">Youth Quota (40% Mandate)</span>
                 <span className="text-2xl font-bold text-emerald-300 mt-1 block">
-                  {publicStands.filter(s => s.quota_category === 'YOUTH').length} Stands
+                  {publicStandsMetrics.youthQuota} Stands
                 </span>
                 <span className="text-[10px] text-emerald-400 mt-1 block">ZNHSP Statutory Youth Share</span>
               </div>
@@ -1252,7 +1295,7 @@ export default function AntigravityEnterpriseDesktop() {
                     className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-100 text-xs"
                   >
                     <option value="">All Schemes</option>
-                    {Array.from(new Set(publicStands.map(s => s.scheme_name))).map(sch => (
+                    {publicStandsMetrics.schemes.map(sch => (
                       <option key={sch} value={sch}>{sch}</option>
                     ))}
                   </select>
@@ -1274,10 +1317,7 @@ export default function AntigravityEnterpriseDesktop() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800">
-                    {publicStands
-                      .filter(s => !publicSchemeFilter || s.scheme_name === publicSchemeFilter)
-                      .filter(s => !publicStandSearch || s.stand_number.toLowerCase().includes(publicStandSearch.toLowerCase()))
-                      .map((s, idx) => (
+                    {filteredPublicStands.map((s, idx) => (
                         <tr key={idx} className="hover:bg-slate-800/40">
                           <td className="p-2.5 font-bold text-white">{s.stand_number}</td>
                           <td className="p-2.5">{s.scheme_name}</td>
@@ -1550,7 +1590,7 @@ export default function AntigravityEnterpriseDesktop() {
                   className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-100"
                 >
                   <option value="">-- Choose Approved Applicant --</option>
-                  {applications.filter(a => a.status === 'APPROVED').map(a => (
+                  {approvedApplications.map(a => (
                     <option key={a.application_id} value={a.application_id}>
                       {a.first_name} {a.last_name} ({a.national_id}) · {a.quota_category} · Queued {new Date(a.first_submitted_at).toLocaleDateString()}
                     </option>
@@ -1566,7 +1606,7 @@ export default function AntigravityEnterpriseDesktop() {
                   className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-100"
                 >
                   <option value="">-- Choose Available Stand --</option>
-                  {stands.filter(s => s.status === 'AVAILABLE').map(s => (
+                  {availableStands.map(s => (
                     <option key={s.parcel_id} value={s.parcel_id}>
                       {s.stand_number} · {s.scheme_name} ({s.area_sqm} m² - ${parseFloat(s.price_usd).toLocaleString()} USD){s.quota_category !== 'GENERAL' ? ` · ${s.quota_category} quota` : ''}
                     </option>
@@ -2593,7 +2633,7 @@ export default function AntigravityEnterpriseDesktop() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800/60 font-mono text-[11px]">
-                          {(crmInquiries.filter(i => inquiryChannelFilter === 'ALL' || i.source_channel === inquiryChannelFilter)).map(inq => (
+                          {filteredCrmInquiries.map(inq => (
                             <tr key={inq.inquiry_id} className="hover:bg-slate-800/40 transition">
                               <td className="p-2.5 text-amber-400 font-bold">{inq.inquiry_id}</td>
                               <td className="p-2.5 font-sans font-semibold text-white">
