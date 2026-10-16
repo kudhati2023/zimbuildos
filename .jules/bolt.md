@@ -1,0 +1,3 @@
+## $(date +%Y-%m-%d) - Expensive Inline Array Operations in React Render Loops
+**Learning:** Found multiple instances where large arrays (e.g. `publicStands`, `applications`, `stands`, `crmInquiries`) were being filtered and mapped continuously within React render loops. In large components like `App.tsx`, these inline array manipulations lead to expensive unnecessary recalculations on every render, drastically affecting performance.
+**Action:** Extract expensive data aggregations or transformations out of the render loop using `useMemo()`. Ensure filters are combined efficiently into a single pass when applicable, and pass the memoized arrays to the UI to avoid unnecessary recalculations during re-renders.
