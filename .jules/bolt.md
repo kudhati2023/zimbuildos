@@ -1,0 +1,3 @@
+## 2023-10-17 - React Component Performance: Inline Array Operations
+**Learning:** Large React components (like `App.tsx` which manages the overarching desktop app state) frequently suffer from performance hits due to O(N) operations inside the render loop. Specifically, inline `.filter()`, `.map()`, and `Array.from(new Set(...))` are repeatedly triggered on state changes.
+**Action:** Extract inline array iterations into combined, single-pass `useMemo` hooks. This pattern improves React UI performance significantly by calculating derivations once per data update, rather than multiple times per render cycle.
