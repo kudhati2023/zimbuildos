@@ -587,7 +587,7 @@ export default function AntigravityEnterpriseDesktop() {
           >
             <span>🏢 Enterprise ERP</span>
           </a>
-          <button onClick={loadData} className="text-slate-400 hover:text-indigo-400 p-1">
+          <button onClick={loadData} aria-label="Refresh Data" className="text-slate-400 hover:text-indigo-400 p-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-indigo-400' : ''}`} />
           </button>
           <div className={`flex items-center space-x-2 px-3 py-1 rounded-full border ${
@@ -602,7 +602,7 @@ export default function AntigravityEnterpriseDesktop() {
               <span className="text-slate-300" title={session.roles.join(', ')}>
                 {session.sub} <span className="text-indigo-400">[{session.roles.join(', ') || 'APPLICANT'}]</span>
               </span>
-              <button onClick={handleSignOut} className="text-slate-400 hover:text-rose-400 p-1" title="Sign out">
+              <button onClick={handleSignOut} aria-label="Sign out" className="text-slate-400 hover:text-rose-400 p-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500" title="Sign out">
                 <LogOut className="w-4 h-4" />
               </button>
             </div>
@@ -615,7 +615,7 @@ export default function AntigravityEnterpriseDesktop() {
                 placeholder="Paste access token"
                 className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-100 w-40 focus:outline-none focus:border-indigo-500"
               />
-              <button type="submit" disabled={!tokenInput.trim()} className="text-indigo-400 hover:text-indigo-300 disabled:opacity-40 p-1" title="Sign in">
+              <button type="submit" disabled={!tokenInput.trim()} aria-label="Sign in" className="text-indigo-400 hover:text-indigo-300 disabled:opacity-40 p-1 rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" title="Sign in">
                 <LogIn className="w-4 h-4" />
               </button>
             </form>
