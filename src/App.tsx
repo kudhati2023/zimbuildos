@@ -155,6 +155,42 @@ export default function AntigravityEnterpriseDesktop() {
     });
   }, [gisStands, standSearch, statusFilter]);
 
+  // ⚡ Bolt Performance Optimization:
+  // Replaced multiple inline array `.filter()` chains on `publicStands` with a single O(N) loop
+  // wrapped in a `useMemo`. This prevents 4 O(N) recalculations on every component render.
+  const publicStandsMetrics = useMemo(() => {
+    let available = 0;
+    let reservedOrAllocated = 0;
+    let youth = 0;
+    const schemes = new Set<string>();
+
+    for (const s of publicStands) {
+      if (s.status === 'AVAILABLE') available++;
+      if (s.status === 'RESERVED' || s.status === 'ALLOCATED') reservedOrAllocated++;
+      if (s.quota_category === 'YOUTH') youth++;
+      schemes.add(s.scheme_name);
+    }
+
+    return {
+      available,
+      reservedOrAllocated,
+      youth,
+      schemes: Array.from(schemes)
+    };
+  }, [publicStands]);
+
+  // ⚡ Bolt Performance Optimization:
+  // Combines scheme filtering and search string matching into a single loop,
+  // memoized to prevent re-execution unless dependent values change.
+  const filteredPublicStands = useMemo(() => {
+    const searchLow = (publicStandSearch || '').toLowerCase();
+    return publicStands.filter(s => {
+      if (publicSchemeFilter && s.scheme_name !== publicSchemeFilter) return false;
+      if (searchLow && !s.stand_number.toLowerCase().includes(searchLow)) return false;
+      return true;
+    });
+  }, [publicStands, publicSchemeFilter, publicStandSearch]);
+
   // Servicing editor starts from what the server has recorded for the selected stand
   useEffect(() => {
     setServicingDraft(activeStand ? activeStand.servicing : null);
@@ -1176,21 +1212,21 @@ export default function AntigravityEnterpriseDesktop() {
               <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl">
                 <span className="text-[10px] text-slate-400 font-bold uppercase block">Available for Booking</span>
                 <span className="text-2xl font-bold text-emerald-400 mt-1 block">
-                  {publicStands.filter(s => s.status === 'AVAILABLE').length} Stands
+                  {publicStandsMetrics.available} Stands
                 </span>
                 <span className="text-[10px] text-slate-400 mt-1 block">Public FCFS Open Pool</span>
               </div>
               <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-xl">
                 <span className="text-[10px] text-slate-400 font-bold uppercase block">Active / Reserved</span>
                 <span className="text-2xl font-bold text-blue-400 mt-1 block">
-                  {publicStands.filter(s => s.status === 'RESERVED' || s.status === 'ALLOCATED').length} Stands
+                  {publicStandsMetrics.reservedOrAllocated} Stands
                 </span>
                 <span className="text-[10px] text-slate-400 mt-1 block">Under Contract / Servicing</span>
               </div>
               <div className="bg-slate-900/80 border border-emerald-500/30 bg-emerald-950/20 p-4 rounded-xl">
                 <span className="text-[10px] text-emerald-400 font-bold uppercase block">Youth Quota (40% Mandate)</span>
                 <span className="text-2xl font-bold text-emerald-300 mt-1 block">
-                  {publicStands.filter(s => s.quota_category === 'YOUTH').length} Stands
+                  {publicStandsMetrics.youth} Stands
                 </span>
                 <span className="text-[10px] text-emerald-400 mt-1 block">ZNHSP Statutory Youth Share</span>
               </div>
@@ -1252,7 +1288,7 @@ export default function AntigravityEnterpriseDesktop() {
                     className="bg-slate-950 border border-slate-800 rounded-lg px-2.5 py-1 text-slate-100 text-xs"
                   >
                     <option value="">All Schemes</option>
-                    {Array.from(new Set(publicStands.map(s => s.scheme_name))).map(sch => (
+                    {publicStandsMetrics.schemes.map(sch => (
                       <option key={sch} value={sch}>{sch}</option>
                     ))}
                   </select>
@@ -1274,9 +1310,7 @@ export default function AntigravityEnterpriseDesktop() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800">
-                    {publicStands
-                      .filter(s => !publicSchemeFilter || s.scheme_name === publicSchemeFilter)
-                      .filter(s => !publicStandSearch || s.stand_number.toLowerCase().includes(publicStandSearch.toLowerCase()))
+                    {filteredPublicStands
                       .map((s, idx) => (
                         <tr key={idx} className="hover:bg-slate-800/40">
                           <td className="p-2.5 font-bold text-white">{s.stand_number}</td>
