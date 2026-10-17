@@ -1,0 +1,151 @@
+                              className="bg-emerald-700 hover:bg-emerald-600 px-2.5 py-1 rounded text-white text-[10px]"
+                            >
+                              ✓ Finance Manager Approve
+                            </button>
+                            <button
+                              onClick={() => setRejecting({ id: app.application_id, role: 'FINANCE_MANAGER', reason: '' })}
+                              className="bg-rose-800 hover:bg-rose-700 px-2.5 py-1 rounded text-white text-[10px]"
+                            >
+                              ✗ Reject
+                            </button>
+                          </>
+                        )}
+                        {app.status === 'PENDING_CEO' && hasRole('CEO') && (
+                          <>
+                            <button
+                              onClick={() => handleReview(app.application_id, 'CEO', 'APPROVED')}
+                              className="bg-indigo-700 hover:bg-indigo-600 px-2.5 py-1 rounded text-white text-[10px]"
+                            >
+                              ✓ CEO Final Signoff
+                            </button>
+                            <button
+                              onClick={() => setRejecting({ id: app.application_id, role: 'CEO', reason: '' })}
+                              className="bg-rose-800 hover:bg-rose-700 px-2.5 py-1 rounded text-white text-[10px]"
+                            >
+                              ✗ Reject
+                            </button>
+                          </>
+                        )}
+                        {app.status === 'APPROVED' && hasRole('LAND_OFFICER') && (
+                          <button
+                            onClick={() => {
+                              setReserveForm(prev => ({ ...prev, applicationId: app.application_id }));
+                              setActiveTab('RESERVE');
+                            }}
+                            className="bg-indigo-600 hover:bg-indigo-500 px-3 py-1 rounded text-white font-bold text-[10px]"
+                          >
+                            Assign Stand & Reserve →
+                          </button>
+                        )}
+                      </div>
+
+                      {rejecting?.id === app.application_id && (
+                        <div className="mt-2 flex items-center space-x-2">
+                          <input
+                            autoFocus
+                            value={rejecting.reason}
+                            onChange={e => setRejecting({ ...rejecting, reason: e.target.value })}
+                            placeholder="Reason the applicant will see (at least 10 characters)"
+                            className="flex-1 bg-slate-900 border border-rose-800/60 rounded p-1.5 text-slate-100 text-[11px]"
+                          />
+                          <button
+                            disabled={rejecting.reason.trim().length < 10}
+                            onClick={() => handleReview(app.application_id, rejecting.role, 'REJECTED', rejecting.reason.trim())}
+                            className="bg-rose-700 hover:bg-rose-600 disabled:opacity-40 px-2.5 py-1 rounded text-white text-[10px]"
+                          >
+                            Return to applicant
+                          </button>
+                          <button onClick={() => setRejecting(null)} className="text-slate-400 text-[10px]">Cancel</button>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: STAND RESERVATION (FCFS & 50% DEPOSIT 7-DAY TIMER) */}
+        {activeTab === 'RESERVE' && (
+          <div className="max-w-2xl mx-auto bg-slate-900/60 border border-slate-800 rounded-xl p-6">
+            <h2 className="text-sm font-bold text-slate-100 mb-2 flex items-center space-x-2">
+              <Award className="w-4 h-4 text-indigo-400" />
+              <span>Database-Locked Stand Reservation (7-Day Deposit Window)</span>
+            </h2>
+            <p className="text-slate-400 text-[11px] mb-4">
+              Enforces First-Come-First-Served queue ordering and locks the stand. Requires 50% deposit within 7 days.
+            </p>
+            <form onSubmit={handleReserve} className="space-y-4">
+              <div>
+                <label className="text-slate-400 block mb-1">Select Approved Application:</label>
+                <select
+                  value={reserveForm.applicationId}
+                  onChange={e => setReserveForm({ ...reserveForm, applicationId: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-100"
+                >
+                  <option value="">-- Choose Approved Applicant --</option>
+                  {applications.filter(a => a.status === 'APPROVED').map(a => (
+                    <option key={a.application_id} value={a.application_id}>
+                      {a.first_name} {a.last_name} ({a.national_id}) · {a.quota_category} · Queued {new Date(a.first_submitted_at).toLocaleDateString()}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-slate-400 block mb-1">Select Available Stand:</label>
+                <select
+                  value={reserveForm.parcelId}
+                  onChange={e => setReserveForm({ ...reserveForm, parcelId: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-100"
+                >
+                  <option value="">-- Choose Available Stand --</option>
+                  {stands.filter(s => s.status === 'AVAILABLE').map(s => (
+                    <option key={s.parcel_id} value={s.parcel_id}>
+                      {s.stand_number} · {s.scheme_name} ({s.area_sqm} m² - ${parseFloat(s.price_usd).toLocaleString()} USD){s.quota_category !== 'GENERAL' ? ` · ${s.quota_category} quota` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="bg-indigo-950/30 border border-indigo-500/30 p-3.5 rounded text-[11px] text-indigo-300">
+                <span className="font-bold block">Business Rule Execution:</span>
+                • Stand is atomically locked in PostgreSQL (`FOR UPDATE`) preventing any double-allocation.<br/>
+                • Quota-reserved stands (e.g. youth) only go to applicants in that quota.<br/>
+                • The deposit is required before the CEO signs the Agreement of Sale; the buyer is sent the amount, deadline and payment reference.<br/>
+                • Stand automatically reverts to the pool if the deposit is not paid in time.
+              </div>
+
+              <button type="submit" disabled={!hasRole('LAND_OFFICER') || !reserveForm.applicationId || !reserveForm.parcelId} className="w-full bg-indigo-600 hover:bg-indigo-500 disabled:opacity-40 text-white font-bold py-2.5 rounded">
+                Execute Database Lock & Reserve Stand
+              </button>
+            </form>
+          </div>
+        )}
+
+        {/* TAB 4: PAYMENTS & LEDGER */}
+        {activeTab === 'PAYMENTS' && (
+          <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* CARD 1: ECOCASH USSD INSTANT PUSH */}
+            <div className="bg-slate-900/80 border border-emerald-500/30 rounded-2xl p-6 shadow-xl space-y-4">
+              <div className="flex justify-between items-start border-b border-slate-800 pb-3">
+                <div>
+                  <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider block">
+                    Mobile Money Gateway
+                  </span>
+                  <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                    <Smartphone className="w-4 h-4 text-emerald-400" />
+                    EcoCash USSD Instant Push (233#)
+                  </h3>
+                </div>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-950 text-emerald-400 border border-emerald-500/40">
+                  REAL-TIME SETTLED
+                </span>
+              </div>
+              <p className="text-slate-400 text-[11px]">
+                Dispatches a live EcoCash USSD prompt to buyer's phone. Upon PIN confirmation, immediately matches stand reference and applies instalment payment.
+              </p>
+              <form onSubmit={handleEcoCashPush} className="space-y-3.5">
+                <div>
+                  <label className="text-slate-300 block mb-1">Stand Payment Reference (Ref)</label>
