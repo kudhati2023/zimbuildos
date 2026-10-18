@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, memo } from 'react';
 import L from 'leaflet';
 import { Layers, ZoomIn, ZoomOut, Compass, AlertTriangle } from 'lucide-react';
 import type { GISStand, StandMapStatus, ServicingState } from '../../types';
@@ -111,14 +111,14 @@ const createOfflineCanvasGrid = () => {
   });
 };
 
-export const InteractiveLeafletMap: React.FC<InteractiveLeafletMapProps> = ({
+export const InteractiveLeafletMap: React.FC<InteractiveLeafletMapProps> = memo(function InteractiveLeafletMap({
   stands,
   selectedStandId,
   onSelectStand,
   onReserveClick,
   center = [-17.8925, 30.9325],
   zoom = 17
-}) => {
+}) {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const geojsonLayerRef = useRef<L.FeatureGroup | null>(null);
@@ -205,7 +205,7 @@ export const InteractiveLeafletMap: React.FC<InteractiveLeafletMapProps> = ({
     try {
       if (!mapInstanceRef.current) {
         const map = L.map(mapContainerRef.current, {
-          center: center,
+          center: center as L.LatLngTuple,
           zoom: zoom,
           zoomControl: false,
           attributionControl: false,
@@ -240,7 +240,7 @@ export const InteractiveLeafletMap: React.FC<InteractiveLeafletMapProps> = ({
 
   // Fly to the newly selected development
   useEffect(() => {
-    mapInstanceRef.current?.setView(center, zoom);
+    mapInstanceRef.current?.setView(center as L.LatLngTuple, zoom);
   }, [center[0], center[1], zoom]);
 
   // Render Stands as GeoJSON polygons & Popups
@@ -407,7 +407,7 @@ export const InteractiveLeafletMap: React.FC<InteractiveLeafletMapProps> = ({
 
   const handleRecenter = () => {
     if (mapInstanceRef.current) {
-      mapInstanceRef.current.setView(center, zoom);
+      mapInstanceRef.current.setView(center as L.LatLngTuple, zoom);
     }
   };
 
@@ -497,4 +497,4 @@ export const InteractiveLeafletMap: React.FC<InteractiveLeafletMapProps> = ({
 
     </div>
   );
-};
+});
