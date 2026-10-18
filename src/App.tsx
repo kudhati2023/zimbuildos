@@ -156,6 +156,27 @@ export default function AntigravityEnterpriseDesktop() {
   }, [gisStands, standSearch, statusFilter]);
 
   // ⚡ Bolt Performance Optimization:
+  // Pre-calculate GIS stand telemetry metrics in a single O(N) loop
+  // instead of running three separate `.filter()`/`.some()` operations during render.
+  const gisStandMetrics = useMemo(() => {
+    let mapped = 0;
+    let unmapped = 0;
+    for (const s of filteredGISStands) {
+      if (s.geometry) mapped++;
+      else unmapped++;
+    }
+    return { mapped, unmapped };
+  }, [filteredGISStands]);
+
+  // ⚡ Bolt Performance Optimization:
+  // Memoize static filtering operations to prevent O(N) recalculations on every render
+  const approvedApplications = useMemo(() => applications.filter(a => a.status === 'APPROVED'), [applications]);
+  const availableStands = useMemo(() => stands.filter(s => s.status === 'AVAILABLE'), [stands]);
+  const filteredCrmInquiries = useMemo(() =>
+    crmInquiries.filter(i => inquiryChannelFilter === 'ALL' || i.source_channel === inquiryChannelFilter),
+  [crmInquiries, inquiryChannelFilter]);
+
+  // ⚡ Bolt Performance Optimization:
   // Replaced multiple inline array `.filter()` chains on `publicStands` with a single O(N) loop
   // wrapped in a `useMemo`. This prevents 4 O(N) recalculations on every component render.
   const publicStandsMetrics = useMemo(() => {
@@ -804,8 +825,8 @@ export default function AntigravityEnterpriseDesktop() {
                     <div className="absolute bottom-14 left-3 z-[400] bg-slate-950/85 backdrop-blur-md border border-slate-800 px-3 py-1.5 rounded-xl text-[10px] font-mono text-slate-300 flex items-center space-x-2">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                       <span>
-                        {activeDev ? activeDev.name : 'No development'} • {filteredGISStands.filter(s => s.geometry).length} mapped
-                        {filteredGISStands.some(s => !s.geometry) && ` • ${filteredGISStands.filter(s => !s.geometry).length} without survey boundary (see Data Grid)`}
+                        {activeDev ? activeDev.name : 'No development'} • {gisStandMetrics.mapped} mapped
+                        {gisStandMetrics.unmapped > 0 && ` • ${gisStandMetrics.unmapped} without survey boundary (see Data Grid)`}
                       </span>
                     </div>
                   </div>
@@ -1584,7 +1605,7 @@ export default function AntigravityEnterpriseDesktop() {
                   className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-100"
                 >
                   <option value="">-- Choose Approved Applicant --</option>
-                  {applications.filter(a => a.status === 'APPROVED').map(a => (
+                  {approvedApplications.map(a => (
                     <option key={a.application_id} value={a.application_id}>
                       {a.first_name} {a.last_name} ({a.national_id}) · {a.quota_category} · Queued {new Date(a.first_submitted_at).toLocaleDateString()}
                     </option>
@@ -1600,7 +1621,7 @@ export default function AntigravityEnterpriseDesktop() {
                   className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-100"
                 >
                   <option value="">-- Choose Available Stand --</option>
-                  {stands.filter(s => s.status === 'AVAILABLE').map(s => (
+                  {availableStands.map(s => (
                     <option key={s.parcel_id} value={s.parcel_id}>
                       {s.stand_number} · {s.scheme_name} ({s.area_sqm} m² - ${parseFloat(s.price_usd).toLocaleString()} USD){s.quota_category !== 'GENERAL' ? ` · ${s.quota_category} quota` : ''}
                     </option>
@@ -2627,7 +2648,7 @@ export default function AntigravityEnterpriseDesktop() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800/60 font-mono text-[11px]">
-                          {(crmInquiries.filter(i => inquiryChannelFilter === 'ALL' || i.source_channel === inquiryChannelFilter)).map(inq => (
+                          {filteredCrmInquiries.map(inq => (
                             <tr key={inq.inquiry_id} className="hover:bg-slate-800/40 transition">
                               <td className="p-2.5 text-amber-400 font-bold">{inq.inquiry_id}</td>
                               <td className="p-2.5 font-sans font-semibold text-white">
