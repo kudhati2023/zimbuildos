@@ -180,6 +180,20 @@ export default function AntigravityEnterpriseDesktop() {
   }, [publicStands]);
 
   // ⚡ Bolt Performance Optimization:
+  // Extracted expensive array operations inside the Cadastre Telemetry map rendering block.
+  // Replaced multiple `.filter()` and `.some()` inline iterations on `filteredGISStands` with a single O(N) pass.
+  // This reduces re-renders in map view from O(3N) to O(N).
+  const gisStandMetrics = useMemo(() => {
+    let mapped = 0;
+    let unmapped = 0;
+    for (const s of filteredGISStands) {
+      if (s.geometry) mapped++;
+      else unmapped++;
+    }
+    return { mapped, unmapped };
+  }, [filteredGISStands]);
+
+  // ⚡ Bolt Performance Optimization:
   // Combines scheme filtering and search string matching into a single loop,
   // memoized to prevent re-execution unless dependent values change.
   const filteredPublicStands = useMemo(() => {
@@ -804,8 +818,8 @@ export default function AntigravityEnterpriseDesktop() {
                     <div className="absolute bottom-14 left-3 z-[400] bg-slate-950/85 backdrop-blur-md border border-slate-800 px-3 py-1.5 rounded-xl text-[10px] font-mono text-slate-300 flex items-center space-x-2">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                       <span>
-                        {activeDev ? activeDev.name : 'No development'} • {filteredGISStands.filter(s => s.geometry).length} mapped
-                        {filteredGISStands.some(s => !s.geometry) && ` • ${filteredGISStands.filter(s => !s.geometry).length} without survey boundary (see Data Grid)`}
+                        {activeDev ? activeDev.name : 'No development'} • {gisStandMetrics.mapped} mapped
+                        {gisStandMetrics.unmapped > 0 && ` • ${gisStandMetrics.unmapped} without survey boundary (see Data Grid)`}
                       </span>
                     </div>
                   </div>
