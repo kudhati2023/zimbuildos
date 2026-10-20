@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   UserCheck, CreditCard, FileText,
   Shield, CheckCircle, AlertTriangle, Printer,
@@ -284,7 +284,12 @@ export default function AntigravityEnterpriseDesktop() {
     }
   };
 
-  const handleReserveFromMap = (stand: GISStand) => {
+  const handleSelectStandFromMap = useCallback((id: string) => {
+    setSelectedStandId(id);
+    setIsInspectorOpen(true);
+  }, []);
+
+  const handleReserveFromMap = useCallback((stand: GISStand) => {
     setSelectedStandId(stand.id);
     if (stand.status === 'blocked' || stand.status === 'disputed') {
       setErrorMsg(`${stand.stand_number} is not available for booking (${stand.land_constraint ? CONSTRAINT_LABELS[stand.land_constraint] : stand.status}).`);
@@ -299,7 +304,7 @@ export default function AntigravityEnterpriseDesktop() {
     } else {
       setErrorMsg(`No live allocation found for ${stand.stand_number}.`);
     }
-  };
+  }, []);
 
   const handleApply = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -791,10 +796,7 @@ export default function AntigravityEnterpriseDesktop() {
                     <InteractiveLeafletMap
                       stands={filteredGISStands}
                       selectedStandId={selectedStandId}
-                      onSelectStand={(id) => {
-                        setSelectedStandId(id);
-                        setIsInspectorOpen(true);
-                      }}
+                      onSelectStand={handleSelectStandFromMap}
                       onReserveClick={handleReserveFromMap}
                       center={activeDev?.center ?? DEFAULT_CENTER}
                       zoom={activeDev?.zoom ?? 16}
