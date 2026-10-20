@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import * as api from '../../api';
 import type { Equipment, FleetSummary, MaintenanceLog, MaintenanceType } from '../../types';
 import {
@@ -14,18 +14,42 @@ export function PlantPanel({ projectId, ctx }: { projectId?: string; ctx: Ctx })
   const [summary, reloadSummary] = useLoader<FleetSummary | null>(() => api.fetchFleetSummary(), [], ctx, null);
   const [selected, setSelected] = useState<string | null>(null);
   const refresh = async () => { await Promise.all([reload(), reloadSummary()]); };
-  const down = fleet.filter((e) => e.status !== 'AVAILABLE').length;
-  const due = fleet.filter((e) => e.service_due).length;
-  const machine = fleet.find((e) => e.equipment_id === selected) ?? null;
+
+  // ⚡ Bolt Performance Optimization:
+  // Replaced multiple O(N) inline `.filter()` and `.find()` operations with a single pass loop wrapped in `useMemo`.
+  // This avoids redundant recalculations on every render.
+  const { down, due, dueSoon, machine } = useMemo(() => {
+    let down = 0, due = 0, dueSoon = 0, machine = null;
+    for (const e of fleet) {
+      if (e.status !== 'AVAILABLE') down++;
+      if (e.service_due) due++;
+      if (e.service_due_soon) dueSoon++;
+      if (e.equipment_id === selected) machine = e;
+    }
+    return { down, due, dueSoon, machine };
+  }, [fleet, selected]);
+
+  // ⚡ Bolt Performance Optimization:
+  // Replaced multiple O(N) inline `.reduce()` operations with a single pass loop wrapped in `useMemo`.
+  const { totalDowntime, totalMaintenanceCost } = useMemo(() => {
+    let totalDowntime = 0, totalMaintenanceCost = 0;
+    if (summary?.equipment) {
+      for (const e of summary.equipment) {
+        totalDowntime += e.downtime_hours;
+        totalMaintenanceCost += e.maintenance_cost_usd;
+      }
+    }
+    return { totalDowntime, totalMaintenanceCost };
+  }, [summary]);
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Stat label="Machines" value={fleet.length} hint={`${fleet.length - down} available`} />
         <Stat label="Out of use" value={down} tone={down ? 'amber' : 'green'} hint="In workshop or out of service" />
-        <Stat label="Service overdue" value={due} tone={due ? 'red' : 'green'} hint={`${fleet.filter((e) => e.service_due_soon).length} due soon`} />
-        <Stat label={`Downtime (${summary?.windowDays ?? 90} days)`} value={`${num(summary?.equipment.reduce((s, e) => s + e.downtime_hours, 0) ?? 0)} h`}
-          hint={usd(summary?.equipment.reduce((s, e) => s + e.maintenance_cost_usd, 0) ?? 0) + ' maintenance spend'} />
+        <Stat label="Service overdue" value={due} tone={due ? 'red' : 'green'} hint={`${dueSoon} due soon`} />
+        <Stat label={`Downtime (${summary?.windowDays ?? 90} days)`} value={`${num(totalDowntime ?? 0)} h`}
+          hint={usd(totalMaintenanceCost ?? 0) + ' maintenance spend'} />
       </div>
 
       <Card title="Plant register" subtitle="Hours booked to projects run the hour meter; the service bar fills towards the next service interval"
