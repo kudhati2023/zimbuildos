@@ -6,7 +6,7 @@ Validates land survey geometry against ZNHSP statutory rules:
 - Minimum youth and vulnerable housing allocations
 """
 from typing import List, Dict, Any
-from shapely.geometry import Polygon, Point, MultiPolygon
+from shapely.geometry import Polygon, MultiPolygon
 from shapely.ops import unary_union
 
 class ZoningValidator:
