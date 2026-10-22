@@ -4,7 +4,6 @@ Wired to REST API backend endpoints with complete modals, RBAC validation, XSS s
 HMAC digital signatures, and genuine document downloaders.
 """
 
-import os
 
 def build_erp_html():
     return '''<!DOCTYPE html>
