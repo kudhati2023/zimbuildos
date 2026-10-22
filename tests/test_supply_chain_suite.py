@@ -173,3 +173,45 @@ def test_supply_chain_coordinator_end_to_end():
     assert assembly["quantity_manufactured"] == 5
     assert assembly["qc_pass_rate_pct"] > 98.0
     assert assembly["inbound_stock"] >= 85 # previously 80 + 5
+
+def test_coordinator_assemble_prefab_bom_not_found():
+    coordinator = SupplyChainCoordinator(fx_rate=26.50)
+    with pytest.raises(ValueError, match="No BOM found for INVALID-PREFAB"):
+        coordinator.assemble_and_stock_prefab("INVALID-PREFAB", quantity=1)
+
+
+def test_coordinator_assemble_prefab_insufficient_stock():
+    coordinator = SupplyChainCoordinator(fx_rate=26.50)
+    # Request a massive quantity that exceeds available central store stock
+    res = coordinator.assemble_and_stock_prefab("PREFAB-WALL-STD", quantity=999999)
+    assert res["success"] is False
+    assert "Insufficient raw material" in res["error"]
+
+
+def test_coordinator_assemble_prefab_happy_path_deductions():
+    coordinator = SupplyChainCoordinator(fx_rate=26.50)
+
+    bom = next((b for b in coordinator.manufacturing.bom_registry.values() if b.product_code == "PREFAB-WALL-STD"), None)
+
+    # Check components
+    component_to_check = None
+    for c in bom.components:
+        if c.raw_material_id in coordinator.wms.catalog:
+            component_to_check = c
+            break
+
+    assert component_to_check is not None
+    mat_id = component_to_check.raw_material_id
+
+    initial_stock = coordinator.wms.catalog[mat_id].central_store_qty
+
+    quantity_to_build = 2
+    res = coordinator.assemble_and_stock_prefab("PREFAB-WALL-STD", quantity=quantity_to_build)
+
+    assert res["success"] is True
+    assert res["quantity_manufactured"] == quantity_to_build
+    assert "raw_materials_consumed" in res
+
+    final_stock = coordinator.wms.catalog[mat_id].central_store_qty
+    expected_deduction = component_to_check.required_quantity * quantity_to_build
+    assert final_stock == initial_stock - expected_deduction
