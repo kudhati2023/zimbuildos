@@ -1,3 +1,4 @@
+import asyncio
 from google.antigravity.hooks.policy import allow, ask_user, deny
 from google.antigravity.triggers import every
 
@@ -31,11 +32,18 @@ legal_policies = [
 # Combined Workspace Policies
 policies = security_policies + legal_policies
 
+# To prevent tasks from being garbage collected mid-execution (as per python docs).
+_background_tasks = set()
+
 # Background Trigger for Installment Tracking
 async def check_payment_queue(ctx):
-    await ctx.send(
-        "Poll EcoCash gateway for newly cleared installments and update dual-currency ledgers."
+    # Use asyncio.create_task to fire and forget the I/O operation
+    # instead of blocking the current coroutine execution.
+    task = asyncio.create_task(
+        ctx.send("Poll EcoCash gateway for newly cleared installments and update dual-currency ledgers.")
     )
+    _background_tasks.add(task)
+    task.add_done_callback(_background_tasks.discard)
 
 triggers = [
     every(300, check_payment_queue)
