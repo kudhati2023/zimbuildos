@@ -89,6 +89,8 @@ class ManufacturingPLMManager:
     def __init__(self, fx_rate: float = 26.50):
         self.fx_rate = fx_rate
         self.bom_registry: Dict[str, BillOfMaterials] = {}
+        # Dictionary to map product codes to BOMs for O(1) lookups
+        self.product_code_registry: Dict[str, BillOfMaterials] = {}
         self.eco_registry: Dict[str, EngineeringChangeOrder] = {}
         self.production_orders: Dict[str, ProductionWorkOrder] = {}
         self._seed_mrp_plm_data()
@@ -134,6 +136,8 @@ class ManufacturingPLMManager:
 
         self.bom_registry[bom_wall.bom_id] = bom_wall
         self.bom_registry[bom_truss.bom_id] = bom_truss
+        self.product_code_registry[bom_wall.product_code] = bom_wall
+        self.product_code_registry[bom_truss.product_code] = bom_truss
 
         # 3. Seed Production Work Order
         wo = ProductionWorkOrder(
@@ -199,7 +203,7 @@ class ManufacturingPLMManager:
         Enables MRP netting against available stock.
         """
         # Find active BOM
-        bom = next((b for b in self.bom_registry.values() if b.product_code == product_code), None)
+        bom = self.product_code_registry.get(product_code)
         if not bom:
             return {"success": False, "error": f"No BOM found for product {product_code}"}
 
@@ -248,7 +252,7 @@ class ManufacturingPLMManager:
         facility: str = "Mount Hampden Prefab Yard"
     ) -> Dict[str, Any]:
         """Creates an executable shop-floor manufacturing order."""
-        bom = next((b for b in self.bom_registry.values() if b.product_code == product_code), None)
+        bom = self.product_code_registry.get(product_code)
         if not bom:
             return {"success": False, "error": f"No active BOM found for {product_code}"}
 
@@ -337,9 +341,8 @@ class ManufacturingPLMManager:
         eco.status = "IMPLEMENTED"
 
         # Update relevant BOM revision
-        for bom in self.bom_registry.values():
-            if bom.product_code == eco.product_code:
-                bom.revision = eco.new_revision
+        if eco.product_code in self.product_code_registry:
+            self.product_code_registry[eco.product_code].revision = eco.new_revision
 
         return {
             "success": True,
