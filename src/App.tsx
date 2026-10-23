@@ -156,6 +156,17 @@ export default function AntigravityEnterpriseDesktop() {
   }, [gisStands, standSearch, statusFilter]);
 
   // ⚡ Bolt Performance Optimization:
+  // Pre-calculate filtered arrays to prevent re-running `.filter()` loops
+  // inside the JSX render phase on every component state change.
+  const approvedApplications = useMemo(() => {
+    return applications.filter(a => a.status === 'APPROVED');
+  }, [applications]);
+
+  const availableStands = useMemo(() => {
+    return stands.filter(s => s.status === 'AVAILABLE');
+  }, [stands]);
+
+  // ⚡ Bolt Performance Optimization:
   // Replaced multiple inline array `.filter()` chains on `publicStands` with a single O(N) loop
   // wrapped in a `useMemo`. This prevents 4 O(N) recalculations on every component render.
   const publicStandsMetrics = useMemo(() => {
@@ -1584,7 +1595,7 @@ export default function AntigravityEnterpriseDesktop() {
                   className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-100"
                 >
                   <option value="">-- Choose Approved Applicant --</option>
-                  {applications.filter(a => a.status === 'APPROVED').map(a => (
+                  {approvedApplications.map(a => (
                     <option key={a.application_id} value={a.application_id}>
                       {a.first_name} {a.last_name} ({a.national_id}) · {a.quota_category} · Queued {new Date(a.first_submitted_at).toLocaleDateString()}
                     </option>
@@ -1600,7 +1611,7 @@ export default function AntigravityEnterpriseDesktop() {
                   className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-100"
                 >
                   <option value="">-- Choose Available Stand --</option>
-                  {stands.filter(s => s.status === 'AVAILABLE').map(s => (
+                  {availableStands.map(s => (
                     <option key={s.parcel_id} value={s.parcel_id}>
                       {s.stand_number} · {s.scheme_name} ({s.area_sqm} m² - ${parseFloat(s.price_usd).toLocaleString()} USD){s.quota_category !== 'GENERAL' ? ` · ${s.quota_category} quota` : ''}
                     </option>
