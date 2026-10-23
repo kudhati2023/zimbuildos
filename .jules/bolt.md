@@ -1,4 +1,3 @@
-
-## 2026-03-04 - Optimize publicStands mapping in App.tsx
-**Learning:** Re-renders using inline chained `.filter().map()` operations on data that isn't functionally mutated each pass significantly hurts frontend performance by running multiple iterative loops (O(4N) loops in App.tsx on `publicStands`).
-**Action:** Always combine and precalculate shared looping logic or related counts in a single pass O(N) using `useMemo` hooks.
+## 2024-10-24 - Extracted Inline O(N) Array Operations to useMemo
+**Learning:** Using inline `.filter()` and `.some()` loops inside JSX elements forces the React runtime to recalculate the array and allocate new memory on every re-render, severely harming performance when dealing with moderate datasets. Additionally, `npx tsc --noEmit` fails due to an npm alias issue; the correct command is `pnpm tsc --noEmit`.
+**Action:** Always precalculate and memoize expensive array transformations or loops over component state outside the render method using `useMemo`. When dealing with multiple filters on the same dataset (e.g. counting matches), combine them into a single O(N) loop rather than chaining multiple array functions.
