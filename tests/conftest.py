@@ -5,6 +5,10 @@ import threading
 import time
 import urllib.request
 import pytest
+
+# Inject secure env variables required for the application's tests to run before imports
+os.environ["ZIMBUILD_HMAC_SECRET"] = "test-secret-key-2026-safe-for-unit-tests-only"
+
 from server import SecureERPRequestHandler
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
