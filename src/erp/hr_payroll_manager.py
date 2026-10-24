@@ -12,7 +12,10 @@ import hashlib
 import hmac
 import os
 
-HMAC_SECRET = os.environ.get("ZIMBUILD_HMAC_SECRET", "zimbuild-secure-erp-signing-key-2026").encode()
+try:
+    HMAC_SECRET = os.environ["ZIMBUILD_HMAC_SECRET"].encode()
+except KeyError:
+    raise ValueError("ZIMBUILD_HMAC_SECRET environment variable is required")
 
 
 class EmployeeStatus(str, Enum):
