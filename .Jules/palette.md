@@ -1,0 +1,3 @@
+## 2024-10-24 - Missing ARIA Labels & Focus States on Icon-Only UI Elements
+**Learning:** Found a recurring pattern where icon-only action buttons (like refresh, sign in/out in the global header, and zoom controls in map overlays) lack ARIA labels and visible focus indicators. This severely impairs keyboard navigation and screen reader support for critical application interactions.
+**Action:** Always ensure `aria-label` and `focus-visible:ring-2` (matching the action's intent color, e.g., `ring-indigo-500` for default, `ring-rose-500` for destructive/logout) are applied to any icon-only button implemented in the application to guarantee accessibility.
