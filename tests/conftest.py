@@ -5,6 +5,7 @@ import threading
 import time
 import urllib.request
 import pytest
+os.environ["ZIMBUILD_HMAC_SECRET"] = "mock_secret_key_for_testing"
 from server import SecureERPRequestHandler
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
