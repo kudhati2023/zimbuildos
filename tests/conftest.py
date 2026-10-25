@@ -1,5 +1,8 @@
 import http.server
 import os
+
+os.environ["ZIMBUILD_HMAC_SECRET"] = "test-mock-secret-key-123"
+
 import socketserver
 import threading
 import time
