@@ -13,7 +13,10 @@ from typing import Dict, List, Optional, Set, Any
 from datetime import datetime
 
 # Server-side cryptographic secret for signing immutable transactions
-HMAC_SECRET = os.environ.get("ZIMBUILD_HMAC_SECRET", "zimbuild-secure-erp-signing-key-2026").encode()
+hmac_env = os.environ.get("ZIMBUILD_HMAC_SECRET")
+if not hmac_env:
+    raise ValueError("CRITICAL: ZIMBUILD_HMAC_SECRET environment variable is missing.")
+HMAC_SECRET = hmac_env.encode()
 
 # Role-Based Access Control (RBAC) Permissions Matrix
 ROLE_PERMISSIONS: Dict[str, Set[str]] = {

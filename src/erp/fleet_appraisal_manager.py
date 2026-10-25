@@ -12,7 +12,10 @@ import hashlib
 import hmac
 import os
 
-HMAC_SECRET = os.environ.get("ZIMBUILD_HMAC_SECRET", "zimbuild-secure-erp-signing-key-2026").encode()
+hmac_env = os.environ.get("ZIMBUILD_HMAC_SECRET")
+if not hmac_env:
+    raise ValueError("CRITICAL: ZIMBUILD_HMAC_SECRET environment variable is missing.")
+HMAC_SECRET = hmac_env.encode()
 
 
 class AssetCategory(str, Enum):

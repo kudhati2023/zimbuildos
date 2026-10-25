@@ -6,9 +6,14 @@ from typing import Dict, Any, List
 import hmac
 import hashlib
 import time
+import os
 
 class DualCurrencyLedger:
-    def __init__(self, secret_key: str = "enterprise_secret"):
+    def __init__(self, secret_key: str = None):
+        if secret_key is None:
+            secret_key = os.environ.get("ZIMBUILD_HMAC_SECRET")
+        if not secret_key:
+            raise ValueError("CRITICAL: Ledger secret key is missing.")
         self.secret_key = secret_key.encode('utf-8')
         self.accounts: Dict[str, Dict[str, Any]] = {}
         self.transactions: List[Dict[str, Any]] = []
