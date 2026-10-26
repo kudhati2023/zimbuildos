@@ -156,6 +156,29 @@ export default function AntigravityEnterpriseDesktop() {
   }, [gisStands, standSearch, statusFilter]);
 
   // ⚡ Bolt Performance Optimization:
+  // Extracted inline `.filter()` and `.some()` computations for telemetry metrics
+  // into a single O(N) pass wrapped in `useMemo` to prevent unnecessary recalculations on every render.
+  const gisStandsMetrics = useMemo(() => {
+    let mappedCount = 0;
+    let unmappedCount = 0;
+    for (const stand of filteredGISStands) {
+      if (stand.geometry) {
+        mappedCount++;
+      } else {
+        unmappedCount++;
+      }
+    }
+    return { mappedCount, unmappedCount };
+  }, [filteredGISStands]);
+
+  // ⚡ Bolt Performance Optimization:
+  // Extracted inline `.filter()` on `crmInquiries` from JSX render block
+  // into `useMemo` to prevent O(N) filtering on every render.
+  const filteredCrmInquiries = useMemo(() => {
+    return crmInquiries.filter(i => inquiryChannelFilter === 'ALL' || i.source_channel === inquiryChannelFilter);
+  }, [crmInquiries, inquiryChannelFilter]);
+
+  // ⚡ Bolt Performance Optimization:
   // Replaced multiple inline array `.filter()` chains on `publicStands` with a single O(N) loop
   // wrapped in a `useMemo`. This prevents 4 O(N) recalculations on every component render.
   const publicStandsMetrics = useMemo(() => {
@@ -804,8 +827,8 @@ export default function AntigravityEnterpriseDesktop() {
                     <div className="absolute bottom-14 left-3 z-[400] bg-slate-950/85 backdrop-blur-md border border-slate-800 px-3 py-1.5 rounded-xl text-[10px] font-mono text-slate-300 flex items-center space-x-2">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                       <span>
-                        {activeDev ? activeDev.name : 'No development'} • {filteredGISStands.filter(s => s.geometry).length} mapped
-                        {filteredGISStands.some(s => !s.geometry) && ` • ${filteredGISStands.filter(s => !s.geometry).length} without survey boundary (see Data Grid)`}
+                        {activeDev ? activeDev.name : 'No development'} • {gisStandsMetrics.mappedCount} mapped
+                        {gisStandsMetrics.unmappedCount > 0 && ` • ${gisStandsMetrics.unmappedCount} without survey boundary (see Data Grid)`}
                       </span>
                     </div>
                   </div>
@@ -2627,7 +2650,7 @@ export default function AntigravityEnterpriseDesktop() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800/60 font-mono text-[11px]">
-                          {(crmInquiries.filter(i => inquiryChannelFilter === 'ALL' || i.source_channel === inquiryChannelFilter)).map(inq => (
+                          {filteredCrmInquiries.map(inq => (
                             <tr key={inq.inquiry_id} className="hover:bg-slate-800/40 transition">
                               <td className="p-2.5 text-amber-400 font-bold">{inq.inquiry_id}</td>
                               <td className="p-2.5 font-sans font-semibold text-white">
