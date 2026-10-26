@@ -27,7 +27,7 @@ def run_mission_control():
     print(f"[3/5] Civil Works Earthwork: Net Haul {earthwork['net_balance_m3']} m³ ({earthwork['balance_status']})")
 
     # 4. Dual-Currency Fintech Settlement (USD / ZWG)
-    ledger = DualCurrencyLedger(secret_key="enterprise_secret")
+    ledger = DualCurrencyLedger()
     tx1 = ledger.record_installment("STAND-001", 5000.0, "USD", 26.50, 10000.0)
     tx2 = ledger.record_installment("STAND-001", 132500.0, "ZWG", 26.50, 10000.0)
     print(f"[4/5] Dual-Currency Settlement: {'100% PAID' if tx2['is_fully_paid'] else 'PENDING'}")

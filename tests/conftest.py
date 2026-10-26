@@ -5,6 +5,10 @@ import threading
 import time
 import urllib.request
 import pytest
+
+# Set ZIMBUILD_HMAC_SECRET before importing any server modules
+os.environ["ZIMBUILD_HMAC_SECRET"] = "test_secret_key_123"
+
 from server import SecureERPRequestHandler
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
