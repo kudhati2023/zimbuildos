@@ -618,12 +618,12 @@ export default function AntigravityEnterpriseDesktop() {
         <div className="flex items-center space-x-3 text-xs font-mono">
           <a
             href="/"
-            className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30 font-bold transition flex items-center space-x-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+            className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/40 hover:bg-amber-500/30 font-bold transition flex items-center space-x-1"
             title="Switch to 23-Module Enterprise ERP"
           >
             <span>🏢 Enterprise ERP</span>
           </a>
-          <button onClick={loadData} className="text-slate-400 hover:text-indigo-400 p-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" aria-label="Refresh Data">
+          <button onClick={loadData} className="text-slate-400 hover:text-indigo-400 p-1">
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin text-indigo-400' : ''}`} />
           </button>
           <div className={`flex items-center space-x-2 px-3 py-1 rounded-full border ${
@@ -638,7 +638,7 @@ export default function AntigravityEnterpriseDesktop() {
               <span className="text-slate-300" title={session.roles.join(', ')}>
                 {session.sub} <span className="text-indigo-400">[{session.roles.join(', ') || 'APPLICANT'}]</span>
               </span>
-              <button onClick={handleSignOut} className="text-slate-400 hover:text-rose-400 p-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500" title="Sign out" aria-label="Sign out">
+              <button onClick={handleSignOut} className="text-slate-400 hover:text-rose-400 p-1" title="Sign out">
                 <LogOut className="w-4 h-4" />
               </button>
             </div>
@@ -649,9 +649,9 @@ export default function AntigravityEnterpriseDesktop() {
                 value={tokenInput}
                 onChange={e => setTokenInput(e.target.value)}
                 placeholder="Paste access token"
-                className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-100 w-40 focus:outline-none focus:border-indigo-500 focus-visible:ring-2 focus-visible:ring-indigo-500"
+                className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-100 w-40 focus:outline-none focus:border-indigo-500"
               />
-              <button type="submit" disabled={!tokenInput.trim()} className="text-indigo-400 hover:text-indigo-300 disabled:opacity-40 p-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500" title="Sign in" aria-label="Sign in">
+              <button type="submit" disabled={!tokenInput.trim()} className="text-indigo-400 hover:text-indigo-300 disabled:opacity-40 p-1" title="Sign in">
                 <LogIn className="w-4 h-4" />
               </button>
             </form>
@@ -666,7 +666,7 @@ export default function AntigravityEnterpriseDesktop() {
             <AlertTriangle className="w-4 h-4 text-rose-400" />
             <span>{errorMsg}</span>
           </div>
-          <button onClick={() => setErrorMsg(null)} className="text-rose-400 font-bold rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500" aria-label="Dismiss error">×</button>
+          <button onClick={() => setErrorMsg(null)} className="text-rose-400 font-bold">×</button>
         </div>
       )}
       {successMsg && (
@@ -675,7 +675,7 @@ export default function AntigravityEnterpriseDesktop() {
             <CheckCircle className="w-4 h-4 text-emerald-400" />
             <span>{successMsg}</span>
           </div>
-          <button onClick={() => setSuccessMsg(null)} className="text-emerald-400 font-bold rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500" aria-label="Dismiss success message">×</button>
+          <button onClick={() => setSuccessMsg(null)} className="text-emerald-400 font-bold">×</button>
         </div>
       )}
 
