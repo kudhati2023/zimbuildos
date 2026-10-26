@@ -12,7 +12,10 @@ import hashlib
 import hmac
 import os
 
-HMAC_SECRET = os.environ.get("ZIMBUILD_HMAC_SECRET", "zimbuild-secure-erp-signing-key-2026").encode()
+_hmac_secret_env = os.environ.get("ZIMBUILD_HMAC_SECRET")
+if not _hmac_secret_env:
+    raise ValueError("ZIMBUILD_HMAC_SECRET environment variable is missing. Refusing to start securely.")
+HMAC_SECRET = _hmac_secret_env.encode()
 
 
 class ServicePriority(str, Enum):

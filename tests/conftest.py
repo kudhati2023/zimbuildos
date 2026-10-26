@@ -5,6 +5,13 @@ import threading
 import time
 import urllib.request
 import pytest
+
+# Ensure local testing succeeds without exposing secure enterprise credentials
+# Must be set before importing server modules or any module that depends on it
+if not os.environ.get("ZIMBUILD_HMAC_SECRET"):
+    os.environ["ZIMBUILD_HMAC_SECRET"] = "zimbuild-secure-erp-signing-key-test"
+os.environ["PAYMENT_GATEWAY_API_KEY"] = "sk_test_fake123"
+
 from server import SecureERPRequestHandler
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):

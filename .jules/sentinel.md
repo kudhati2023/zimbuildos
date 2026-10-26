@@ -1,0 +1,4 @@
+## 2024-10-26 - [Remove Hardcoded Cryptographic Fallback Secrets]
+**Vulnerability:** Found hardcoded fallback cryptographic secrets (like `"zimbuild-secure-erp-signing-key-2026"` and `"enterprise_secret"`) passed directly into `os.environ.get(..., fallback)` and class initializers across critical ERP/security modules (`security_guard.py`, `fleet_appraisal_manager.py`, `hr_payroll_manager.py`, `field_service_manager.py`, and `ledger.py`).
+**Learning:** Hardcoded fallback values completely undermine the security of environment variable retrieval, creating a hidden, exploitable backdoors if the environment variable fails to load. This violates the principle of "Fail Securely".
+**Prevention:** Always raise an explicit error (e.g., `ValueError`) when critical secrets are missing in the environment, rather than silently falling back to a hardcoded string that could be compromised via source code leaks.
