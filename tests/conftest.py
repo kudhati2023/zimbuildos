@@ -5,6 +5,12 @@ import threading
 import time
 import urllib.request
 import pytest
+
+# Ensure critical environment variables are set before importing any app modules
+os.environ["ZIMBUILD_HMAC_SECRET"] = "test_hmac_secret_key"
+os.environ["ZIMBUILD_LEDGER_SECRET"] = "test_ledger_secret_key"
+os.environ["PAYMENT_GATEWAY_API_KEY"] = "test_payment_gateway_api_key"
+
 from server import SecureERPRequestHandler
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
