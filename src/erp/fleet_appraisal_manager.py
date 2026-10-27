@@ -12,15 +12,18 @@ import hashlib
 import hmac
 import os
 
-HMAC_SECRET = os.environ.get("ZIMBUILD_HMAC_SECRET", "zimbuild-secure-erp-signing-key-2026").encode()
+_hmac_secret_env = os.environ.get("ZIMBUILD_HMAC_SECRET")
+if not _hmac_secret_env:
+    raise ValueError("Missing critical environment variable: ZIMBUILD_HMAC_SECRET")
+HMAC_SECRET = _hmac_secret_env.encode()
 
 
 class AssetCategory(str, Enum):
     HEAVY_EARTHMOVING = "Heavy Earthmoving Machinery"  # Excavators, Bulldozers, TLBs
     HAULAGE_COMMERCIAL = "Haulage & Commercial Transport"  # 15m3 Tippers, Lowbeds
-    COMPACTION_ROADWORKS = "Compaction & Roadworks"        # Vibratory Rollers, Graders
-    CORPORATE_FLEET = "Corporate & Executive Fleet"        # Executive Sedans, 4x4 Double Cabs
-    SITE_AUXILIARY = "Site Auxiliary Equipment"            # Diesel Generators, Mobile Compressors
+    COMPACTION_ROADWORKS = "Compaction & Roadworks"  # Vibratory Rollers, Graders
+    CORPORATE_FLEET = "Corporate & Executive Fleet"  # Executive Sedans, 4x4 Double Cabs
+    SITE_AUXILIARY = "Site Auxiliary Equipment"  # Diesel Generators, Mobile Compressors
 
 
 class AssetStatus(str, Enum):
@@ -57,7 +60,9 @@ class FleetAsset:
     assigned_operator: str
     status: str = AssetStatus.OPERATIONAL.value
     hourly_chargeout_rate_usd: float = 85.0
-    benchmark_fuel_burn_rate: float = 18.5  # Liters/hr (Machinery) or L/100km (Vehicles)
+    benchmark_fuel_burn_rate: float = (
+        18.5  # Liters/hr (Machinery) or L/100km (Vehicles)
+    )
     last_service_hours: float = 3500.0
     service_interval_hours: float = 250.0
 
@@ -70,16 +75,22 @@ class FleetAsset:
     def is_service_due(self) -> bool:
         return self.hours_until_next_service <= 20.0
 
-    def calculate_straight_line_depreciation(self, current_year: int = 2026) -> Dict[str, float]:
+    def calculate_straight_line_depreciation(
+        self, current_year: int = 2026
+    ) -> Dict[str, float]:
         """Calculates straight-line accumulated depreciation and Net Book Value (NBV)."""
         age_years = max(0, current_year - self.year)
-        annual_depr = (self.acquisition_cost_usd - self.salvage_value_usd) / max(1, self.useful_life_years)
-        accum_depr = min(self.acquisition_cost_usd - self.salvage_value_usd, annual_depr * age_years)
+        annual_depr = (self.acquisition_cost_usd - self.salvage_value_usd) / max(
+            1, self.useful_life_years
+        )
+        accum_depr = min(
+            self.acquisition_cost_usd - self.salvage_value_usd, annual_depr * age_years
+        )
         nbv = max(self.salvage_value_usd, self.acquisition_cost_usd - accum_depr)
         return {
             "annual_depreciation_usd": round(annual_depr, 2),
             "accumulated_depreciation_usd": round(accum_depr, 2),
-            "net_book_value_usd": round(nbv, 2)
+            "net_book_value_usd": round(nbv, 2),
         }
 
     def calculate_machine_hour_depreciation(self) -> Dict[str, float]:
@@ -91,7 +102,7 @@ class FleetAsset:
         return {
             "depreciation_rate_per_hour_usd": round(rate_per_hour, 2),
             "accumulated_depreciation_usd": round(accum_depr, 2),
-            "net_book_value_usd": round(nbv, 2)
+            "net_book_value_usd": round(nbv, 2),
         }
 
 
@@ -111,7 +122,9 @@ class ShiftTelematicsLog:
 
     @property
     def total_shift_duration_hours(self) -> float:
-        return round(self.engine_run_hours + self.idle_downtime_hours + self.breakdown_hours, 2)
+        return round(
+            self.engine_run_hours + self.idle_downtime_hours + self.breakdown_hours, 2
+        )
 
     @property
     def utilization_percentage(self) -> float:
@@ -192,7 +205,7 @@ class FleetAppraisalManager:
             status=AssetStatus.OPERATIONAL.value,
             hourly_chargeout_rate_usd=85.0,
             benchmark_fuel_burn_rate=18.5,
-            last_service_hours=4000.0
+            last_service_hours=4000.0,
         )
 
         eq2 = FleetAsset(
@@ -213,7 +226,7 @@ class FleetAppraisalManager:
             status=AssetStatus.OPERATIONAL.value,
             hourly_chargeout_rate_usd=65.0,
             benchmark_fuel_burn_rate=12.0,
-            last_service_hours=2250.0
+            last_service_hours=2250.0,
         )
 
         eq3 = FleetAsset(
@@ -234,7 +247,7 @@ class FleetAppraisalManager:
             status=AssetStatus.OPERATIONAL.value,
             hourly_chargeout_rate_usd=55.0,
             benchmark_fuel_burn_rate=36.0,  # L/100km or 16L/hr
-            last_service_hours=5000.0
+            last_service_hours=5000.0,
         )
 
         eq4 = FleetAsset(
@@ -254,9 +267,9 @@ class FleetAppraisalManager:
             assigned_operator="Eng. Chipo Marume (Project Manager)",
             status=AssetStatus.OPERATIONAL.value,
             hourly_chargeout_rate_usd=30.0,
-            benchmark_fuel_burn_rate=9.5,   # L/100km
+            benchmark_fuel_burn_rate=9.5,  # L/100km
             last_service_hours=40000.0,
-            service_interval_hours=5000.0
+            service_interval_hours=5000.0,
         )
 
         self.fleet[eq1.asset_id] = eq1
@@ -276,7 +289,7 @@ class FleetAppraisalManager:
             breakdown_hours=0.0,
             project_cost_code="JOB-CIV-FOUND-01",
             chargeout_rate_usd=85.0,
-            total_cost_recovered_usd=637.50
+            total_cost_recovered_usd=637.50,
         )
         log2 = ShiftTelematicsLog(
             log_id="LOG-2026-102",
@@ -289,7 +302,7 @@ class FleetAppraisalManager:
             breakdown_hours=0.5,
             project_cost_code="JOB-RD-SUBGRADE-02",
             chargeout_rate_usd=65.0,
-            total_cost_recovered_usd=390.00
+            total_cost_recovered_usd=390.00,
         )
         self.shift_logs.append(log1)
         self.shift_logs.append(log2)
@@ -309,7 +322,7 @@ class FleetAppraisalManager:
             actual_burn_rate=18.4,
             benchmark_rate=18.5,
             burn_variance_pct=-0.54,
-            is_anomaly_flagged=False
+            is_anomaly_flagged=False,
         )
         # Anomaly example: Tipper truck showing high burn rate
         f2 = FuelDispenseRecord(
@@ -327,7 +340,7 @@ class FleetAppraisalManager:
             benchmark_rate=36.0,
             burn_variance_pct=38.89,
             is_anomaly_flagged=True,
-            anomaly_reason="Abnormal Fuel Consumption: 38.9% above benchmark. Suspected siphoning, fuel leak, or excessive low-gear idling."
+            anomaly_reason="Abnormal Fuel Consumption: 38.9% above benchmark. Suspected siphoning, fuel leak, or excessive low-gear idling.",
         )
         self.fuel_records.append(f1)
         self.fuel_records.append(f2)
@@ -344,7 +357,7 @@ class FleetAppraisalManager:
             electrical_system_pct=86.0,
             appraised_fmv_usd=145000.0,
             replacement_cost_new_usd=215000.0,
-            notes="Hydraulic cycle times within factory tolerances; slewing ring wear minimal; undercarriage tracks at 78% remaining wear life."
+            notes="Hydraulic cycle times within factory tolerances; slewing ring wear minimal; undercarriage tracks at 78% remaining wear life.",
         )
 
     # --- FLEET MANAGEMENT ---
@@ -362,7 +375,7 @@ class FleetAppraisalManager:
         current_site_location: str,
         assigned_operator: str,
         hourly_chargeout_rate_usd: float = 75.0,
-        benchmark_fuel_burn_rate: float = 15.0
+        benchmark_fuel_burn_rate: float = 15.0,
     ) -> FleetAsset:
         asset_id = f"EQ-{category[:3].upper()}-{len(self.fleet) + 1:03d}"
         asset = FleetAsset(
@@ -381,7 +394,7 @@ class FleetAppraisalManager:
             current_site_location=current_site_location,
             assigned_operator=assigned_operator,
             hourly_chargeout_rate_usd=hourly_chargeout_rate_usd,
-            benchmark_fuel_burn_rate=benchmark_fuel_burn_rate
+            benchmark_fuel_burn_rate=benchmark_fuel_burn_rate,
         )
         self.fleet[asset_id] = asset
         return asset
@@ -395,7 +408,7 @@ class FleetAppraisalManager:
         engine_hours: float,
         idle_hours: float,
         breakdown_hours: float,
-        project_cost_code: str
+        project_cost_code: str,
     ) -> ShiftTelematicsLog:
         asset = self.fleet.get(asset_id)
         if not asset:
@@ -406,7 +419,9 @@ class FleetAppraisalManager:
         chargeout = asset.hourly_chargeout_rate_usd
         recovered_usd = round(engine_hours * chargeout, 2)
 
-        log_id = f"LOG-{datetime.now().strftime('%Y%m%d')}-{len(self.shift_logs) + 1:03d}"
+        log_id = (
+            f"LOG-{datetime.now().strftime('%Y%m%d')}-{len(self.shift_logs) + 1:03d}"
+        )
         log = ShiftTelematicsLog(
             log_id=log_id,
             asset_id=asset_id,
@@ -418,7 +433,7 @@ class FleetAppraisalManager:
             breakdown_hours=breakdown_hours,
             project_cost_code=project_cost_code,
             chargeout_rate_usd=chargeout,
-            total_cost_recovered_usd=recovered_usd
+            total_cost_recovered_usd=recovered_usd,
         )
         self.shift_logs.append(log)
         return log
@@ -432,7 +447,7 @@ class FleetAppraisalManager:
         unit_price_usd: float,
         bowser_or_station: str,
         meter_reading: float,
-        hours_or_km_delta: float
+        hours_or_km_delta: float,
     ) -> FuelDispenseRecord:
         asset = self.fleet.get(asset_id)
         if not asset:
@@ -443,7 +458,10 @@ class FleetAppraisalManager:
 
         # Burn rate calculation
         if hours_or_km_delta > 0:
-            if asset.category == AssetCategory.CORPORATE_FLEET.value or "Tipper" in asset.asset_name:
+            if (
+                asset.category == AssetCategory.CORPORATE_FLEET.value
+                or "Tipper" in asset.asset_name
+            ):
                 # Liters per 100km
                 actual_burn = round((liters / hours_or_km_delta) * 100.0, 2)
             else:
@@ -452,7 +470,11 @@ class FleetAppraisalManager:
         else:
             actual_burn = benchmark
 
-        variance_pct = round(((actual_burn - benchmark) / benchmark) * 100.0, 2) if benchmark > 0 else 0.0
+        variance_pct = (
+            round(((actual_burn - benchmark) / benchmark) * 100.0, 2)
+            if benchmark > 0
+            else 0.0
+        )
 
         # Flag anomaly if actual burn exceeds benchmark by more than 20%
         is_anomaly = variance_pct > 20.0
@@ -460,7 +482,9 @@ class FleetAppraisalManager:
         if is_anomaly:
             reason = f"FUEL ANOMALY ALERT: Consumption {variance_pct}% above standard benchmark ({actual_burn} vs {benchmark}). Possible fuel siphoning, fuel line leakage, or engine injector fault."
 
-        voucher_id = f"FV-{datetime.now().strftime('%Y%m%d')}-{len(self.fuel_records) + 1:03d}"
+        voucher_id = (
+            f"FV-{datetime.now().strftime('%Y%m%d')}-{len(self.fuel_records) + 1:03d}"
+        )
         rec = FuelDispenseRecord(
             voucher_id=voucher_id,
             asset_id=asset_id,
@@ -476,7 +500,7 @@ class FleetAppraisalManager:
             benchmark_rate=benchmark,
             burn_variance_pct=variance_pct,
             is_anomaly_flagged=is_anomaly,
-            anomaly_reason=reason
+            anomaly_reason=reason,
         )
         self.fuel_records.append(rec)
         return rec
@@ -494,19 +518,22 @@ class FleetAppraisalManager:
         electrical_system_pct: float,
         appraised_fmv_usd: float,
         replacement_cost_new_usd: float,
-        notes: str = ""
+        notes: str = "",
     ) -> EquipmentAppraisalRecord:
         asset = self.fleet.get(asset_id)
         if not asset:
             raise ValueError(f"Asset {asset_id} not found in fleet register")
 
-        overall_health = round((
-            engine_health_pct * 0.30 +
-            hydraulics_health_pct * 0.25 +
-            undercarriage_tires_pct * 0.20 +
-            chassis_structural_pct * 0.15 +
-            electrical_system_pct * 0.10
-        ), 1)
+        overall_health = round(
+            (
+                engine_health_pct * 0.30
+                + hydraulics_health_pct * 0.25
+                + undercarriage_tires_pct * 0.20
+                + chassis_structural_pct * 0.15
+                + electrical_system_pct * 0.10
+            ),
+            1,
+        )
 
         depr_info = asset.calculate_machine_hour_depreciation()
         book_value = depr_info["net_book_value_usd"]
@@ -515,7 +542,9 @@ class FleetAppraisalManager:
         app_id = f"APP-{datetime.now().year}-{asset.asset_id}"
         # HMAC certification seal
         seal_payload = f"{app_id}:{asset_id}:{appraised_fmv_usd}:{condition_grade}:{certified_appraiser}"
-        hmac_seal = hmac.new(HMAC_SECRET, seal_payload.encode(), hashlib.sha256).hexdigest()
+        hmac_seal = hmac.new(
+            HMAC_SECRET, seal_payload.encode(), hashlib.sha256
+        ).hexdigest()
 
         rec = EquipmentAppraisalRecord(
             appraisal_id=app_id,
@@ -535,7 +564,7 @@ class FleetAppraisalManager:
             historical_net_book_value_usd=book_value,
             revaluation_surplus_or_deficit_usd=revaluation_delta,
             appraisal_notes=notes,
-            certification_hmac_hash=hmac_seal
+            certification_hmac_hash=hmac_seal,
         )
         self.appraisals[asset_id] = rec
         return rec
@@ -543,13 +572,24 @@ class FleetAppraisalManager:
     def get_fleet_summary(self) -> Dict[str, Any]:
         """Provides executive fleet operations and equipment appraisal KPIs."""
         total_assets = len(self.fleet)
-        operational_count = sum(1 for a in self.fleet.values() if a.status == AssetStatus.OPERATIONAL.value)
-        total_acquisition_cost = sum(a.acquisition_cost_usd for a in self.fleet.values())
-        
+        operational_count = sum(
+            1 for a in self.fleet.values() if a.status == AssetStatus.OPERATIONAL.value
+        )
+        total_acquisition_cost = sum(
+            a.acquisition_cost_usd for a in self.fleet.values()
+        )
+
         # Total Book Value vs Appraised Fair Market Value
-        total_nbv = sum(a.calculate_machine_hour_depreciation()["net_book_value_usd"] for a in self.fleet.values())
-        total_appraised_fmv = sum(self.appraisals[k].appraised_fair_market_value_usd for k in self.appraisals if k in self.fleet)
-        
+        total_nbv = sum(
+            a.calculate_machine_hour_depreciation()["net_book_value_usd"]
+            for a in self.fleet.values()
+        )
+        total_appraised_fmv = sum(
+            self.appraisals[k].appraised_fair_market_value_usd
+            for k in self.appraisals
+            if k in self.fleet
+        )
+
         # Telematics hours & fuel burn
         total_engine_hours = sum(l.engine_run_hours for l in self.shift_logs)
         total_fuel_liters = sum(f.liters_dispensed for f in self.fuel_records)
@@ -577,9 +617,15 @@ class FleetAppraisalManager:
                     "status": a.status,
                     "hours": a.current_operating_hours,
                     "chargeout_rate": a.hourly_chargeout_rate_usd,
-                    "nbv_usd": a.calculate_machine_hour_depreciation()["net_book_value_usd"],
-                    "appraised_fmv_usd": self.appraisals[a.asset_id].appraised_fair_market_value_usd if a.asset_id in self.appraisals else None,
-                    "service_due": a.is_service_due
+                    "nbv_usd": a.calculate_machine_hour_depreciation()[
+                        "net_book_value_usd"
+                    ],
+                    "appraised_fmv_usd": (
+                        self.appraisals[a.asset_id].appraised_fair_market_value_usd
+                        if a.asset_id in self.appraisals
+                        else None
+                    ),
+                    "service_due": a.is_service_due,
                 }
                 for a in self.fleet.values()
             ],
@@ -590,8 +636,9 @@ class FleetAppraisalManager:
                     "date": f.dispense_date,
                     "liters": f.liters_dispensed,
                     "variance_pct": f.burn_variance_pct,
-                    "reason": f.anomaly_reason
+                    "reason": f.anomaly_reason,
                 }
-                for f in self.fuel_records if f.is_anomaly_flagged
-            ]
+                for f in self.fuel_records
+                if f.is_anomaly_flagged
+            ],
         }
