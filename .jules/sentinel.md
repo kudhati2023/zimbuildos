@@ -1,0 +1,4 @@
+## 2026-10-09 - Ensure 'Fail Securely' Pattern for Missing Secrets
+**Vulnerability:** Several core modules (`security_guard.py`, `fleet_appraisal_manager.py`, `hr_payroll_manager.py`, and `field_service_manager.py`) were falling back to hardcoded default HMAC secrets when the `ZIMBUILD_HMAC_SECRET` environment variable was missing. This violates the 'Fail Securely' philosophy.
+**Learning:** Using `os.environ.get("VAR", "default_secret")` can silently expose the system to cryptographic vulnerabilities if the environment is misconfigured. In enterprise applications, missing critical configuration like signing keys should immediately crash the application (fail securely) rather than functioning with a known compromised state.
+**Prevention:** Always use explicit `ValueError` raises for missing critical environment variables instead of providing default fallback values.
