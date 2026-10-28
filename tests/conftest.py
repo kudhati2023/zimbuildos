@@ -1,5 +1,11 @@
 import http.server
 import os
+
+# Mock environment variables required for tests before importing server modules
+os.environ["ZIMBUILD_HMAC_SECRET"] = "zimbuild-test-hmac-secret-2026"
+os.environ["ZIMBUILD_LEDGER_SECRET"] = "zimbuild-test-ledger-secret-2026"
+os.environ["PAYMENT_GATEWAY_API_KEY"] = "zimbuild-test-payment-gateway-api-key-2026"
+
 import socketserver
 import threading
 import time
