@@ -12,7 +12,12 @@ import hashlib
 import hmac
 import os
 
-HMAC_SECRET = os.environ.get("ZIMBUILD_HMAC_SECRET", "zimbuild-secure-erp-signing-key-2026").encode()
+hmac_secret_env = os.environ.get("ZIMBUILD_HMAC_SECRET")
+if not hmac_secret_env:
+    raise ValueError(
+        "CRITICAL: ZIMBUILD_HMAC_SECRET environment variable is not set. Failing securely."
+    )
+HMAC_SECRET = hmac_secret_env.encode()
 
 
 class ServicePriority(str, Enum):
@@ -81,7 +86,9 @@ class ServiceWorkOrder:
     priority: str
     scope_of_work: str
     status: str = WorkOrderStatus.DISPATCHED.value
-    dispatched_at: str = field(default_factory=lambda: datetime.now().strftime("%Y-%m-%d %H:%M"))
+    dispatched_at: str = field(
+        default_factory=lambda: datetime.now().strftime("%Y-%m-%d %H:%M")
+    )
     jsa_safety_checklist_completed: bool = False
     jsa_hazard_controls: List[str] = field(default_factory=list)
     parts_consumed: List[Dict[str, Any]] = field(default_factory=list)
@@ -94,7 +101,13 @@ class ServiceWorkOrder:
 
     @property
     def total_parts_cost_usd(self) -> float:
-        return round(sum(p.get("qty", 0.0) * p.get("unit_price_usd", 0.0) for p in self.parts_consumed), 2)
+        return round(
+            sum(
+                p.get("qty", 0.0) * p.get("unit_price_usd", 0.0)
+                for p in self.parts_consumed
+            ),
+            2,
+        )
 
     @property
     def total_labor_cost_usd(self) -> float:
@@ -140,7 +153,7 @@ class FieldServiceManager:
             current_status="On Site",
             current_gps_coords="-17.8292, 31.0522",
             completed_jobs_count=58,
-            customer_rating=4.9
+            customer_rating=4.9,
         )
         t2 = TechnicianProfile(
             tech_id="TECH-002",
@@ -152,7 +165,7 @@ class FieldServiceManager:
             current_status="Available",
             current_gps_coords="-18.3333, 29.9167",
             completed_jobs_count=74,
-            customer_rating=4.8
+            customer_rating=4.8,
         )
         t3 = TechnicianProfile(
             tech_id="TECH-003",
@@ -164,7 +177,7 @@ class FieldServiceManager:
             current_status="Available",
             current_gps_coords="-17.8200, 31.0400",
             completed_jobs_count=49,
-            customer_rating=4.7
+            customer_rating=4.7,
         )
         self.technicians[t1.tech_id] = t1
         self.technicians[t2.tech_id] = t2
@@ -183,7 +196,7 @@ class FieldServiceManager:
             reported_at="2026-10-09 08:30",
             target_sla_hours=1.0,
             status="Dispatched",
-            assigned_wo_id="FWO-2026-001"
+            assigned_wo_id="FWO-2026-001",
         )
         sr2 = ServiceRequest(
             request_id="SR-2026-002",
@@ -196,7 +209,7 @@ class FieldServiceManager:
             problem_description="CAT 320D main boom hydraulic pressure drop and burst high-pressure hose.",
             reported_at="2026-10-09 09:15",
             target_sla_hours=4.0,
-            status="Pending Dispatch"
+            status="Pending Dispatch",
         )
         self.service_requests[sr1.request_id] = sr1
         self.service_requests[sr2.request_id] = sr2
@@ -212,14 +225,28 @@ class FieldServiceManager:
             scope_of_work="Isolate 3-phase feeder, replace burnt 100A 3P circuit breaker, perform insulation resistance testing and restore supply.",
             status=WorkOrderStatus.IN_PROGRESS.value,
             jsa_safety_checklist_completed=True,
-            jsa_hazard_controls=["Lockout/Tagout (LOTO) Verified", "Arc Flash PPE Worn", "Voltage Free Verification Test Passed"],
+            jsa_hazard_controls=[
+                "Lockout/Tagout (LOTO) Verified",
+                "Arc Flash PPE Worn",
+                "Voltage Free Verification Test Passed",
+            ],
             parts_consumed=[
-                {"part_code": "EL-CB-100A", "description": "Schneider 100A 3-Phase Moulded Case Breaker", "qty": 1.0, "unit_price_usd": 145.0},
-                {"part_code": "EL-LUG-35MM", "description": "Copper Heavy Duty Cable Lugs 35mm²", "qty": 6.0, "unit_price_usd": 3.50}
+                {
+                    "part_code": "EL-CB-100A",
+                    "description": "Schneider 100A 3-Phase Moulded Case Breaker",
+                    "qty": 1.0,
+                    "unit_price_usd": 145.0,
+                },
+                {
+                    "part_code": "EL-LUG-35MM",
+                    "description": "Copper Heavy Duty Cable Lugs 35mm²",
+                    "qty": 6.0,
+                    "unit_price_usd": 3.50,
+                },
             ],
             labor_hours_logged=2.5,
             hourly_labor_rate_usd=40.0,
-            work_notes="Fault isolated to worn copper lug overheating. Breaker replaced, phase balancing checked at 415V."
+            work_notes="Fault isolated to worn copper lug overheating. Breaker replaced, phase balancing checked at 415V.",
         )
         self.work_orders[wo1.wo_id] = wo1
 
@@ -232,7 +259,7 @@ class FieldServiceManager:
             timestamp="2026-10-09 08:52",
             gps_lat_lng="-17.8292, 31.0522",
             photo_hash="SHA256:d892ba9f3021ec89",
-            notes="Technician arrived on-site within 22 minutes (P1 SLA target met)."
+            notes="Technician arrived on-site within 22 minutes (P1 SLA target met).",
         )
         self.mobile_logs.append(mlog)
 
@@ -245,10 +272,14 @@ class FieldServiceManager:
         unit_or_stand_no: str,
         client_name: str,
         phone: str,
-        problem_description: str
+        problem_description: str,
     ) -> ServiceRequest:
         req_id = f"SR-2026-{len(self.service_requests) + 1:03d}"
-        sla = 1.0 if "P1" in priority else (4.0 if "P2" in priority else (12.0 if "P3" in priority else 48.0))
+        sla = (
+            1.0
+            if "P1" in priority
+            else (4.0 if "P2" in priority else (12.0 if "P3" in priority else 48.0))
+        )
         req = ServiceRequest(
             request_id=req_id,
             category=category,
@@ -260,7 +291,7 @@ class FieldServiceManager:
             problem_description=problem_description,
             reported_at=datetime.now().strftime("%Y-%m-%d %H:%M"),
             target_sla_hours=sla,
-            status="Pending Dispatch"
+            status="Pending Dispatch",
         )
         self.service_requests[req_id] = req
         return req
@@ -270,7 +301,7 @@ class FieldServiceManager:
         request_id: str,
         tech_id: str,
         scope_of_work: str,
-        hourly_rate_usd: float = 35.0
+        hourly_rate_usd: float = 35.0,
     ) -> ServiceWorkOrder:
         req = self.service_requests.get(request_id)
         if not req:
@@ -289,7 +320,7 @@ class FieldServiceManager:
             priority=req.priority,
             scope_of_work=scope_of_work,
             status=WorkOrderStatus.DISPATCHED.value,
-            hourly_labor_rate_usd=hourly_rate_usd
+            hourly_labor_rate_usd=hourly_rate_usd,
         )
         self.work_orders[wo_id] = wo
         req.status = "Dispatched"
@@ -298,7 +329,9 @@ class FieldServiceManager:
         return wo
 
     # --- WORK ORDER EXECUTION & JSA SAFETY PROTOCOL ---
-    def record_jsa_safety_checklist(self, wo_id: str, hazard_controls: List[str]) -> bool:
+    def record_jsa_safety_checklist(
+        self, wo_id: str, hazard_controls: List[str]
+    ) -> bool:
         """Confirms Job Safety Analysis (JSA) / PPE pre-work hazard verification."""
         wo = self.work_orders.get(wo_id)
         if not wo:
@@ -308,18 +341,27 @@ class FieldServiceManager:
         wo.status = WorkOrderStatus.IN_PROGRESS.value
         return True
 
-    def add_parts_to_work_order(self, wo_id: str, part_code: str, description: str, qty: float, unit_price_usd: float) -> float:
+    def add_parts_to_work_order(
+        self,
+        wo_id: str,
+        part_code: str,
+        description: str,
+        qty: float,
+        unit_price_usd: float,
+    ) -> float:
         """Adds consumed parts/materials to field work order."""
         wo = self.work_orders.get(wo_id)
         if not wo:
             raise ValueError(f"Work order {wo_id} not found")
-        wo.parts_consumed.append({
-            "part_code": part_code,
-            "description": description,
-            "qty": qty,
-            "unit_price_usd": unit_price_usd,
-            "line_total_usd": round(qty * unit_price_usd, 2)
-        })
+        wo.parts_consumed.append(
+            {
+                "part_code": part_code,
+                "description": description,
+                "qty": qty,
+                "unit_price_usd": unit_price_usd,
+                "line_total_usd": round(qty * unit_price_usd, 2),
+            }
+        )
         return wo.total_parts_cost_usd
 
     def complete_work_order(
@@ -328,7 +370,7 @@ class FieldServiceManager:
         labor_hours: float,
         work_notes: str,
         client_name: str,
-        client_signature_text: str = "Client Signed Digital Seal"
+        client_signature_text: str = "Client Signed Digital Seal",
     ) -> ServiceWorkOrder:
         """Completes work order, seals with cryptographic HMAC hash and marks tech available."""
         wo = self.work_orders.get(wo_id)
@@ -343,7 +385,9 @@ class FieldServiceManager:
 
         # Cryptographic tamper-evident signature
         seal_payload = f"{wo.wo_id}:{wo.assigned_tech_id}:{wo.total_work_order_cost_usd}:{client_name}:{wo.completion_timestamp}"
-        wo.digital_signature_hash = hmac.new(HMAC_SECRET, seal_payload.encode(), hashlib.sha256).hexdigest()
+        wo.digital_signature_hash = hmac.new(
+            HMAC_SECRET, seal_payload.encode(), hashlib.sha256
+        ).hexdigest()
 
         # Update Request Status
         if wo.request_id in self.service_requests:
@@ -365,7 +409,7 @@ class FieldServiceManager:
         action_type: str,
         gps_lat_lng: str,
         photo_bytes_or_string: Optional[str] = None,
-        notes: str = ""
+        notes: str = "",
     ) -> MobileFieldLogEntry:
         """Records a field mobile log event with GPS coordinates and tamper-proof photo hash."""
         photo_hash = None
@@ -383,7 +427,7 @@ class FieldServiceManager:
             gps_lat_lng=gps_lat_lng,
             photo_hash=photo_hash,
             notes=notes,
-            synced_to_server=True
+            synced_to_server=True,
         )
         self.mobile_logs.append(log)
 
@@ -399,10 +443,23 @@ class FieldServiceManager:
     def get_field_service_summary(self) -> Dict[str, Any]:
         """Returns comprehensive field service operations metrics."""
         total_requests = len(self.service_requests)
-        pending_dispatch = sum(1 for r in self.service_requests.values() if r.status == "Pending Dispatch")
-        active_wos = sum(1 for w in self.work_orders.values() if w.status in [WorkOrderStatus.DISPATCHED.value, WorkOrderStatus.IN_PROGRESS.value])
-        completed_wos = sum(1 for w in self.work_orders.values() if w.status == WorkOrderStatus.COMPLETED.value)
-        total_costs = sum(w.total_work_order_cost_usd for w in self.work_orders.values())
+        pending_dispatch = sum(
+            1 for r in self.service_requests.values() if r.status == "Pending Dispatch"
+        )
+        active_wos = sum(
+            1
+            for w in self.work_orders.values()
+            if w.status
+            in [WorkOrderStatus.DISPATCHED.value, WorkOrderStatus.IN_PROGRESS.value]
+        )
+        completed_wos = sum(
+            1
+            for w in self.work_orders.values()
+            if w.status == WorkOrderStatus.COMPLETED.value
+        )
+        total_costs = sum(
+            w.total_work_order_cost_usd for w in self.work_orders.values()
+        )
 
         return {
             "total_service_requests": total_requests,
@@ -410,7 +467,9 @@ class FieldServiceManager:
             "active_work_orders_count": active_wos,
             "completed_work_orders_count": completed_wos,
             "total_maintenance_expenditure_usd": round(total_costs, 2),
-            "available_technicians_count": sum(1 for t in self.technicians.values() if t.current_status == "Available"),
+            "available_technicians_count": sum(
+                1 for t in self.technicians.values() if t.current_status == "Available"
+            ),
             "technicians": [
                 {
                     "tech_id": t.tech_id,
@@ -421,7 +480,7 @@ class FieldServiceManager:
                     "status": t.current_status,
                     "gps": t.current_gps_coords,
                     "completed_jobs": t.completed_jobs_count,
-                    "rating": t.customer_rating
+                    "rating": t.customer_rating,
                 }
                 for t in self.technicians.values()
             ],
@@ -437,7 +496,7 @@ class FieldServiceManager:
                     "labor_hours": w.labor_hours_logged,
                     "total_cost_usd": w.total_work_order_cost_usd,
                     "jsa_completed": w.jsa_safety_checklist_completed,
-                    "signature_hash": w.digital_signature_hash
+                    "signature_hash": w.digital_signature_hash,
                 }
                 for w in self.work_orders.values()
             ],
@@ -450,8 +509,8 @@ class FieldServiceManager:
                     "time": m.timestamp,
                     "gps": m.gps_lat_lng,
                     "photo_hash": m.photo_hash,
-                    "notes": m.notes
+                    "notes": m.notes,
                 }
                 for m in self.mobile_logs[-10:]
-            ]
+            ],
         }

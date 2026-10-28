@@ -7,6 +7,7 @@ import pytest
 # INTENTIONALLY FLAWED CODE SAMPLES (PRE-AUDIT / PRE-REFACTORING)
 # ==============================================================================
 
+
 # 1. SQL Injection Defense (CWE-89 / OWASP A03:2021)
 # Secured: Using parameterized queries with SQLite placeholders (?) instead of string interpolation.
 def query_beneficiary_records(conn: sqlite3.Connection, beneficiary_id: str):
@@ -27,23 +28,27 @@ def render_beneficiary_badge(applicant_name: str) -> str:
 # Secured: Dynamic loading from environment variables without hardcoded production keys.
 def get_payment_gateway_client(api_key: str = None) -> dict:
     effective_key = api_key or os.environ.get("PAYMENT_GATEWAY_API_KEY")
-    return {
-        "status": "connected",
-        "api_key": effective_key
-    }
+    return {"status": "connected", "api_key": effective_key}
 
 
 # ==============================================================================
 # SECURITY TEST SUITE (EXPLOIT PAYLOAD VERIFICATION)
 # ==============================================================================
 
+
 @pytest.fixture
 def test_db():
     conn = sqlite3.connect(":memory:")
     cursor = conn.cursor()
-    cursor.execute("CREATE TABLE beneficiaries (id TEXT PRIMARY KEY, full_name TEXT, national_id TEXT)")
-    cursor.execute("INSERT INTO beneficiaries VALUES ('BEN-001', 'Tinashe Moyo', '63-1234567-B-42')")
-    cursor.execute("INSERT INTO beneficiaries VALUES ('BEN-002', 'Chipo Ndlovu', '08-7654321-K-19')")
+    cursor.execute(
+        "CREATE TABLE beneficiaries (id TEXT PRIMARY KEY, full_name TEXT, national_id TEXT)"
+    )
+    cursor.execute(
+        "INSERT INTO beneficiaries VALUES ('BEN-001', 'Tinashe Moyo', '63-1234567-B-42')"
+    )
+    cursor.execute(
+        "INSERT INTO beneficiaries VALUES ('BEN-002', 'Chipo Ndlovu', '08-7654321-K-19')"
+    )
     conn.commit()
     yield conn
     conn.close()
@@ -57,10 +62,12 @@ def test_sql_injection_defense(test_db):
     """
     exploit_payload = "BEN-001' OR '1'='1"
     results = query_beneficiary_records(test_db, exploit_payload)
-    
+
     # Secure expectation: Must not leak all records or execute injected OR condition
-    assert len(results) == 0, f"SQL Injection succeeded! Leaked {len(results)} records with payload: {exploit_payload}"
-    
+    assert (
+        len(results) == 0
+    ), f"SQL Injection succeeded! Leaked {len(results)} records with payload: {exploit_payload}"
+
     # Legitimate lookup must still work
     legit_results = query_beneficiary_records(test_db, "BEN-001")
     assert len(legit_results) == 1
@@ -75,11 +82,17 @@ def test_xss_sanitization():
     """
     malicious_input = "<script>alert('XSS_ATTACK')</script>"
     rendered_output = render_beneficiary_badge(malicious_input)
-    
+
     # Secure expectation: No raw script tags or unescaped HTML angle brackets
-    assert "<script>" not in rendered_output, "XSS Vulnerability: Raw <script> tag detected in rendered HTML!"
-    assert "</script>" not in rendered_output, "XSS Vulnerability: Raw </script> tag detected in rendered HTML!"
-    assert "&lt;script&gt;" in rendered_output, "Input was not properly HTML entity-escaped!"
+    assert (
+        "<script>" not in rendered_output
+    ), "XSS Vulnerability: Raw <script> tag detected in rendered HTML!"
+    assert (
+        "</script>" not in rendered_output
+    ), "XSS Vulnerability: Raw </script> tag detected in rendered HTML!"
+    assert (
+        "&lt;script&gt;" in rendered_output
+    ), "Input was not properly HTML entity-escaped!"
 
 
 def test_hardcoded_secret_prevention(monkeypatch):
@@ -93,7 +106,9 @@ def test_hardcoded_secret_prevention(monkeypatch):
 
     # Check for hardcoded secret string in source code
     module_source = inspect.getsource(audit_module).split("# SECURITY TEST SUITE")[0]
-    assert "sk_live_" not in module_source, "Hardcoded production API key found in source code!"
+    assert (
+        "sk_live_" not in module_source
+    ), "Hardcoded production API key found in source code!"
 
     # Ensure dynamic environment variable loading works securely
     monkeypatch.setenv("PAYMENT_GATEWAY_API_KEY", "env_secret_test_key_123")

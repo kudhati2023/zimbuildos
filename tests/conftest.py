@@ -5,18 +5,29 @@ import threading
 import time
 import urllib.request
 import pytest
+
+# Mock environment variables to ensure local testing succeeds without exposing secure enterprise credentials
+# These MUST be set before importing `server` or any module relying on these values
+os.environ["ZIMBUILD_HMAC_SECRET"] = "mock-zimbuild-hmac-secret-for-testing-only"
+os.environ["ZIMBUILD_LEDGER_SECRET"] = "mock-zimbuild-ledger-secret-for-testing-only"
+os.environ["PAYMENT_GATEWAY_API_KEY"] = "mock-payment-gateway-api-key-for-testing-only"
+
 from server import SecureERPRequestHandler
+
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     allow_reuse_address = True
     daemon_threads = True
+
 
 @pytest.fixture(scope="session", autouse=True)
 def ensure_erp_server():
     """Ensures the Zimbuild Secure ERP backend server is active on port 8000 for test suites."""
     # Test if server is already answering
     try:
-        with urllib.request.urlopen("http://127.0.0.1:8000/api/health", timeout=0.5) as resp:
+        with urllib.request.urlopen(
+            "http://127.0.0.1:8000/api/health", timeout=0.5
+        ) as resp:
             if resp.status == 200:
                 yield
                 return
@@ -32,7 +43,9 @@ def ensure_erp_server():
     deadline = time.time() + 5.0
     while time.time() < deadline:
         try:
-            with urllib.request.urlopen("http://127.0.0.1:8000/api/health", timeout=0.5) as resp:
+            with urllib.request.urlopen(
+                "http://127.0.0.1:8000/api/health", timeout=0.5
+            ) as resp:
                 if resp.status == 200:
                     started = True
                     break

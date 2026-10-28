@@ -12,7 +12,12 @@ import hashlib
 import hmac
 import os
 
-HMAC_SECRET = os.environ.get("ZIMBUILD_HMAC_SECRET", "zimbuild-secure-erp-signing-key-2026").encode()
+hmac_secret_env = os.environ.get("ZIMBUILD_HMAC_SECRET")
+if not hmac_secret_env:
+    raise ValueError(
+        "CRITICAL: ZIMBUILD_HMAC_SECRET environment variable is not set. Failing securely."
+    )
+HMAC_SECRET = hmac_secret_env.encode()
 
 
 class EmployeeStatus(str, Enum):
@@ -58,19 +63,23 @@ class EmployeeProfile:
     base_salary_usd: float
     site_assigned: str
     status: str = EmployeeStatus.ACTIVE.value
-    leave_balances: Dict[str, int] = field(default_factory=lambda: {
-        "annual": 21,
-        "sick": 14,
-        "compassionate": 5,
-        "casual": 3
-    })
+    leave_balances: Dict[str, int] = field(
+        default_factory=lambda: {
+            "annual": 21,
+            "sick": 14,
+            "compassionate": 5,
+            "casual": 3,
+        }
+    )
     performance_rating: float = 4.2
     bank_name: str = "Stanbic Bank Zimbabwe"
     bank_account: str = "914000382910"
     ecocash_number: str = "+263 772 100 200"
     history: List[Dict[str, Any]] = field(default_factory=list)
 
-    def promote(self, new_title: str, new_grade: str, new_salary_usd: float, notes: str = ""):
+    def promote(
+        self, new_title: str, new_grade: str, new_salary_usd: float, notes: str = ""
+    ):
         """Records promotion, update title, NEC grade and remuneration."""
         prev = {
             "action": "PROMOTION",
@@ -81,7 +90,7 @@ class EmployeeProfile:
             "new_grade": new_grade,
             "old_salary_usd": self.base_salary_usd,
             "new_salary_usd": new_salary_usd,
-            "notes": notes
+            "notes": notes,
         }
         self.history.append(prev)
         self.job_title = new_title
@@ -93,25 +102,29 @@ class EmployeeProfile:
         key = leave_type.lower()
         if key in self.leave_balances and self.leave_balances[key] >= days:
             self.leave_balances[key] -= days
-            self.history.append({
-                "action": "LEAVE_TAKEN",
-                "date": datetime.now().strftime("%Y-%m-%d"),
-                "leave_type": leave_type,
-                "days": days,
-                "balance_remaining": self.leave_balances[key]
-            })
+            self.history.append(
+                {
+                    "action": "LEAVE_TAKEN",
+                    "date": datetime.now().strftime("%Y-%m-%d"),
+                    "leave_type": leave_type,
+                    "days": days,
+                    "balance_remaining": self.leave_balances[key],
+                }
+            )
             return True
         return False
 
     def terminate_employment(self, reason: str, notice_days: int = 30):
         """Processes offboarding / end of employee contract."""
         self.status = EmployeeStatus.TERMINATED.value
-        self.history.append({
-            "action": "TERMINATION",
-            "date": datetime.now().strftime("%Y-%m-%d"),
-            "reason": reason,
-            "notice_days": notice_days
-        })
+        self.history.append(
+            {
+                "action": "TERMINATION",
+                "date": datetime.now().strftime("%Y-%m-%d"),
+                "reason": reason,
+                "notice_days": notice_days,
+            }
+        )
 
 
 @dataclass
@@ -138,13 +151,22 @@ class CandidateApplication:
     phone: str
     email: str
     interview_score: float = 0.0
-    status: str = "Applied"  # Applied, Shortlisted, Interviewed, Offered, Hired, Rejected
+    status: str = (
+        "Applied"  # Applied, Shortlisted, Interviewed, Offered, Hired, Rejected
+    )
     screening_notes: str = ""
 
-    def evaluate_interview(self, technical_score: float, safety_score: float, trade_test_score: float) -> float:
+    def evaluate_interview(
+        self, technical_score: float, safety_score: float, trade_test_score: float
+    ) -> float:
         """Calculates weighted interview score out of 100."""
         # 50% technical skills, 25% safety compliance, 25% practical trade test
-        self.interview_score = round((technical_score * 0.50) + (safety_score * 0.25) + (trade_test_score * 0.25), 1)
+        self.interview_score = round(
+            (technical_score * 0.50)
+            + (safety_score * 0.25)
+            + (trade_test_score * 0.25),
+            1,
+        )
         if self.interview_score >= 85.0:
             self.status = "Offered"
         elif self.interview_score >= 75.0:
@@ -175,7 +197,9 @@ class SiteAttendanceRecord:
 
     @property
     def total_hours_worked(self) -> float:
-        return round(self.regular_hours + self.overtime_1_5x_hours + self.overtime_2_0x_hours, 2)
+        return round(
+            self.regular_hours + self.overtime_1_5x_hours + self.overtime_2_0x_hours, 2
+        )
 
 
 @dataclass
@@ -195,18 +219,18 @@ class LocalizedPayrollSlip:
 
     # Statutory Employee Deductions
     nssa_pobs_employee_usd: float = 0.0  # 4.5% up to statutory cap
-    zimra_paye_tax_usd: float = 0.0      # Progressive PAYE tax
-    aids_levy_usd: float = 0.0           # 3% on PAYE tax
-    nec_levy_employee_usd: float = 0.0   # 1.25% of basic
+    zimra_paye_tax_usd: float = 0.0  # Progressive PAYE tax
+    aids_levy_usd: float = 0.0  # 3% on PAYE tax
+    nec_levy_employee_usd: float = 0.0  # 1.25% of basic
     total_deductions_usd: float = 0.0
     net_salary_usd: float = 0.0
 
     # Employer Statutory Contributions
     nssa_pobs_employer_usd: float = 0.0  # 4.5% matching
-    nssa_apwcs_employer_usd: float = 0.0 # 1.5% Workers Compensation
-    nec_levy_employer_usd: float = 0.0   # 1.25% matching
-    zimdef_levy_employer_usd: float = 0.0 # 1.0% Manpower Development Fund
-    sdf_levy_employer_usd: float = 0.0   # 0.5% Standards Development Fund
+    nssa_apwcs_employer_usd: float = 0.0  # 1.5% Workers Compensation
+    nec_levy_employer_usd: float = 0.0  # 1.25% matching
+    zimdef_levy_employer_usd: float = 0.0  # 1.0% Manpower Development Fund
+    sdf_levy_employer_usd: float = 0.0  # 0.5% Standards Development Fund
     total_employer_cost_usd: float = 0.0
 
     # Multi-currency conversion
@@ -240,7 +264,7 @@ class HRPayrollManager:
             date_joined="2022-04-15",
             base_salary_usd=2800.0,
             site_assigned="Parkview Heights High-Rise (Stand #001)",
-            performance_rating=4.8
+            performance_rating=4.8,
         )
         emp2 = EmployeeProfile(
             employee_id="EMP-2026-002",
@@ -253,7 +277,7 @@ class HRPayrollManager:
             date_joined="2023-08-01",
             base_salary_usd=1650.0,
             site_assigned="Kadoma Phase 2 Civil Works",
-            performance_rating=4.5
+            performance_rating=4.5,
         )
         emp3 = EmployeeProfile(
             employee_id="EMP-2026-003",
@@ -266,7 +290,7 @@ class HRPayrollManager:
             date_joined="2024-01-10",
             base_salary_usd=2200.0,
             site_assigned="Norton Gated Estate (Stand #002)",
-            performance_rating=4.6
+            performance_rating=4.6,
         )
         emp4 = EmployeeProfile(
             employee_id="EMP-2026-004",
@@ -279,7 +303,7 @@ class HRPayrollManager:
             date_joined="2024-05-20",
             base_salary_usd=1400.0,
             site_assigned="Parkview Heights High-Rise (Stand #001)",
-            performance_rating=4.1
+            performance_rating=4.1,
         )
         self.employees[emp1.employee_id] = emp1
         self.employees[emp2.employee_id] = emp2
@@ -296,7 +320,7 @@ class HRPayrollManager:
             budget_salary_usd=1750.0,
             date_posted="2026-09-28",
             status="Interviewing",
-            applicants_count=6
+            applicants_count=6,
         )
         req2 = JobRequisition(
             req_id="REQ-2026-02",
@@ -307,7 +331,7 @@ class HRPayrollManager:
             budget_salary_usd=2100.0,
             date_posted="2026-10-02",
             status="Open",
-            applicants_count=4
+            applicants_count=4,
         )
         self.requisitions[req1.req_id] = req1
         self.requisitions[req2.req_id] = req2
@@ -324,7 +348,7 @@ class HRPayrollManager:
             email="t.chiweshe@outlook.com",
             interview_score=88.5,
             status="Offered",
-            screening_notes="Excellent knowledge of CAT C-series engines and hydraulic pumps."
+            screening_notes="Excellent knowledge of CAT C-series engines and hydraulic pumps.",
         )
         cand2 = CandidateApplication(
             candidate_id="CAND-902",
@@ -337,7 +361,7 @@ class HRPayrollManager:
             email="bsibanda@gmail.com",
             interview_score=72.0,
             status="Shortlisted",
-            screening_notes="Competent with light vehicles, needs mentorship on heavy excavators."
+            screening_notes="Competent with light vehicles, needs mentorship on heavy excavators.",
         )
         self.candidates[cand1.candidate_id] = cand1
         self.candidates[cand2.candidate_id] = cand2
@@ -358,7 +382,7 @@ class HRPayrollManager:
             gps_coordinates="-17.8292, 31.0522",
             biometric_or_pin_hash="BIO_FINGERPRINT_VERIFIED_9881",
             foreman_approved=True,
-            approved_by_foreman="Director of Works"
+            approved_by_foreman="Director of Works",
         )
         att2 = SiteAttendanceRecord(
             record_id="ATT-002",
@@ -374,7 +398,7 @@ class HRPayrollManager:
             gps_coordinates="-18.3333, 29.9167",
             biometric_or_pin_hash="BIO_PIN_VERIFIED_7712",
             foreman_approved=True,
-            approved_by_foreman="Tapiwa Zhou"
+            approved_by_foreman="Tapiwa Zhou",
         )
         self.attendance_records[att1.record_id] = att1
         self.attendance_records[att2.record_id] = att2
@@ -392,7 +416,7 @@ class HRPayrollManager:
         site_assigned: str,
         bank_name: str = "Stanbic Bank",
         bank_account: str = "0000000000",
-        ecocash_number: str = "+263 770 000000"
+        ecocash_number: str = "+263 770 000000",
     ) -> EmployeeProfile:
         emp_id = f"EMP-2026-{len(self.employees) + 1:03d}"
         profile = EmployeeProfile(
@@ -408,19 +432,28 @@ class HRPayrollManager:
             site_assigned=site_assigned,
             bank_name=bank_name,
             bank_account=bank_account,
-            ecocash_number=ecocash_number
+            ecocash_number=ecocash_number,
         )
         self.employees[emp_id] = profile
         return profile
 
-    def promote_employee(self, employee_id: str, new_title: str, new_grade: str, new_salary_usd: float, notes: str = "") -> Optional[EmployeeProfile]:
+    def promote_employee(
+        self,
+        employee_id: str,
+        new_title: str,
+        new_grade: str,
+        new_salary_usd: float,
+        notes: str = "",
+    ) -> Optional[EmployeeProfile]:
         emp = self.employees.get(employee_id)
         if emp:
             emp.promote(new_title, new_grade, new_salary_usd, notes)
             return emp
         return None
 
-    def request_leave(self, employee_id: str, leave_type: str, days: int) -> Dict[str, Any]:
+    def request_leave(
+        self, employee_id: str, leave_type: str, days: int
+    ) -> Dict[str, Any]:
         emp = self.employees.get(employee_id)
         if not emp:
             return {"success": False, "error": "Employee not found"}
@@ -431,11 +464,18 @@ class HRPayrollManager:
             "leave_type": leave_type,
             "days_requested": days,
             "remaining_balance": emp.leave_balances.get(leave_type.lower(), 0),
-            "error": None if ok else f"Insufficient {leave_type} leave balance."
+            "error": None if ok else f"Insufficient {leave_type} leave balance.",
         }
 
     # --- RECRUITMENT ---
-    def create_job_requisition(self, title: str, department: str, openings: int, nec_grade: str, budget_salary_usd: float) -> JobRequisition:
+    def create_job_requisition(
+        self,
+        title: str,
+        department: str,
+        openings: int,
+        nec_grade: str,
+        budget_salary_usd: float,
+    ) -> JobRequisition:
         req_id = f"REQ-2026-{len(self.requisitions) + 1:02d}"
         req = JobRequisition(
             req_id=req_id,
@@ -444,12 +484,21 @@ class HRPayrollManager:
             openings=openings,
             target_nec_grade=nec_grade,
             budget_salary_usd=budget_salary_usd,
-            date_posted=datetime.now().strftime("%Y-%m-%d")
+            date_posted=datetime.now().strftime("%Y-%m-%d"),
         )
         self.requisitions[req_id] = req
         return req
 
-    def apply_candidate(self, req_id: str, full_name: str, national_id: str, qualification: str, experience_years: float, phone: str, email: str) -> CandidateApplication:
+    def apply_candidate(
+        self,
+        req_id: str,
+        full_name: str,
+        national_id: str,
+        qualification: str,
+        experience_years: float,
+        phone: str,
+        email: str,
+    ) -> CandidateApplication:
         cand_id = f"CAND-{len(self.candidates) + 901}"
         cand = CandidateApplication(
             candidate_id=cand_id,
@@ -459,14 +508,16 @@ class HRPayrollManager:
             trade_qualification=qualification,
             experience_years=experience_years,
             phone=phone,
-            email=email
+            email=email,
         )
         self.candidates[cand_id] = cand
         if req_id in self.requisitions:
             self.requisitions[req_id].applicants_count += 1
         return cand
 
-    def hire_candidate(self, candidate_id: str, site_assigned: str) -> Optional[EmployeeProfile]:
+    def hire_candidate(
+        self, candidate_id: str, site_assigned: str
+    ) -> Optional[EmployeeProfile]:
         cand = self.candidates.get(candidate_id)
         if not cand:
             return None
@@ -485,7 +536,7 @@ class HRPayrollManager:
             contract_type=ContractType.NEC_ARTISAN.value,
             base_salary_usd=salary,
             site_assigned=site_assigned,
-            ecocash_number=cand.phone
+            ecocash_number=cand.phone,
         )
         cand.status = "Hired"
         return emp
@@ -502,14 +553,16 @@ class HRPayrollManager:
         regular_hours: float = 8.0,
         ot_1_5x: float = 0.0,
         ot_2_0x: float = 0.0,
-        gps_coords: str = "-17.8292, 31.0522"
+        gps_coords: str = "-17.8292, 31.0522",
     ) -> SiteAttendanceRecord:
         emp = self.employees.get(employee_id)
         emp_name = emp.full_name if emp else "Artisan Worker"
         rec_id = f"ATT-{datetime.now().strftime('%Y%m%d')}-{len(self.attendance_records) + 1:03d}"
-        
+
         # Biometric or GPS tamper-evident hash
-        bio_hash = hashlib.sha256(f"{employee_id}:{site_id}:{datetime.now().isoformat()}:{gps_coords}".encode()).hexdigest()[:16]
+        bio_hash = hashlib.sha256(
+            f"{employee_id}:{site_id}:{datetime.now().isoformat()}:{gps_coords}".encode()
+        ).hexdigest()[:16]
 
         rec = SiteAttendanceRecord(
             record_id=rec_id,
@@ -526,7 +579,7 @@ class HRPayrollManager:
             overtime_2_0x_hours=ot_2_0x,
             gps_coordinates=gps_coords,
             biometric_or_pin_hash=f"BIO_GPS_{bio_hash}",
-            foreman_approved=False
+            foreman_approved=False,
         )
         self.attendance_records[rec_id] = rec
         return rec
@@ -579,7 +632,7 @@ class HRPayrollManager:
         housing_allowance: float = 0.0,
         transport_allowance: float = 0.0,
         ot_1_5x_hours: float = 0.0,
-        ot_2_0x_hours: float = 0.0
+        ot_2_0x_hours: float = 0.0,
     ) -> LocalizedPayrollSlip:
         emp = self.employees.get(employee_id)
         if not emp:
@@ -587,15 +640,26 @@ class HRPayrollManager:
 
         base_salary = emp.base_salary_usd
         hourly_rate = base_salary / 173.33  # Standard 40hr week monthly equivalent
-        ot_earnings = round((ot_1_5x_hours * hourly_rate * 1.5) + (ot_2_0x_hours * hourly_rate * 2.0), 2)
-        gross_earnings = round(base_salary + site_hardship_allowance + housing_allowance + transport_allowance + ot_earnings, 2)
+        ot_earnings = round(
+            (ot_1_5x_hours * hourly_rate * 1.5) + (ot_2_0x_hours * hourly_rate * 2.0), 2
+        )
+        gross_earnings = round(
+            base_salary
+            + site_hardship_allowance
+            + housing_allowance
+            + transport_allowance
+            + ot_earnings,
+            2,
+        )
 
         # 1. NSSA POBS Pension (4.5% employee subject to statutory ceiling, e.g. $700)
         nssa_ceiling_usd = 700.0
         insurable_earnings = min(gross_earnings, nssa_ceiling_usd)
         nssa_employee = round(insurable_earnings * 0.045, 2)
         nssa_employer_pobs = nssa_employee
-        nssa_employer_apwcs = round(gross_earnings * 0.015, 2)  # 1.5% Accident Prevention scheme
+        nssa_employer_apwcs = round(
+            gross_earnings * 0.015, 2
+        )  # 1.5% Accident Prevention scheme
 
         # 2. NEC Construction Levy (1.25% of base wage for both employee & employer)
         nec_employee = round(base_salary * 0.0125, 2)
@@ -614,13 +678,25 @@ class HRPayrollManager:
 
         # 5. Employer Levies
         zimdef_levy = round(gross_earnings * 0.010, 2)  # 1% ZIMDEF
-        sdf_levy = round(gross_earnings * 0.005, 2)     # 0.5% Standards Development Fund
-        total_employer_cost = round(gross_earnings + nssa_employer_pobs + nssa_employer_apwcs + nec_employer + zimdef_levy + sdf_levy, 2)
+        sdf_levy = round(gross_earnings * 0.005, 2)  # 0.5% Standards Development Fund
+        total_employer_cost = round(
+            gross_earnings
+            + nssa_employer_pobs
+            + nssa_employer_apwcs
+            + nec_employer
+            + zimdef_levy
+            + sdf_levy,
+            2,
+        )
 
         # 6. Tamper-proof HMAC signature
         slip_id = f"PAY-{period}-{emp.employee_id}"
-        payload_to_sign = f"{slip_id}:{emp.national_id}:{gross_earnings}:{net_usd}:{period}"
-        hmac_sig = hmac.new(HMAC_SECRET, payload_to_sign.encode(), hashlib.sha256).hexdigest()
+        payload_to_sign = (
+            f"{slip_id}:{emp.national_id}:{gross_earnings}:{net_usd}:{period}"
+        )
+        hmac_sig = hmac.new(
+            HMAC_SECRET, payload_to_sign.encode(), hashlib.sha256
+        ).hexdigest()
 
         slip = LocalizedPayrollSlip(
             payslip_id=slip_id,
@@ -649,7 +725,7 @@ class HRPayrollManager:
             total_employer_cost_usd=total_employer_cost,
             rbz_zwg_rate=self.rbz_zwg_rate,
             net_salary_zwg=net_zwg,
-            cryptographic_hmac_hash=hmac_sig
+            cryptographic_hmac_hash=hmac_sig,
         )
         self.payroll_history.append(slip)
         return slip
@@ -668,15 +744,22 @@ class HRPayrollManager:
                     period=period,
                     site_hardship_allowance=hardship,
                     housing_allowance=housing,
-                    transport_allowance=transport
+                    transport_allowance=transport,
                 )
                 slips.append(slip)
 
         total_gross = sum(s.gross_earnings_usd for s in slips)
         total_net_usd = sum(s.net_salary_usd for s in slips)
         total_paye = sum(s.zimra_paye_tax_usd + s.aids_levy_usd for s in slips)
-        total_nssa_remittance = sum(s.nssa_pobs_employee_usd + s.nssa_pobs_employer_usd + s.nssa_apwcs_employer_usd for s in slips)
-        total_nec_remittance = sum(s.nec_levy_employee_usd + s.nec_levy_employer_usd for s in slips)
+        total_nssa_remittance = sum(
+            s.nssa_pobs_employee_usd
+            + s.nssa_pobs_employer_usd
+            + s.nssa_apwcs_employer_usd
+            for s in slips
+        )
+        total_nec_remittance = sum(
+            s.nec_levy_employee_usd + s.nec_levy_employer_usd for s in slips
+        )
         total_zimdef = sum(s.zimdef_levy_employer_usd for s in slips)
         total_sdf = sum(s.sdf_levy_employer_usd for s in slips)
 
@@ -695,12 +778,17 @@ class HRPayrollManager:
             },
             "double_entry_journal": {
                 "dr_payroll_salaries_expense_usd": round(total_gross, 2),
-                "dr_statutory_levies_expense_usd": round(sum(s.total_employer_cost_usd - s.gross_earnings_usd for s in slips), 2),
+                "dr_statutory_levies_expense_usd": round(
+                    sum(
+                        s.total_employer_cost_usd - s.gross_earnings_usd for s in slips
+                    ),
+                    2,
+                ),
                 "cr_bank_cash_clearing_usd": round(total_net_usd, 2),
                 "cr_zimra_payable_usd": round(total_paye, 2),
                 "cr_nssa_payable_usd": round(total_nssa_remittance, 2),
                 "cr_nec_payable_usd": round(total_nec_remittance, 2),
-                "cr_zimdef_sdf_payable_usd": round(total_zimdef + total_sdf, 2)
+                "cr_zimdef_sdf_payable_usd": round(total_zimdef + total_sdf, 2),
             },
             "payslips": [
                 {
@@ -711,17 +799,25 @@ class HRPayrollManager:
                     "deductions_usd": s.total_deductions_usd,
                     "net_usd": s.net_salary_usd,
                     "net_zwg": s.net_salary_zwg,
-                    "signature": s.cryptographic_hmac_hash
+                    "signature": s.cryptographic_hmac_hash,
                 }
                 for s in slips
-            ]
+            ],
         }
 
     def get_hr_summary(self) -> Dict[str, Any]:
         """Provides executive HR dashboard metrics."""
-        active_count = sum(1 for e in self.employees.values() if e.status == EmployeeStatus.ACTIVE.value)
-        total_monthly_base = sum(e.base_salary_usd for e in self.employees.values() if e.status == EmployeeStatus.ACTIVE.value)
-        
+        active_count = sum(
+            1
+            for e in self.employees.values()
+            if e.status == EmployeeStatus.ACTIVE.value
+        )
+        total_monthly_base = sum(
+            e.base_salary_usd
+            for e in self.employees.values()
+            if e.status == EmployeeStatus.ACTIVE.value
+        )
+
         return {
             "total_workforce_count": len(self.employees),
             "active_headcount": active_count,
@@ -740,7 +836,7 @@ class HRPayrollManager:
                     "base_salary_usd": e.base_salary_usd,
                     "site": e.site_assigned,
                     "status": e.status,
-                    "annual_leave_days": e.leave_balances.get("annual", 0)
+                    "annual_leave_days": e.leave_balances.get("annual", 0),
                 }
                 for e in self.employees.values()
             ],
@@ -753,8 +849,8 @@ class HRPayrollManager:
                     "grade": r.target_nec_grade,
                     "salary_usd": r.budget_salary_usd,
                     "status": r.status,
-                    "applicants": r.applicants_count
+                    "applicants": r.applicants_count,
                 }
                 for r in self.requisitions.values()
-            ]
+            ],
         }
