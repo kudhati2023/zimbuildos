@@ -78,7 +78,8 @@ export const GeoJsonUploaderModal: React.FC<GeoJsonUploaderModalProps> = ({
         
         <button 
           onClick={onClose}
-          className="absolute top-5 right-5 text-slate-400 hover:text-slate-200"
+          className="absolute top-5 right-5 text-slate-400 hover:text-slate-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 rounded"
+          aria-label="Close modal"
         >
           <X className="w-5 h-5" />
         </button>
