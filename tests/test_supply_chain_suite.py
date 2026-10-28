@@ -23,7 +23,9 @@ def test_wms_stock_overview_and_valuation():
     assert brick["site_allocations"]["SITE-HIGHLANDS-01"] == 25000
     assert brick["total_stock_on_hand"] == 200000
     assert brick["total_valuation_usd"] == round(200000 * 0.12, 2)
-    assert brick["total_valuation_zwg"] == round(brick["total_valuation_usd"] * 26.50, 2)
+    assert brick["total_valuation_zwg"] == round(
+        brick["total_valuation_usd"] * 26.50, 2
+    )
 
 
 def test_wms_transfer_and_site_reconciliation():
@@ -35,12 +37,12 @@ def test_wms_transfer_and_site_reconciliation():
         quantity=500,
         requested_by="Foreman Tapiwa Zhou",
         authorized_by="Eng. Tendai Chiweshe",
-        dispatched_by="Stores Clerk Moyo"
+        dispatched_by="Stores Clerk Moyo",
     )
     assert res["success"] is True
     assert res["status"] == "IN_TRANSIT"
-    assert res["central_store_balance"] == 3000 # 3500 - 500
-    assert res["site_balance"] == 750 # 250 + 500
+    assert res["central_store_balance"] == 3000  # 3500 - 500
+    assert res["site_balance"] == 750  # 250 + 500
 
     # Confirm receipt at site
     rec_res = wms.confirm_transfer_receipt(res["transfer_id"], "Tapiwa Zhou")
@@ -57,7 +59,7 @@ def test_wms_insufficient_stock_guard():
         quantity=999999,
         requested_by="Foreman Garikai",
         authorized_by="Eng. Tendai Chiweshe",
-        dispatched_by="Clerk Moyo"
+        dispatched_by="Clerk Moyo",
     )
     assert res["success"] is False
     assert "Insufficient stock" in res["error"]
@@ -65,22 +67,47 @@ def test_wms_insufficient_stock_guard():
 
 def test_purchase_vendor_quote_comparison():
     pvm = PurchaseVendorManager(fx_rate=26.50)
-    
+
     # 1. Create Requisition
     req_res = pvm.create_requisition(
         project_site="Highlands Phase 2",
         requested_by="Eng. Tendai Chiweshe",
         required_date="2026-10-20",
-        items=[{"item_id": "MAT-CEMENT-32", "item_name": "Cement 32.5R", "qty": 1000, "unit": "bags"}]
+        items=[
+            {
+                "item_id": "MAT-CEMENT-32",
+                "item_name": "Cement 32.5R",
+                "qty": 1000,
+                "unit": "bags",
+            }
+        ],
     )
     assert req_res["success"] is True
     req_id = req_res["requisition_id"]
 
     # 2. Compare 3 Vendor Quotes
     quotes_data = [
-        {"vendor_id": "VND-PPC", "vendor_name": "PPC Zimbabwe", "total_quote_usd": 10500.0, "delivery_lead_days": 2, "unit_prices": {"MAT-CEMENT-32": 10.50}},
-        {"vendor_id": "VND-BETA", "vendor_name": "Beta Bricks Logistics", "total_quote_usd": 11200.0, "delivery_lead_days": 4, "unit_prices": {"MAT-CEMENT-32": 11.20}},
-        {"vendor_id": "VND-LANCASHIRE", "vendor_name": "Midlands Supplier", "total_quote_usd": 12000.0, "delivery_lead_days": 5, "unit_prices": {"MAT-CEMENT-32": 12.00}},
+        {
+            "vendor_id": "VND-PPC",
+            "vendor_name": "PPC Zimbabwe",
+            "total_quote_usd": 10500.0,
+            "delivery_lead_days": 2,
+            "unit_prices": {"MAT-CEMENT-32": 10.50},
+        },
+        {
+            "vendor_id": "VND-BETA",
+            "vendor_name": "Beta Bricks Logistics",
+            "total_quote_usd": 11200.0,
+            "delivery_lead_days": 4,
+            "unit_prices": {"MAT-CEMENT-32": 11.20},
+        },
+        {
+            "vendor_id": "VND-LANCASHIRE",
+            "vendor_name": "Midlands Supplier",
+            "total_quote_usd": 12000.0,
+            "delivery_lead_days": 5,
+            "unit_prices": {"MAT-CEMENT-32": 12.00},
+        },
     ]
     ranked = pvm.evaluate_vendor_quotes(req_id, quotes_data)
     assert len(ranked) == 3
@@ -96,7 +123,14 @@ def test_purchase_order_and_three_way_invoice_match():
         project_site="SITE-HIGHLANDS-01",
         requested_by="Eng. Chiweshe",
         required_date="2026-10-18",
-        items=[{"item_id": "MAT-REBAR-Y12", "item_name": "Rebar Y12", "qty": 1000, "unit": "kg"}]
+        items=[
+            {
+                "item_id": "MAT-REBAR-Y12",
+                "item_name": "Rebar Y12",
+                "qty": 1000,
+                "unit": "kg",
+            }
+        ],
     )
     pvm.approve_requisition(req["requisition_id"], "Dr. Tinashe Manzungu")
     po_res = pvm.issue_purchase_order(req["requisition_id"], "VND-LANCASHIRE")
@@ -104,7 +138,9 @@ def test_purchase_order_and_three_way_invoice_match():
     po_id = po_res["po_id"]
 
     # Delivery verification
-    deliv = pvm.record_po_delivery(po_id, 1000, "Foreman Garikai", "delivery_slip_hash_xyz")
+    deliv = pvm.record_po_delivery(
+        po_id, 1000, "Foreman Garikai", "delivery_slip_hash_xyz"
+    )
     assert deliv["success"] is True
     assert deliv["photo_hash"] is not None
 
@@ -113,7 +149,7 @@ def test_purchase_order_and_three_way_invoice_match():
         po_id=po_id,
         invoice_number="INV-LAN-2026-902",
         invoice_date="2026-10-12",
-        billed_amount_usd=po_res["total_usd"]
+        billed_amount_usd=po_res["total_usd"],
     )
     assert match_res["success"] is True
     assert match_res["three_way_match"] == "MATCHED"
@@ -147,7 +183,7 @@ def test_manufacturing_plm_eco_workflow():
         justification="Enhances lifespan in humid sub-tropical climates.",
         old_revision="Rev A",
         new_revision="Rev B",
-        requested_by="Eng. Blessing Musona"
+        requested_by="Eng. Blessing Musona",
     )
     assert eco["success"] is True
     eco_id = eco["eco_id"]
@@ -162,14 +198,18 @@ def test_supply_chain_coordinator_end_to_end():
     coordinator = SupplyChainCoordinator(fx_rate=26.50)
 
     # 1. Automated Replenishment of Cement
-    replenish = coordinator.execute_automated_replenishment("MAT-CEMENT-32", quantity=200, target_site="WH-CENTRAL-HAR")
+    replenish = coordinator.execute_automated_replenishment(
+        "MAT-CEMENT-32", quantity=200, target_site="WH-CENTRAL-HAR"
+    )
     assert replenish["success"] is True
     assert replenish["three_way_match"] == "MATCHED"
-    assert replenish["new_stock_level"] >= 4400 # was 4200 initial total stock + 200
+    assert replenish["new_stock_level"] >= 4400  # was 4200 initial total stock + 200
 
     # 2. Manufacturing Assembly Run of Prefab Walls
-    assembly = coordinator.assemble_and_stock_prefab("PREFAB-WALL-STD", quantity=5, destination_site="SITE-HIGHLANDS-01")
+    assembly = coordinator.assemble_and_stock_prefab(
+        "PREFAB-WALL-STD", quantity=5, destination_site="SITE-HIGHLANDS-01"
+    )
     assert assembly["success"] is True
     assert assembly["quantity_manufactured"] == 5
     assert assembly["qc_pass_rate_pct"] > 98.0
-    assert assembly["inbound_stock"] >= 85 # previously 80 + 5
+    assert assembly["inbound_stock"] >= 85  # previously 80 + 5

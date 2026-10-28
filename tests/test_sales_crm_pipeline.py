@@ -17,7 +17,7 @@ from src.erp.sales_crm_pipeline import (
     CustomerProfile,
     PIPELINE_STAGES,
     DIGITAL_CHANNELS,
-    STAGE_PROBABILITIES
+    STAGE_PROBABILITIES,
 )
 
 
@@ -44,7 +44,7 @@ def test_real_estate_inquiry_ingestion():
         notes="Prospective buyer requested GPS coordinates & payment terms.",
         assigned_agent="Tapiwa Zhou",
         urgency="High",
-        is_diaspora=False
+        is_diaspora=False,
     )
 
     assert inq.inquiry_id.startswith("INQ-2026-")
@@ -78,7 +78,7 @@ def test_diaspora_desk_inquiry_and_lead_scoring():
         assigned_agent="Chipo Marufu",
         urgency="Immediate",
         is_diaspora=True,
-        diaspora_country="United States"
+        diaspora_country="United States",
     )
 
     assert inq.is_diaspora is True
@@ -120,7 +120,7 @@ def test_client_communication_history_tracking():
         summary="Followed up regarding site visit feedback.",
         client_sentiment="Positive",
         follow_up_action="Draft formal Agreement of Sale",
-        follow_up_date="2026-10-12"
+        follow_up_date="2026-10-12",
     )
     assert comm1.comm_id.startswith("COMM-")
     assert comm1.client_sentiment == "Positive"
@@ -148,7 +148,7 @@ def test_sales_pipeline_and_deal_lifecycle():
         payment_terms="24 Months Amortized",
         assigned_agent="Blessing Hove",
         initial_stage="1_INQUIRY_CAPTURED",
-        expected_close_days=45
+        expected_close_days=45,
     )
 
     assert deal.deal_id.startswith("DEAL-")
@@ -161,7 +161,7 @@ def test_sales_pipeline_and_deal_lifecycle():
     updated_deal = crm.advance_deal_stage(
         deal_id=deal.deal_id,
         new_stage="3_SITE_VISIT_SCHEDULED",
-        notes="Physical site inspection scheduled for Saturday."
+        notes="Physical site inspection scheduled for Saturday.",
     )
     assert updated_deal.stage == "3_SITE_VISIT_SCHEDULED"
     assert updated_deal.probability_pct == 45
@@ -170,7 +170,7 @@ def test_sales_pipeline_and_deal_lifecycle():
     updated_deal = crm.advance_deal_stage(
         deal_id=deal.deal_id,
         new_stage="6_RESERVATION_DEPOSIT",
-        notes="Deposit paid via EcoCash merchant transfer."
+        notes="Deposit paid via EcoCash merchant transfer.",
     )
     assert updated_deal.stage == "6_RESERVATION_DEPOSIT"
     assert updated_deal.probability_pct == 90
@@ -179,7 +179,7 @@ def test_sales_pipeline_and_deal_lifecycle():
     won_deal = crm.advance_deal_stage(
         deal_id=deal.deal_id,
         new_stage="8_CLOSED_WON",
-        notes="Agreement of sale signed under Deeds Registries Act."
+        notes="Agreement of sale signed under Deeds Registries Act.",
     )
     assert won_deal.stage == "8_CLOSED_WON"
     assert won_deal.probability_pct == 100
