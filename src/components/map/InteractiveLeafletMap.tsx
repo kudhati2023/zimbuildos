@@ -431,33 +431,37 @@ export const InteractiveLeafletMap: React.FC<InteractiveLeafletMapProps> = ({
       <div className="absolute top-3 right-3 z-[400] flex flex-col space-y-1.5">
         <button
           onClick={handleZoomIn}
-          className="p-2 bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700/80 rounded-lg shadow-lg backdrop-blur transition"
+          className="p-2 bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700/80 rounded-lg shadow-lg backdrop-blur transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           title="Zoom In"
+          aria-label="Zoom In"
         >
           <ZoomIn className="w-4 h-4" />
         </button>
         <button
           onClick={handleZoomOut}
-          className="p-2 bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700/80 rounded-lg shadow-lg backdrop-blur transition"
+          className="p-2 bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700/80 rounded-lg shadow-lg backdrop-blur transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           title="Zoom Out"
+          aria-label="Zoom Out"
         >
           <ZoomOut className="w-4 h-4" />
         </button>
         <button
           onClick={handleRecenter}
-          className="p-2 bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700/80 rounded-lg shadow-lg backdrop-blur transition"
+          className="p-2 bg-slate-900/90 hover:bg-slate-800 text-slate-200 border border-slate-700/80 rounded-lg shadow-lg backdrop-blur transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           title="Reset View"
+          aria-label="Reset View"
         >
           <Compass className="w-4 h-4" />
         </button>
         <button
           onClick={() => setMapTileTheme(prev => prev === 'offline' ? 'dark' : prev === 'dark' ? 'osm' : 'offline')}
-          className={`p-2 rounded-lg shadow-lg backdrop-blur border transition ${
+          className={`p-2 rounded-lg shadow-lg backdrop-blur border transition focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 ${
             mapTileTheme === 'offline' 
               ? 'bg-emerald-950/90 text-emerald-400 border-emerald-600/80' 
               : 'bg-slate-900/90 hover:bg-slate-800 text-indigo-400 border-slate-700/80'
           }`}
           title={`Active: ${mapTileTheme.toUpperCase()} (Click to switch Offline/Dark/Street)`}
+          aria-label="Switch map layer"
         >
           <Layers className="w-4 h-4" />
         </button>
