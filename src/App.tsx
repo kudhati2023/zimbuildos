@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   UserCheck, CreditCard, FileText,
   Shield, CheckCircle, AlertTriangle, Printer,
@@ -284,7 +284,10 @@ export default function AntigravityEnterpriseDesktop() {
     }
   };
 
-  const handleReserveFromMap = (stand: GISStand) => {
+  // ⚡ Bolt Performance Optimization:
+  // Wrapped handleReserveFromMap and handleSelectStand in useCallback, and InteractiveLeafletMap in React.memo
+  // This prevents the heavy map component from re-rendering during unrelated state changes
+  const handleReserveFromMap = useCallback((stand: GISStand) => {
     setSelectedStandId(stand.id);
     if (stand.status === 'blocked' || stand.status === 'disputed') {
       setErrorMsg(`${stand.stand_number} is not available for booking (${stand.land_constraint ? CONSTRAINT_LABELS[stand.land_constraint] : stand.status}).`);
@@ -299,7 +302,12 @@ export default function AntigravityEnterpriseDesktop() {
     } else {
       setErrorMsg(`No live allocation found for ${stand.stand_number}.`);
     }
-  };
+  }, [setSelectedStandId, setErrorMsg, setReserveForm, setActiveTab, setPayForm]);
+
+  const handleSelectStand = useCallback((id: string) => {
+    setSelectedStandId(id);
+    setIsInspectorOpen(true);
+  }, [setSelectedStandId, setIsInspectorOpen]);
 
   const handleApply = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -791,10 +799,7 @@ export default function AntigravityEnterpriseDesktop() {
                     <InteractiveLeafletMap
                       stands={filteredGISStands}
                       selectedStandId={selectedStandId}
-                      onSelectStand={(id) => {
-                        setSelectedStandId(id);
-                        setIsInspectorOpen(true);
-                      }}
+                      onSelectStand={handleSelectStand}
                       onReserveClick={handleReserveFromMap}
                       center={activeDev?.center ?? DEFAULT_CENTER}
                       zoom={activeDev?.zoom ?? 16}
