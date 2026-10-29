@@ -1,6 +1,12 @@
 import http.server
 import os
+
+os.environ["ZIMBUILD_HMAC_SECRET"] = "zimbuild-secure-erp-signing-key-2026"
+os.environ["ZIMBUILD_LEDGER_SECRET"] = "test-ledger-secret"
+os.environ["PAYMENT_GATEWAY_API_KEY"] = "test-payment-key"
+
 import socketserver
+
 import threading
 import time
 import urllib.request
