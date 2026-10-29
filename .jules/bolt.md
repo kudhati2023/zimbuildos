@@ -1,4 +1,4 @@
+## 2025-02-23 - Memoize functional pure presentational component with nested props
 
-## 2026-03-04 - Optimize publicStands mapping in App.tsx
-**Learning:** Re-renders using inline chained `.filter().map()` operations on data that isn't functionally mutated each pass significantly hurts frontend performance by running multiple iterative loops (O(4N) loops in App.tsx on `publicStands`).
-**Action:** Always combine and precalculate shared looping logic or related counts in a single pass O(N) using `useMemo` hooks.
+**Learning:** When functional components accept complex nested props (like `ServicingProgressBar` accepting the `servicing` object with nested `water`, `sewer`, `roads` properties), simple `React.memo` will not prevent re-renders if the parent passes a new object reference on every render.
+**Action:** Provide a custom comparison function to `React.memo` that explicitly checks the specific nested properties for equality to prevent O(N) unnecessary re-renders when rendering lists of these components.
