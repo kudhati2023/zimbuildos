@@ -20,7 +20,11 @@ const weight = (s: ServicingState) => (s === 'CERTIFIED' ? 1 : s === 'IN_PROGRES
  * ZNHSP servicing gate: a title deed can only be issued when water, sewer and roads are all
  * CERTIFIED by the civil engineering unit (enforced by zhms-api and the database).
  */
-export const ServicingProgressBar: React.FC<ServicingProgressBarProps> = ({ servicing, certificateRef, compact = false }) => {
+// ⚡ Bolt Performance Optimization:
+// Wrapped in React.memo with a custom comparison function to prevent O(N) re-renders
+// in lists (like the GIS Data Grid) since the parent might pass new object references
+// for the nested `servicing` prop on every render.
+export const ServicingProgressBar = React.memo(({ servicing, certificateRef, compact = false }: ServicingProgressBarProps) => {
   const percentage = Math.round((ITEMS.reduce((t, i) => t + weight(servicing[i.key]), 0) / ITEMS.length) * 100);
   const certified = ITEMS.every((i) => servicing[i.key] === 'CERTIFIED');
   const barColor = certified ? 'bg-emerald-500' : percentage >= 50 ? 'bg-amber-500' : 'bg-rose-500';
@@ -66,4 +70,10 @@ export const ServicingProgressBar: React.FC<ServicingProgressBarProps> = ({ serv
       </p>
     </div>
   );
-};
+}, (prev, next) => (
+  prev.certificateRef === next.certificateRef &&
+  prev.compact === next.compact &&
+  prev.servicing.water === next.servicing.water &&
+  prev.servicing.sewer === next.servicing.sewer &&
+  prev.servicing.roads === next.servicing.roads
+));
