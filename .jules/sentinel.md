@@ -1,0 +1,4 @@
+## 2026-10-09 - Missing Hardcoded Secret Fallback Vulnerability
+**Vulnerability:** Several sensitive ERP systems (`security_guard.py`, `fleet_appraisal_manager.py`, `hr_payroll_manager.py`, `field_service_manager.py`) were silently falling back to a hardcoded `ZIMBUILD_HMAC_SECRET` default string ("zimbuild-secure-erp-signing-key-2026") when the environment variable was missing.
+**Learning:** If the environment variable fails to load, silently reverting to a well-known, hardcoded key breaks cryptographic security, exposing sensitive transaction hashes to tampering and replay attacks.
+**Prevention:** Enforce the "Fail Securely" pattern. Always validate required environment secrets at load time and raise a `ValueError` if missing to deliberately crash the system rather than run in an insecure state.
