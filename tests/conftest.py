@@ -5,6 +5,10 @@ import threading
 import time
 import urllib.request
 import pytest
+import os
+os.environ["ZIMBUILD_HMAC_SECRET"] = "test-mock-hmac-secret-123"
+os.environ["ZIMBUILD_LEDGER_SECRET"] = "test-mock-ledger-secret-456"
+os.environ["PAYMENT_GATEWAY_API_KEY"] = "test-mock-payment-key-789"
 from server import SecureERPRequestHandler
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
