@@ -1,4 +1,4 @@
-import React from 'react';
+import { memo } from 'react';
 import { CheckCircle2, Clock, Circle, ShieldAlert, Truck } from 'lucide-react';
 import type { ServicingState, StandServicing } from '../../types';
 
@@ -19,9 +19,13 @@ const weight = (s: ServicingState) => (s === 'CERTIFIED' ? 1 : s === 'IN_PROGRES
 /**
  * ZNHSP servicing gate: a title deed can only be issued when water, sewer and roads are all
  * CERTIFIED by the civil engineering unit (enforced by zhms-api and the database).
+ *
+ * ⚡ Bolt Optimization: Wrapped in React.memo with a custom comparison function to prevent
+ * unnecessary O(N) re-renders when rendered in lists, as it receives a nested object prop (`servicing`).
  */
-export const ServicingProgressBar: React.FC<ServicingProgressBarProps> = ({ servicing, certificateRef, compact = false }) => {
-  const percentage = Math.round((ITEMS.reduce((t, i) => t + weight(servicing[i.key]), 0) / ITEMS.length) * 100);
+export const ServicingProgressBar = memo(
+  ({ servicing, certificateRef, compact = false }: ServicingProgressBarProps) => {
+    const percentage = Math.round((ITEMS.reduce((t, i) => t + weight(servicing[i.key]), 0) / ITEMS.length) * 100);
   const certified = ITEMS.every((i) => servicing[i.key] === 'CERTIFIED');
   const barColor = certified ? 'bg-emerald-500' : percentage >= 50 ? 'bg-amber-500' : 'bg-rose-500';
 
@@ -66,4 +70,14 @@ export const ServicingProgressBar: React.FC<ServicingProgressBarProps> = ({ serv
       </p>
     </div>
   );
-};
+  },
+  (prevProps, nextProps) => {
+    return (
+      prevProps.certificateRef === nextProps.certificateRef &&
+      prevProps.compact === nextProps.compact &&
+      prevProps.servicing.water === nextProps.servicing.water &&
+      prevProps.servicing.sewer === nextProps.servicing.sewer &&
+      prevProps.servicing.roads === nextProps.servicing.roads
+    );
+  }
+);
