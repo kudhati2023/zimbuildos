@@ -156,6 +156,28 @@ export default function AntigravityEnterpriseDesktop() {
   }, [gisStands, standSearch, statusFilter]);
 
   // ⚡ Bolt Performance Optimization:
+  // Replaced inline `.filter()` and `.some()` calls on `filteredGISStands` in the JSX
+  // with a single O(N) loop wrapped in a `useMemo`. This prevents 3 O(N) recalculations on every component render.
+  const filteredGISStandsMetrics = useMemo(() => {
+    let mapped = 0;
+    let unmapped = 0;
+
+    for (const s of filteredGISStands) {
+      if (s.geometry) {
+        mapped++;
+      } else {
+        unmapped++;
+      }
+    }
+
+    return {
+      mapped,
+      unmapped,
+      hasUnmapped: unmapped > 0
+    };
+  }, [filteredGISStands]);
+
+  // ⚡ Bolt Performance Optimization:
   // Replaced multiple inline array `.filter()` chains on `publicStands` with a single O(N) loop
   // wrapped in a `useMemo`. This prevents 4 O(N) recalculations on every component render.
   const publicStandsMetrics = useMemo(() => {
@@ -804,8 +826,8 @@ export default function AntigravityEnterpriseDesktop() {
                     <div className="absolute bottom-14 left-3 z-[400] bg-slate-950/85 backdrop-blur-md border border-slate-800 px-3 py-1.5 rounded-xl text-[10px] font-mono text-slate-300 flex items-center space-x-2">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                       <span>
-                        {activeDev ? activeDev.name : 'No development'} • {filteredGISStands.filter(s => s.geometry).length} mapped
-                        {filteredGISStands.some(s => !s.geometry) && ` • ${filteredGISStands.filter(s => !s.geometry).length} without survey boundary (see Data Grid)`}
+                        {activeDev ? activeDev.name : 'No development'} • {filteredGISStandsMetrics.mapped} mapped
+                        {filteredGISStandsMetrics.hasUnmapped && ` • ${filteredGISStandsMetrics.unmapped} without survey boundary (see Data Grid)`}
                       </span>
                     </div>
                   </div>
