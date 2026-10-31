@@ -1,0 +1,3 @@
+## 2024-05-19 - Missing ARIA Labels and Keyboard Focus Indicators on Icon-Only Buttons
+**Learning:** Icon-only buttons used in primary navigation elements (refresh, user sign in/out) and alert dismiss buttons were frequently lacking `aria-label` attributes and keyboard focus indicators, rendering them invisible to screen readers and difficult to use via keyboard navigation in this application.
+**Action:** When auditing or adding new icon-only buttons, especially in global utility areas like navigation bars or toast notifications, always ensure they are accompanied by a descriptive `aria-label` and include a focus state (e.g., using `focus-visible:ring-2 focus-visible:outline-none` matching the button's intent).
