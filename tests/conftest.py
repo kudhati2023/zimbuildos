@@ -1,5 +1,11 @@
-import http.server
 import os
+
+# Set critical environment variables prior to importing server modules
+os.environ["ZIMBUILD_HMAC_SECRET"] = "test_hmac_secret_mock_123"
+os.environ["ZIMBUILD_LEDGER_SECRET"] = "test_ledger_secret_mock_123"
+os.environ["PAYMENT_GATEWAY_API_KEY"] = "test_payment_api_key_mock_123"
+
+import http.server
 import socketserver
 import threading
 import time
