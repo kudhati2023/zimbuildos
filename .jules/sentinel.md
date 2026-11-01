@@ -1,0 +1,4 @@
+## 2023-10-27 - [Hardcoded Secrets and Fail Securely]
+**Vulnerability:** A hardcoded fallback secret `"zimbuild-secure-erp-signing-key-2026"` was used in `os.environ.get()` for `ZIMBUILD_HMAC_SECRET` across multiple ERP manager and security files.
+**Learning:** Using default strings in `os.environ.get` for sensitive secrets completely circumvents environment variable protections and risks catastrophic exposure of cryptographic signatures if the environment is misconfigured. The `tests/conftest.py` setup needs to explicitly mock these secrets for test suites before modules are imported.
+**Prevention:** Always follow the "Fail Securely" philosophy: strictly retrieve critical environment variables and `raise ValueError(...)` if they are missing, ensuring the application halts rather than silently downgrading to a known key.
