@@ -1,0 +1,4 @@
+## 2025-02-14 - Hardcoded HMAC Secrets Fallback Removal
+**Vulnerability:** Found `HMAC_SECRET` keys explicitly using fallback hardcoded secrets (`"zimbuild-secure-erp-signing-key-2026"`) if the `ZIMBUILD_HMAC_SECRET` environment variable was not set in multiple core files (`security_guard.py`, `fleet_appraisal_manager.py`, `hr_payroll_manager.py`, `field_service_manager.py`).
+**Learning:** Silently falling back to a hardcoded shared secret across environments compromises cryptographic transaction signing if the environment is misconfigured. It violates the "Fail Securely" principle.
+**Prevention:** Rather than using `os.environ.get("ENV_VAR", "hardcoded_secret")`, applications should check for the existence of critical environment variables and explicitly raise a `ValueError` immediately upon initialization to halt execution if secrets are missing, forcing a secure configuration.
