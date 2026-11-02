@@ -7,7 +7,7 @@ from src.erp.project_engineering_suite import (
     ProjectScheduleManager,
     QualityHSEManager,
     MortgageFinancingEngine,
-    MunicipalPermitManager
+    MunicipalPermitManager,
 )
 
 
@@ -36,7 +36,7 @@ def test_quality_hse_concrete_cube_and_snags():
         slump_mm=100,
         strength_7day_mpa=23.5,
         strength_28day_mpa=32.8,
-        tested_by="Materials Testing Lab Harare"
+        tested_by="Materials Testing Lab Harare",
     )
     assert test.passed is True
     assert test.strength_28day_mpa >= 30.0
@@ -49,7 +49,7 @@ def test_quality_hse_concrete_cube_and_snags():
         slump_mm=75,
         strength_7day_mpa=12.0,
         strength_28day_mpa=19.5,
-        tested_by="Materials Testing Lab Harare"
+        tested_by="Materials Testing Lab Harare",
     )
     assert fail_test.passed is False
 
@@ -60,7 +60,7 @@ def test_quality_hse_concrete_cube_and_snags():
         description="Aluminium sliding door lock latch misaligned",
         severity="MINOR",
         photo_hash="hash_latch_photo_123",
-        assigned_subcontractor="Apex Aluminium & Glazing"
+        assigned_subcontractor="Apex Aluminium & Glazing",
     )
     assert snag.resolved is False
 
@@ -77,7 +77,7 @@ def test_mortgage_financing_dual_currency():
         property_price_usd=50000.0,
         deposit_pct=20.0,
         loan_term_years=5,
-        annual_interest_rate_pct=12.0
+        annual_interest_rate_pct=12.0,
     )
 
     assert calc["deposit_usd"] == 10000.0
@@ -85,7 +85,9 @@ def test_mortgage_financing_dual_currency():
     assert calc["loan_principal_zwg"] == 40000.0 * 26.50
     assert calc["total_months"] == 60
     assert calc["monthly_installment_usd"] > 0
-    assert calc["monthly_installment_zwg"] == round(calc["monthly_installment_usd"] * 26.50, 2)
+    assert calc["monthly_installment_zwg"] == round(
+        calc["monthly_installment_usd"] * 26.50, 2
+    )
     assert len(calc["amortization_preview"]) == 12
 
 

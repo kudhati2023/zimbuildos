@@ -8,23 +8,32 @@ Comprehensive Unit & Integration Tests for:
 
 import pytest
 from src.erp.hr_payroll_manager import (
-    HRPayrollManager, EmployeeStatus, ContractType, NECGrade
+    HRPayrollManager,
+    EmployeeStatus,
+    ContractType,
+    NECGrade,
 )
 from src.erp.fleet_appraisal_manager import (
-    FleetAppraisalManager, AssetCategory, AssetStatus, ConditionGrade
+    FleetAppraisalManager,
+    AssetCategory,
+    AssetStatus,
+    ConditionGrade,
 )
 from src.erp.field_service_manager import (
-    FieldServiceManager, ServicePriority, ServiceCategory, WorkOrderStatus
+    FieldServiceManager,
+    ServicePriority,
+    ServiceCategory,
+    WorkOrderStatus,
 )
-
 
 # ==============================================================================
 # 1. HR & PAYROLL MANAGEMENT TESTS
 # ==============================================================================
 
+
 def test_hr_employee_lifecycle():
     hr = HRPayrollManager(rbz_zwg_rate=26.50)
-    
+
     # 1. Onboarding
     emp = hr.onboard_employee(
         full_name="Kudakwashe Moyo",
@@ -37,7 +46,7 @@ def test_hr_employee_lifecycle():
         site_assigned="Parkview Heights High-Rise",
         bank_name="First Capital Bank",
         bank_account="1029384756",
-        ecocash_number="+263 773 111 222"
+        ecocash_number="+263 773 111 222",
     )
     assert emp.employee_id.startswith("EMP-2026-")
     assert emp.status == EmployeeStatus.ACTIVE.value
@@ -48,7 +57,7 @@ def test_hr_employee_lifecycle():
         new_title="Class 1 Journeyman Bricklayer",
         new_grade=NECGrade.GRADE_7.value,
         new_salary_usd=1450.0,
-        notes="Passed trade test at Harare Polytechnic"
+        notes="Passed trade test at Harare Polytechnic",
     )
     assert emp.job_title == "Class 1 Journeyman Bricklayer"
     assert emp.nec_grade == NECGrade.GRADE_7.value
@@ -73,14 +82,14 @@ def test_hr_employee_lifecycle():
 
 def test_recruitment_pipeline():
     hr = HRPayrollManager()
-    
+
     # 1. Requisition creation
     req = hr.create_job_requisition(
         title="Class 1 Structural Welder",
         department="Civil & Building",
         openings=2,
         nec_grade=NECGrade.GRADE_7.value,
-        budget_salary_usd=1600.0
+        budget_salary_usd=1600.0,
     )
     assert req.req_id.startswith("REQ-2026-")
     assert req.status == "Open"
@@ -93,19 +102,23 @@ def test_recruitment_pipeline():
         qualification="Class 1 Coded Welder (ASME IX)",
         experience_years=6.0,
         phone="+263 772 888 999",
-        email="munya.welder@zimbuild.co.zw"
+        email="munya.welder@zimbuild.co.zw",
     )
     assert cand.candidate_id.startswith("CAND-")
     assert cand.status == "Applied"
     assert hr.requisitions[req.req_id].applicants_count >= 1
 
     # 3. Interview Evaluation
-    score = cand.evaluate_interview(technical_score=90.0, safety_score=85.0, trade_test_score=88.0)
+    score = cand.evaluate_interview(
+        technical_score=90.0, safety_score=85.0, trade_test_score=88.0
+    )
     assert score >= 85.0
     assert cand.status == "Offered"
 
     # 4. Hire candidate -> converts into EmployeeProfile
-    new_hire = hr.hire_candidate(cand.candidate_id, site_assigned="Parkview Heights High-Rise")
+    new_hire = hr.hire_candidate(
+        cand.candidate_id, site_assigned="Parkview Heights High-Rise"
+    )
     assert new_hire is not None
     assert new_hire.full_name == "Munyaradzi Shumba"
     assert new_hire.base_salary_usd == 1600.0
@@ -114,7 +127,7 @@ def test_recruitment_pipeline():
 
 def test_site_attendance_muster_roll():
     hr = HRPayrollManager()
-    
+
     # 1. Clock in / out with GPS & biometric hash
     att = hr.log_site_attendance(
         employee_id="EMP-2026-001",
@@ -126,14 +139,16 @@ def test_site_attendance_muster_roll():
         regular_hours=8.0,
         ot_1_5x=2.0,
         ot_2_0x=0.0,
-        gps_coords="-17.8292, 31.0522"
+        gps_coords="-17.8292, 31.0522",
     )
     assert att.total_hours_worked == 10.0
     assert att.biometric_or_pin_hash.startswith("BIO_GPS_")
     assert att.foreman_approved is False
 
     # 2. Foreman muster roll approval
-    approved = hr.approve_muster_roll(att.record_id, foreman_name="Director of Works Eng. Manzungu")
+    approved = hr.approve_muster_roll(
+        att.record_id, foreman_name="Director of Works Eng. Manzungu"
+    )
     assert approved is True
     assert att.foreman_approved is True
     assert att.approved_by_foreman == "Director of Works Eng. Manzungu"
@@ -141,7 +156,7 @@ def test_site_attendance_muster_roll():
 
 def test_localized_zimbabwean_payroll():
     hr = HRPayrollManager(rbz_zwg_rate=26.50)
-    
+
     # 1. ZIMRA PAYE progressive tax verification
     # $1000 income: first $100 @ 0%, next $200 @ 20% ($40), next $700 @ 25% ($175) = $215
     paye_1000 = hr.calculate_zimra_paye_usd(1000.0)
@@ -154,7 +169,7 @@ def test_localized_zimbabwean_payroll():
         site_hardship_allowance=100.0,
         housing_allowance=250.0,
         transport_allowance=100.0,
-        ot_1_5x_hours=4.0
+        ot_1_5x_hours=4.0,
     )
     assert slip.gross_earnings_usd > 2800.0
     # NSSA POBS capped at $700 ceiling -> $700 * 4.5% = $31.50
@@ -167,7 +182,9 @@ def test_localized_zimbabwean_payroll():
     assert slip.zimra_paye_tax_usd > 0
     assert slip.aids_levy_usd == round(slip.zimra_paye_tax_usd * 0.03, 2)
     # Net salary
-    assert slip.net_salary_usd == round(slip.gross_earnings_usd - slip.total_deductions_usd, 2)
+    assert slip.net_salary_usd == round(
+        slip.gross_earnings_usd - slip.total_deductions_usd, 2
+    )
     # Currency conversion into ZWG
     assert slip.net_salary_zwg == round(slip.net_salary_usd * 26.50, 2)
     # HMAC tamper-evident signature present
@@ -185,16 +202,19 @@ def test_localized_zimbabwean_payroll():
     assert batch["statutory_remittances"]["sdf_standards_levy_usd"] > 0
     # Journal debits and credits
     journal = batch["double_entry_journal"]
-    assert journal["dr_payroll_salaries_expense_usd"] == batch["total_gross_payroll_usd"]
+    assert (
+        journal["dr_payroll_salaries_expense_usd"] == batch["total_gross_payroll_usd"]
+    )
 
 
 # ==============================================================================
 # 2. FLEET & ASSET APPRAISALS TESTS
 # ==============================================================================
 
+
 def test_fleet_and_machinery_utilization():
     fm = FleetAppraisalManager()
-    
+
     # 1. Fleet asset registration & verification
     asset = fm.fleet["EQ-CAT-320D"]
     assert asset.category == AssetCategory.HEAVY_EARTHMOVING.value
@@ -210,7 +230,7 @@ def test_fleet_and_machinery_utilization():
         engine_hours=8.0,
         idle_hours=1.5,
         breakdown_hours=0.5,
-        project_cost_code="CIVIL-EXCAVATION-01"
+        project_cost_code="CIVIL-EXCAVATION-01",
     )
     assert log.total_shift_duration_hours == 10.0
     assert log.utilization_percentage == 80.0  # 8 / 10 = 80%
@@ -220,7 +240,7 @@ def test_fleet_and_machinery_utilization():
 
 def test_fuel_consumption_and_siphoning_anomaly_detection():
     fm = FleetAppraisalManager()
-    
+
     # 1. Normal Fuel Fill (within manufacturer benchmark of 18.5 L/hr)
     rec_normal = fm.record_fuel_dispense(
         asset_id="EQ-CAT-320D",
@@ -229,7 +249,7 @@ def test_fuel_consumption_and_siphoning_anomaly_detection():
         unit_price_usd=1.62,
         bowser_or_station="Site Bowser #01",
         meter_reading=4136.5,
-        hours_or_km_delta=8.0  # 145 / 8 = 18.125 L/hr
+        hours_or_km_delta=8.0,  # 145 / 8 = 18.125 L/hr
     )
     assert rec_normal.is_anomaly_flagged is False
     assert rec_normal.burn_variance_pct < 0
@@ -243,7 +263,7 @@ def test_fuel_consumption_and_siphoning_anomaly_detection():
         unit_price_usd=1.62,
         bowser_or_station="Site Bowser #01",
         meter_reading=4144.5,
-        hours_or_km_delta=8.0
+        hours_or_km_delta=8.0,
     )
     assert rec_anomaly.is_anomaly_flagged is True
     assert "FUEL ANOMALY ALERT" in rec_anomaly.anomaly_reason
@@ -252,7 +272,7 @@ def test_fuel_consumption_and_siphoning_anomaly_detection():
 
 def test_equipment_appraisals_and_ias16_revaluation():
     fm = FleetAppraisalManager()
-    
+
     # 1. Straight-line and Machine-hour depreciation
     cat = fm.fleet["EQ-CAT-320D"]
     sld = cat.calculate_straight_line_depreciation(current_year=2026)
@@ -275,7 +295,7 @@ def test_equipment_appraisals_and_ias16_revaluation():
         electrical_system_pct=88.0,
         appraised_fmv_usd=150000.0,
         replacement_cost_new_usd=220000.0,
-        notes="High-pressure pumps and travel motors in optimal condition."
+        notes="High-pressure pumps and travel motors in optimal condition.",
     )
     assert appraisal.overall_health_score_pct >= 85.0
     assert appraisal.appraised_fair_market_value_usd == 150000.0
@@ -293,9 +313,10 @@ def test_equipment_appraisals_and_ias16_revaluation():
 # 3. FIELD SERVICE OPERATIONS TESTS
 # ==============================================================================
 
+
 def test_field_service_dispatch_and_sla():
     fsm = FieldServiceManager()
-    
+
     # 1. Log Service Request
     sr = fsm.create_service_request(
         category=ServiceCategory.PLUMBING_WATER.value,
@@ -304,7 +325,7 @@ def test_field_service_dispatch_and_sla():
         unit_or_stand_no="Stand #001 / Basement Booster Pump Room",
         client_name="Facilities Supervisor J. Moyo",
         phone="+263 774 200 300",
-        problem_description="Basement high-pressure booster pump flange burst; water flooding electrical switchroom."
+        problem_description="Basement high-pressure booster pump flange burst; water flooding electrical switchroom.",
     )
     assert sr.request_id.startswith("SR-2026-")
     assert sr.target_sla_hours == 1.0  # P1 SLA
@@ -315,7 +336,7 @@ def test_field_service_dispatch_and_sla():
         request_id=sr.request_id,
         tech_id="TECH-003",
         scope_of_work="Isolate isolation gate valves, replace ruptured 100mm flange gasket, test pump head pressure.",
-        hourly_rate_usd=40.0
+        hourly_rate_usd=40.0,
     )
     assert wo.wo_id.startswith("FWO-2026-")
     assert wo.status == WorkOrderStatus.DISPATCHED.value
@@ -326,11 +347,15 @@ def test_field_service_dispatch_and_sla():
 def test_field_service_work_order_safety_and_completion():
     fsm = FieldServiceManager()
     wo_id = "FWO-2026-001"
-    
+
     # 1. JSA Safety Checklist
     safety_ok = fsm.record_jsa_safety_checklist(
         wo_id=wo_id,
-        hazard_controls=["Lockout/Tagout Applied", "Arc Flash Helmet & Gloves Worn", "Fire Extinguisher on Standby"]
+        hazard_controls=[
+            "Lockout/Tagout Applied",
+            "Arc Flash Helmet & Gloves Worn",
+            "Fire Extinguisher on Standby",
+        ],
     )
     assert safety_ok is True
     wo = fsm.work_orders[wo_id]
@@ -343,7 +368,7 @@ def test_field_service_work_order_safety_and_completion():
         part_code="EL-CONTACTOR-60A",
         description="Schneider 60A 3-Phase Contactor",
         qty=1.0,
-        unit_price_usd=85.0
+        unit_price_usd=85.0,
     )
     assert cost > 85.0
     assert wo.total_parts_cost_usd > 85.0
@@ -353,7 +378,7 @@ def test_field_service_work_order_safety_and_completion():
         wo_id=wo_id,
         labor_hours=3.5,
         work_notes="Contactor replaced, main circuit energized, phase balance verified at 415V.",
-        client_name="Stanbic Facilities Manager"
+        client_name="Stanbic Facilities Manager",
     )
     assert completed_wo.status == WorkOrderStatus.COMPLETED.value
     assert completed_wo.labor_hours_logged == 3.5
@@ -365,7 +390,7 @@ def test_field_service_work_order_safety_and_completion():
 
 def test_mobile_field_logging_with_gps_and_photo_verification():
     fsm = FieldServiceManager()
-    
+
     # 1. Mobile GPS check-in & photo proof hash
     log = fsm.record_mobile_field_log(
         wo_id="FWO-2026-001",
@@ -373,7 +398,7 @@ def test_mobile_field_logging_with_gps_and_photo_verification():
         action_type="GPS_CHECKIN",
         gps_lat_lng="-17.8292, 31.0522",
         photo_bytes_or_string="sample_camera_photo_repair_bytes_123",
-        notes="Technician on site at Parkview Heights switchroom."
+        notes="Technician on site at Parkview Heights switchroom.",
     )
     assert log.log_id.startswith("MLOG-")
     assert log.photo_hash.startswith("PHOTO_SHA256_")

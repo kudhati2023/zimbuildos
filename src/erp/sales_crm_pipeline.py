@@ -14,7 +14,6 @@ from typing import List, Dict, Optional, Any
 from datetime import datetime, date, timedelta
 import uuid
 
-
 # ---------------------------------------------------------------------------
 # Enums and Constants
 # ---------------------------------------------------------------------------
@@ -28,7 +27,7 @@ PIPELINE_STAGES = [
     "6_RESERVATION_DEPOSIT",
     "7_AGREEMENT_OF_SALE",
     "8_CLOSED_WON",
-    "CLOSED_LOST"
+    "CLOSED_LOST",
 ]
 
 STAGE_PROBABILITIES: Dict[str, int] = {
@@ -40,7 +39,7 @@ STAGE_PROBABILITIES: Dict[str, int] = {
     "6_RESERVATION_DEPOSIT": 90,
     "7_AGREEMENT_OF_SALE": 95,
     "8_CLOSED_WON": 100,
-    "CLOSED_LOST": 0
+    "CLOSED_LOST": 0,
 }
 
 DIGITAL_CHANNELS = [
@@ -50,7 +49,7 @@ DIGITAL_CHANNELS = [
     "WALK_IN_OFFICE",
     "SOCIAL_MEDIA",
     "DIASPORA_DESK",
-    "PHONE_CALL"
+    "PHONE_CALL",
 ]
 
 
@@ -58,21 +57,22 @@ DIGITAL_CHANNELS = [
 # Data Models
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class RealEstateInquiry:
     inquiry_id: str
     customer_name: str
     phone: str
     email: str
-    source_channel: str          # WHATSAPP_BOT, WEBSITE_PORTAL, WALK_IN_OFFICE, etc.
-    property_interest: str       # e.g., "Stand 412 Parkview Heights", "High-Rise Commercial"
+    source_channel: str  # WHATSAPP_BOT, WEBSITE_PORTAL, WALK_IN_OFFICE, etc.
+    property_interest: str  # e.g., "Stand 412 Parkview Heights", "High-Rise Commercial"
     budget_usd: float
     budget_zwg: float
-    status: str                  # NEW, QUALIFIED, IN_PIPELINE, CONVERTED, CLOSED_LOST
+    status: str  # NEW, QUALIFIED, IN_PIPELINE, CONVERTED, CLOSED_LOST
     assigned_agent: str
     notes: str
-    created_at: str              # YYYY-MM-DD HH:MM
-    urgency: str = "Medium"      # Low, Medium, High, Immediate
+    created_at: str  # YYYY-MM-DD HH:MM
+    urgency: str = "Medium"  # Low, Medium, High, Immediate
     is_diaspora: bool = False
     diaspora_country: Optional[str] = None
 
@@ -92,7 +92,7 @@ class RealEstateInquiry:
             "created_at": self.created_at,
             "urgency": self.urgency,
             "is_diaspora": self.is_diaspora,
-            "diaspora_country": self.diaspora_country
+            "diaspora_country": self.diaspora_country,
         }
 
 
@@ -101,12 +101,12 @@ class CommunicationRecord:
     comm_id: str
     customer_id_or_name: str
     inquiry_or_deal_ref: str
-    channel: str                 # WHATSAPP, PHONE_CALL, IN_PERSON, EMAIL, SMS, PORTAL
-    direction: str               # INBOUND, OUTBOUND
+    channel: str  # WHATSAPP, PHONE_CALL, IN_PERSON, EMAIL, SMS, PORTAL
+    direction: str  # INBOUND, OUTBOUND
     agent_name: str
     summary: str
-    client_sentiment: str        # Positive, Neutral, Hesitant, Escalated, Enthusiastic
-    timestamp: str               # YYYY-MM-DD HH:MM
+    client_sentiment: str  # Positive, Neutral, Hesitant, Escalated, Enthusiastic
+    timestamp: str  # YYYY-MM-DD HH:MM
     follow_up_action: Optional[str] = None
     follow_up_date: Optional[str] = None
 
@@ -122,7 +122,7 @@ class CommunicationRecord:
             "client_sentiment": self.client_sentiment,
             "timestamp": self.timestamp,
             "follow_up_action": self.follow_up_action,
-            "follow_up_date": self.follow_up_date
+            "follow_up_date": self.follow_up_date,
         }
 
 
@@ -135,9 +135,9 @@ class SalesDeal:
     stand_or_property_id: str
     deal_value_usd: float
     deal_value_zwg: float
-    stage: str                   # From PIPELINE_STAGES
+    stage: str  # From PIPELINE_STAGES
     probability_pct: int
-    payment_terms: str           # Cash Outright, 12 Months Amortized, 24 Months Amortized
+    payment_terms: str  # Cash Outright, 12 Months Amortized, 24 Months Amortized
     assigned_agent: str
     expected_close_date: str
     days_in_stage: int = 1
@@ -164,7 +164,7 @@ class SalesDeal:
             "days_in_stage": self.days_in_stage,
             "closed_reason": self.closed_reason,
             "linked_inquiry_id": self.linked_inquiry_id,
-            "created_at": self.created_at
+            "created_at": self.created_at,
         }
 
 
@@ -175,12 +175,12 @@ class CustomerProfile:
     national_id_or_passport: str
     phone: str
     email: str
-    category: str                # LOCAL_FIRST_TIME, DIASPORA_INVESTOR, CORPORATE, YOUTH_QUOTA, HIGH_NET_WORTH
+    category: str  # LOCAL_FIRST_TIME, DIASPORA_INVESTOR, CORPORATE, YOUTH_QUOTA, HIGH_NET_WORTH
     is_diaspora: bool
     diaspora_country: Optional[str]
-    lead_score: int              # 0 - 100
+    lead_score: int  # 0 - 100
     customer_lifetime_value_usd: float
-    satisfaction_rating: float   # 1.0 - 5.0
+    satisfaction_rating: float  # 1.0 - 5.0
     tags: List[str] = field(default_factory=list)
     linked_inquiries: List[str] = field(default_factory=list)
     linked_deals: List[str] = field(default_factory=list)
@@ -202,13 +202,14 @@ class CustomerProfile:
             "tags": self.tags,
             "linked_inquiries": self.linked_inquiries,
             "linked_deals": self.linked_deals,
-            "created_at": self.created_at
+            "created_at": self.created_at,
         }
 
 
 # ---------------------------------------------------------------------------
 # Core Sales CRM Pipeline Manager Engine
 # ---------------------------------------------------------------------------
+
 
 class SalesCRMPipelineManager:
     """Enterprise Real Estate CRM, Inquiry Tracker & Pipeline Velocity Controller."""
@@ -238,7 +239,7 @@ class SalesCRMPipelineManager:
             lead_score=88,
             customer_lifetime_value_usd=45000.0,
             satisfaction_rating=4.9,
-            tags=["Cash Deposit Ready", "High-Rise Enthusiast", "Verified ZIMRA"]
+            tags=["Cash Deposit Ready", "High-Rise Enthusiast", "Verified ZIMRA"],
         )
         c2 = CustomerProfile(
             customer_id="CRM-CUST-102",
@@ -252,7 +253,7 @@ class SalesCRMPipelineManager:
             lead_score=94,
             customer_lifetime_value_usd=120000.0,
             satisfaction_rating=5.0,
-            tags=["Diaspora UK", "Multiple Stands", "Mortgage Pre-approved"]
+            tags=["Diaspora UK", "Multiple Stands", "Mortgage Pre-approved"],
         )
         c3 = CustomerProfile(
             customer_id="CRM-CUST-103",
@@ -266,7 +267,7 @@ class SalesCRMPipelineManager:
             lead_score=76,
             customer_lifetime_value_usd=18500.0,
             satisfaction_rating=4.7,
-            tags=["Youth Scheme (<=35)", "EcoCash Payer", "Harare North"]
+            tags=["Youth Scheme (<=35)", "EcoCash Payer", "Harare North"],
         )
         c4 = CustomerProfile(
             customer_id="CRM-CUST-104",
@@ -280,7 +281,7 @@ class SalesCRMPipelineManager:
             lead_score=92,
             customer_lifetime_value_usd=250000.0,
             satisfaction_rating=4.8,
-            tags=["Industrial Park", "Warehouse Build", "Corporate Tax Verified"]
+            tags=["Industrial Park", "Warehouse Build", "Corporate Tax Verified"],
         )
 
         for c in [c1, c2, c3, c4]:
@@ -301,7 +302,7 @@ class SalesCRMPipelineManager:
             notes="Inquired via 24/7 WhatsApp AI Bot regarding 2,500 sqm high-rise residential stand.",
             created_at="2026-10-01 09:15",
             urgency="High",
-            is_diaspora=False
+            is_diaspora=False,
         )
         inq2 = RealEstateInquiry(
             inquiry_id="INQ-2026-002",
@@ -318,7 +319,7 @@ class SalesCRMPipelineManager:
             created_at="2026-10-03 14:30",
             urgency="High",
             is_diaspora=True,
-            diaspora_country="United Kingdom"
+            diaspora_country="United Kingdom",
         )
         inq3 = RealEstateInquiry(
             inquiry_id="INQ-2026-003",
@@ -334,7 +335,7 @@ class SalesCRMPipelineManager:
             notes="Applied through mobile EcoCash mini-portal under 40% Youth Allocation statutory quota.",
             created_at="2026-10-05 11:00",
             urgency="Medium",
-            is_diaspora=False
+            is_diaspora=False,
         )
         inq4 = RealEstateInquiry(
             inquiry_id="INQ-2026-004",
@@ -350,7 +351,7 @@ class SalesCRMPipelineManager:
             notes="Direct web portal inquiry requesting BoQ and DLAP title deed verification.",
             created_at="2026-10-06 16:45",
             urgency="High",
-            is_diaspora=False
+            is_diaspora=False,
         )
 
         for inq in [inq1, inq2, inq3, inq4]:
@@ -375,7 +376,7 @@ class SalesCRMPipelineManager:
                 client_sentiment="Positive",
                 timestamp="2026-10-01 09:15",
                 follow_up_action="Share PDF cadastral beacon diagram & pricing matrix",
-                follow_up_date="2026-10-01"
+                follow_up_date="2026-10-01",
             ),
             CommunicationRecord(
                 comm_id="COMM-8002",
@@ -388,7 +389,7 @@ class SalesCRMPipelineManager:
                 client_sentiment="Enthusiastic",
                 timestamp="2026-10-02 11:30",
                 follow_up_action="Schedule physical site viewing with Land Surveyor",
-                follow_up_date="2026-10-04"
+                follow_up_date="2026-10-04",
             ),
             CommunicationRecord(
                 comm_id="COMM-8003",
@@ -401,7 +402,7 @@ class SalesCRMPipelineManager:
                 client_sentiment="Positive",
                 timestamp="2026-10-04 14:00",
                 follow_up_action="Issue formal 24-Month Amortization Quotation & DLAP Title Abstract",
-                follow_up_date="2026-10-05"
+                follow_up_date="2026-10-05",
             ),
             CommunicationRecord(
                 comm_id="COMM-8004",
@@ -414,7 +415,7 @@ class SalesCRMPipelineManager:
                 client_sentiment="Enthusiastic",
                 timestamp="2026-10-04 18:20",
                 follow_up_action="Prepare Agreement of Sale for electronic signature",
-                follow_up_date="2026-10-08"
+                follow_up_date="2026-10-08",
             ),
             CommunicationRecord(
                 comm_id="COMM-8005",
@@ -427,7 +428,7 @@ class SalesCRMPipelineManager:
                 client_sentiment="Neutral",
                 timestamp="2026-10-05 11:05",
                 follow_up_action="Call to explain EcoCash deposit payment code",
-                follow_up_date="2026-10-07"
+                follow_up_date="2026-10-07",
             ),
             CommunicationRecord(
                 comm_id="COMM-8006",
@@ -440,8 +441,8 @@ class SalesCRMPipelineManager:
                 client_sentiment="Positive",
                 timestamp="2026-10-07 10:15",
                 follow_up_action="Conveyancing clearance with Deeds Office",
-                follow_up_date="2026-10-09"
-            )
+                follow_up_date="2026-10-09",
+            ),
         ]
         self.communications.extend(comms)
 
@@ -460,7 +461,7 @@ class SalesCRMPipelineManager:
             assigned_agent="Tapiwa Zhou",
             expected_close_date="2026-10-20",
             days_in_stage=3,
-            linked_inquiry_id="INQ-2026-001"
+            linked_inquiry_id="INQ-2026-001",
         )
         d2 = SalesDeal(
             deal_id="DEAL-1002",
@@ -476,7 +477,7 @@ class SalesCRMPipelineManager:
             assigned_agent="Chipo Marufu",
             expected_close_date="2026-10-15",
             days_in_stage=2,
-            linked_inquiry_id="INQ-2026-002"
+            linked_inquiry_id="INQ-2026-002",
         )
         d3 = SalesDeal(
             deal_id="DEAL-1003",
@@ -492,7 +493,7 @@ class SalesCRMPipelineManager:
             assigned_agent="Tapiwa Zhou",
             expected_close_date="2026-11-05",
             days_in_stage=4,
-            linked_inquiry_id="INQ-2026-004"
+            linked_inquiry_id="INQ-2026-004",
         )
         d4 = SalesDeal(
             deal_id="DEAL-1004",
@@ -508,7 +509,7 @@ class SalesCRMPipelineManager:
             assigned_agent="Blessing Hove",
             expected_close_date="2026-10-30",
             days_in_stage=5,
-            linked_inquiry_id="INQ-2026-003"
+            linked_inquiry_id="INQ-2026-003",
         )
         d5 = SalesDeal(
             deal_id="DEAL-1005",
@@ -523,7 +524,7 @@ class SalesCRMPipelineManager:
             payment_terms="Full Cash Settlement Completed",
             assigned_agent="Tapiwa Zhou",
             expected_close_date="2026-09-28",
-            days_in_stage=12
+            days_in_stage=12,
         )
 
         for d in [d1, d2, d3, d4, d5]:
@@ -550,7 +551,7 @@ class SalesCRMPipelineManager:
         assigned_agent: str = "Tapiwa Zhou",
         urgency: str = "Medium",
         is_diaspora: bool = False,
-        diaspora_country: Optional[str] = None
+        diaspora_country: Optional[str] = None,
     ) -> RealEstateInquiry:
         """Logs a new real estate inquiry from omnichannel source (Web, WhatsApp, Walk-in, etc.)."""
         inquiry_id = f"INQ-2026-{len(self.inquiries) + 1:03d}"
@@ -572,7 +573,7 @@ class SalesCRMPipelineManager:
             created_at=created_at,
             urgency=urgency,
             is_diaspora=is_diaspora,
-            diaspora_country=diaspora_country
+            diaspora_country=diaspora_country,
         )
         self.inquiries[inquiry_id] = inq
 
@@ -588,10 +589,13 @@ class SalesCRMPipelineManager:
                 category=category,
                 is_diaspora=is_diaspora,
                 diaspora_country=diaspora_country,
-                budget_usd=budget_usd
+                budget_usd=budget_usd,
             )
         else:
-            cust.lead_score = max(cust.lead_score, self.calculate_lead_score(is_diaspora, True, budget_usd))
+            cust.lead_score = max(
+                cust.lead_score,
+                self.calculate_lead_score(is_diaspora, True, budget_usd),
+            )
         if inquiry_id not in cust.linked_inquiries:
             cust.linked_inquiries.append(inquiry_id)
 
@@ -605,7 +609,7 @@ class SalesCRMPipelineManager:
             summary=f"Inquiry logged via {source_channel}: Interest in {property_interest} (Budget ${budget_usd:,.2f})",
             client_sentiment="Positive",
             follow_up_action="Assign sales officer and send property portfolio brochure",
-            follow_up_date=datetime.now().strftime("%Y-%m-%d")
+            follow_up_date=datetime.now().strftime("%Y-%m-%d"),
         )
 
         return inq
@@ -614,7 +618,7 @@ class SalesCRMPipelineManager:
         self,
         status: Optional[str] = None,
         source_channel: Optional[str] = None,
-        is_diaspora: Optional[bool] = None
+        is_diaspora: Optional[bool] = None,
     ) -> List[Dict[str, Any]]:
         """Returns filtered list of real estate inquiries."""
         result = []
@@ -644,7 +648,7 @@ class SalesCRMPipelineManager:
         summary: str,
         client_sentiment: str = "Positive",
         follow_up_action: Optional[str] = None,
-        follow_up_date: Optional[str] = None
+        follow_up_date: Optional[str] = None,
     ) -> CommunicationRecord:
         """Appends a client interaction event to the chronological communication history."""
         comm_id = f"COMM-{len(self.communications) + 8001:04d}"
@@ -659,7 +663,7 @@ class SalesCRMPipelineManager:
             client_sentiment=client_sentiment,
             timestamp=datetime.now().strftime("%Y-%m-%d %H:%M"),
             follow_up_action=follow_up_action,
-            follow_up_date=follow_up_date
+            follow_up_date=follow_up_date,
         )
         self.communications.append(rec)
         return rec
@@ -668,16 +672,16 @@ class SalesCRMPipelineManager:
         self,
         customer_id_or_name: Optional[str] = None,
         inquiry_or_deal_ref: Optional[str] = None,
-        limit: int = 50
+        limit: int = 50,
     ) -> List[Dict[str, Any]]:
         """Retrieves chronological client communication history."""
         filtered = []
         for c in reversed(self.communications):
             if customer_id_or_name:
-                if (customer_id_or_name.lower() not in c.customer_id_or_name.lower()):
+                if customer_id_or_name.lower() not in c.customer_id_or_name.lower():
                     continue
             if inquiry_or_deal_ref:
-                if (inquiry_or_deal_ref.lower() not in c.inquiry_or_deal_ref.lower()):
+                if inquiry_or_deal_ref.lower() not in c.inquiry_or_deal_ref.lower():
                     continue
             filtered.append(c.to_dict())
             if len(filtered) >= limit:
@@ -698,17 +702,21 @@ class SalesCRMPipelineManager:
         assigned_agent: str = "Tapiwa Zhou",
         initial_stage: str = "1_INQUIRY_CAPTURED",
         linked_inquiry_id: Optional[str] = None,
-        expected_close_days: int = 30
+        expected_close_days: int = 30,
     ) -> SalesDeal:
         """Creates a deal in the sales pipeline."""
         deal_id = f"DEAL-{len(self.deals) + 1001:04d}"
         deal_value_zwg = round(deal_value_usd * self.rbz_zwg_rate, 2)
         prob = STAGE_PROBABILITIES.get(initial_stage, 10)
-        close_date = (date.today() + timedelta(days=expected_close_days)).strftime("%Y-%m-%d")
+        close_date = (date.today() + timedelta(days=expected_close_days)).strftime(
+            "%Y-%m-%d"
+        )
 
         # Find or create customer
         cust = self.find_customer_by_name(customer_name)
-        customer_id = cust.customer_id if cust else f"CRM-CUST-{len(self.customers) + 101:03d}"
+        customer_id = (
+            cust.customer_id if cust else f"CRM-CUST-{len(self.customers) + 101:03d}"
+        )
 
         deal = SalesDeal(
             deal_id=deal_id,
@@ -723,7 +731,7 @@ class SalesCRMPipelineManager:
             payment_terms=payment_terms,
             assigned_agent=assigned_agent,
             expected_close_date=close_date,
-            linked_inquiry_id=linked_inquiry_id
+            linked_inquiry_id=linked_inquiry_id,
         )
         self.deals[deal_id] = deal
 
@@ -738,7 +746,7 @@ class SalesCRMPipelineManager:
             direction="OUTBOUND",
             agent_name=assigned_agent,
             summary=f"Created Deal '{title}' for ${deal_value_usd:,.2f} at stage {initial_stage}",
-            client_sentiment="Positive"
+            client_sentiment="Positive",
         )
 
         return deal
@@ -748,7 +756,7 @@ class SalesCRMPipelineManager:
         deal_id: str,
         new_stage: str,
         notes: str = "",
-        closed_reason: Optional[str] = None
+        closed_reason: Optional[str] = None,
     ) -> SalesDeal:
         """Transitions a deal along the pipeline stages and updates probability and metrics."""
         deal = self.deals.get(deal_id)
@@ -756,7 +764,9 @@ class SalesCRMPipelineManager:
             raise ValueError(f"Deal {deal_id} not found in pipeline")
 
         if new_stage not in PIPELINE_STAGES:
-            raise ValueError(f"Invalid pipeline stage: {new_stage}. Allowed: {PIPELINE_STAGES}")
+            raise ValueError(
+                f"Invalid pipeline stage: {new_stage}. Allowed: {PIPELINE_STAGES}"
+            )
 
         prev_stage = deal.stage
         deal.stage = new_stage
@@ -773,7 +783,9 @@ class SalesCRMPipelineManager:
             direction="OUTBOUND",
             agent_name=deal.assigned_agent,
             summary=f"Pipeline Stage Transition: {prev_stage} -> {new_stage}. Notes: {notes or 'Standard progression'}",
-            client_sentiment="Enthusiastic" if new_stage == "8_CLOSED_WON" else "Neutral"
+            client_sentiment=(
+                "Enthusiastic" if new_stage == "8_CLOSED_WON" else "Neutral"
+            ),
         )
 
         return deal
@@ -807,11 +819,12 @@ class SalesCRMPipelineManager:
                 "count": len(d_list),
                 "total_value_usd": round(stg_val, 2),
                 "weighted_value_usd": round(stg_wgt, 2),
-                "probability_pct": STAGE_PROBABILITIES.get(s, 0)
+                "probability_pct": STAGE_PROBABILITIES.get(s, 0),
             }
 
         total_active_deals = sum(
-            len(d_list) for s, d_list in stages_data.items()
+            len(d_list)
+            for s, d_list in stages_data.items()
             if s not in ("8_CLOSED_WON", "CLOSED_LOST")
         )
 
@@ -819,12 +832,14 @@ class SalesCRMPipelineManager:
             "total_deals_count": len(self.deals),
             "active_pipeline_deals_count": total_active_deals,
             "total_pipeline_value_usd": round(total_pipeline_val_usd, 2),
-            "total_pipeline_value_zwg": round(total_pipeline_val_usd * self.rbz_zwg_rate, 2),
+            "total_pipeline_value_zwg": round(
+                total_pipeline_val_usd * self.rbz_zwg_rate, 2
+            ),
             "weighted_pipeline_value_usd": round(weighted_pipeline_val_usd, 2),
             "closed_won_value_usd": round(closed_won_val_usd, 2),
             "currency_rate_zwg": self.rbz_zwg_rate,
             "stage_breakdown": stage_metrics,
-            "stages": stages_data
+            "stages": stages_data,
         }
 
     # -----------------------------------------------------------------------
@@ -841,7 +856,7 @@ class SalesCRMPipelineManager:
         is_diaspora: bool = False,
         diaspora_country: Optional[str] = None,
         tags: Optional[List[str]] = None,
-        budget_usd: float = 25000.0
+        budget_usd: float = 25000.0,
     ) -> CustomerProfile:
         """Creates or updates a 360-degree customer CRM profile."""
         cust = self.find_customer_by_phone_or_email(phone, email)
@@ -856,10 +871,12 @@ class SalesCRMPipelineManager:
                 category=category,
                 is_diaspora=is_diaspora,
                 diaspora_country=diaspora_country,
-                lead_score=self.calculate_lead_score(is_diaspora, bool(phone and email), budget_usd),
+                lead_score=self.calculate_lead_score(
+                    is_diaspora, bool(phone and email), budget_usd
+                ),
                 customer_lifetime_value_usd=0.0,
                 satisfaction_rating=5.0,
-                tags=tags or ["New Lead"]
+                tags=tags or ["New Lead"],
             )
             self.customers[cid] = cust
         else:
@@ -869,7 +886,12 @@ class SalesCRMPipelineManager:
             cust.is_diaspora = is_diaspora
             if diaspora_country:
                 cust.diaspora_country = diaspora_country
-            cust.lead_score = max(cust.lead_score, self.calculate_lead_score(is_diaspora, bool(phone and email), budget_usd))
+            cust.lead_score = max(
+                cust.lead_score,
+                self.calculate_lead_score(
+                    is_diaspora, bool(phone and email), budget_usd
+                ),
+            )
             if tags:
                 for t in tags:
                     if t not in cust.tags:
@@ -887,9 +909,7 @@ class SalesCRMPipelineManager:
 
         # Fetch linked deals
         deals_list = [
-            self.deals[did].to_dict()
-            for did in cust.linked_deals
-            if did in self.deals
+            self.deals[did].to_dict() for did in cust.linked_deals if did in self.deals
         ]
 
         # Fetch linked inquiries
@@ -900,10 +920,14 @@ class SalesCRMPipelineManager:
         ]
 
         # Fetch timeline
-        timeline = self.get_communication_history(customer_id_or_name=cust.full_name, limit=20)
+        timeline = self.get_communication_history(
+            customer_id_or_name=cust.full_name, limit=20
+        )
 
         # Recalculate CLV
-        clv = sum(d["deal_value_usd"] for d in deals_list if d["stage"] == "8_CLOSED_WON")
+        clv = sum(
+            d["deal_value_usd"] for d in deals_list if d["stage"] == "8_CLOSED_WON"
+        )
         cust.customer_lifetime_value_usd = clv
 
         return {
@@ -912,10 +936,12 @@ class SalesCRMPipelineManager:
             "inquiries": inquiries_list,
             "communication_timeline": timeline,
             "total_deals_value_usd": sum(d["deal_value_usd"] for d in deals_list),
-            "lifetime_settled_value_usd": clv
+            "lifetime_settled_value_usd": clv,
         }
 
-    def calculate_lead_score(self, is_diaspora: bool, has_phone_email: bool, budget_usd: float) -> int:
+    def calculate_lead_score(
+        self, is_diaspora: bool, has_phone_email: bool, budget_usd: float
+    ) -> int:
         """Computes 0-100 propensity lead score based on buyer profile, budget, and contact fidelity."""
         score = 50
         if is_diaspora:
@@ -948,13 +974,14 @@ class SalesCRMPipelineManager:
 
         total_inq = len(self.inquiries) or 1
         channel_percentages = {
-            ch: round((cnt / total_inq) * 100, 1)
-            for ch, cnt in channel_counts.items()
+            ch: round((cnt / total_inq) * 100, 1) for ch, cnt in channel_counts.items()
         }
 
         # Conversion rate (Inquiries with Won deals)
         won_deals = [d for d in self.deals.values() if d.stage == "8_CLOSED_WON"]
-        conversion_rate_pct = round((len(won_deals) / total_inq) * 100, 1) if total_inq else 0
+        conversion_rate_pct = (
+            round((len(won_deals) / total_inq) * 100, 1) if total_inq else 0
+        )
 
         # Customer Experience metrics
         all_ratings = [c.satisfaction_rating for c in self.customers.values()]
@@ -966,7 +993,9 @@ class SalesCRMPipelineManager:
                 ch: {
                     "count": channel_counts.get(ch, 0),
                     "share_pct": channel_percentages.get(ch, 0.0),
-                    "pipeline_potential_usd": round(channel_inquiry_val.get(ch, 0.0), 2)
+                    "pipeline_potential_usd": round(
+                        channel_inquiry_val.get(ch, 0.0), 2
+                    ),
                 }
                 for ch in DIGITAL_CHANNELS
             },
@@ -976,15 +1005,19 @@ class SalesCRMPipelineManager:
                 "csat_score_out_of_5": avg_csat,
                 "nps_net_promoter_score": 72,
                 "first_contact_resolution_rate_pct": 86.5,
-                "average_client_interaction_count": round(len(self.communications) / max(len(self.customers), 1), 1)
-            }
+                "average_client_interaction_count": round(
+                    len(self.communications) / max(len(self.customers), 1), 1
+                ),
+            },
         }
 
     # -----------------------------------------------------------------------
     # Internal Helpers
     # -----------------------------------------------------------------------
 
-    def find_customer_by_phone_or_email(self, phone: str, email: str) -> Optional[CustomerProfile]:
+    def find_customer_by_phone_or_email(
+        self, phone: str, email: str
+    ) -> Optional[CustomerProfile]:
         for c in self.customers.values():
             if c.phone == phone or (c.email and c.email.lower() == email.lower()):
                 return c

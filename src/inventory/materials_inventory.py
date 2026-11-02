@@ -3,13 +3,15 @@ Zimbuild Properties: Building Materials Inventory & Usage Tracking Engine
 Handles warehouse stock levels, Goods Received Notes (GRN), site material requisitions,
 and per-project material consumption audit trails.
 """
+
 from typing import Dict, List, Any
 import datetime
+
 
 class MaterialsInventoryManager:
     def __init__(self, fx_rate: float = 26.50):
         self.fx_rate = fx_rate
-        
+
         # Central Warehouse Stock Catalog
         self.inventory = {
             "MAT-BRICK": {
@@ -19,7 +21,7 @@ class MaterialsInventoryManager:
                 "stock_on_hand": 185000,
                 "reorder_level": 30000,
                 "unit_cost_usd": 0.12,
-                "supplier": "Beta Bricks / Mount Hampden"
+                "supplier": "Beta Bricks / Mount Hampden",
             },
             "MAT-CEMENT-32": {
                 "name": "Portland Cement (PC15 / 32.5R 50kg)",
@@ -28,7 +30,7 @@ class MaterialsInventoryManager:
                 "stock_on_hand": 4200,
                 "reorder_level": 800,
                 "unit_cost_usd": 11.50,
-                "supplier": "PPC Zimbabwe / Sino-Zimbabwe"
+                "supplier": "PPC Zimbabwe / Sino-Zimbabwe",
             },
             "MAT-CEMENT-42": {
                 "name": "High-Strength Cement (Supaset 42.5N 50kg)",
@@ -37,7 +39,7 @@ class MaterialsInventoryManager:
                 "stock_on_hand": 2100,
                 "reorder_level": 500,
                 "unit_cost_usd": 13.00,
-                "supplier": "PPC Zimbabwe"
+                "supplier": "PPC Zimbabwe",
             },
             "MAT-RSAND": {
                 "name": "Washed River Sand (Plaster & Slab)",
@@ -46,7 +48,7 @@ class MaterialsInventoryManager:
                 "stock_on_hand": 580.0,
                 "reorder_level": 120.0,
                 "unit_cost_usd": 22.00,
-                "supplier": "Zimbuild Quarries & Sand"
+                "supplier": "Zimbuild Quarries & Sand",
             },
             "MAT-PSAND": {
                 "name": "Pit Sand (Bricklaying Mortar)",
@@ -55,7 +57,7 @@ class MaterialsInventoryManager:
                 "stock_on_hand": 460.0,
                 "reorder_level": 100.0,
                 "unit_cost_usd": 18.00,
-                "supplier": "Zimbuild Quarries & Sand"
+                "supplier": "Zimbuild Quarries & Sand",
             },
             "MAT-STONE": {
                 "name": "19mm Crushed Granite Aggregate",
@@ -64,7 +66,7 @@ class MaterialsInventoryManager:
                 "stock_on_hand": 620.0,
                 "reorder_level": 150.0,
                 "unit_cost_usd": 28.00,
-                "supplier": "Davis Granite / Zimbuild"
+                "supplier": "Davis Granite / Zimbuild",
             },
             "MAT-REBAR-Y10": {
                 "name": "High Tensile Deformed Rebar Y10",
@@ -73,7 +75,7 @@ class MaterialsInventoryManager:
                 "stock_on_hand": 14500,
                 "reorder_level": 3000,
                 "unit_cost_usd": 1.45,
-                "supplier": "Lancashire Steel / Trident"
+                "supplier": "Lancashire Steel / Trident",
             },
             "MAT-REBAR-Y12": {
                 "name": "High Tensile Deformed Rebar Y12",
@@ -82,7 +84,7 @@ class MaterialsInventoryManager:
                 "stock_on_hand": 18200,
                 "reorder_level": 3500,
                 "unit_cost_usd": 1.50,
-                "supplier": "Lancashire Steel / Trident"
+                "supplier": "Lancashire Steel / Trident",
             },
             "MAT-TIMBER": {
                 "name": "Treated Structural Timber (SA Pine 38x114)",
@@ -91,7 +93,7 @@ class MaterialsInventoryManager:
                 "stock_on_hand": 8400,
                 "reorder_level": 1500,
                 "unit_cost_usd": 4.20,
-                "supplier": "Border Timbers / Allied"
+                "supplier": "Border Timbers / Allied",
             },
             "MAT-ROOF-CHROMA": {
                 "name": "Chromadek 0.5mm Roof Sheets (Charcoal)",
@@ -100,7 +102,7 @@ class MaterialsInventoryManager:
                 "stock_on_hand": 1650,
                 "reorder_level": 300,
                 "unit_cost_usd": 26.50,
-                "supplier": "Safintra Zimbabwe"
+                "supplier": "Safintra Zimbabwe",
             },
             "MAT-TILES": {
                 "name": "600x600 Glazed Porcelain Floor Tiles",
@@ -109,7 +111,7 @@ class MaterialsInventoryManager:
                 "stock_on_hand": 3800,
                 "reorder_level": 600,
                 "unit_cost_usd": 16.00,
-                "supplier": "Sunny Yi Feng / Tile & Carpet"
+                "supplier": "Sunny Yi Feng / Tile & Carpet",
             },
             "MAT-PAINT": {
                 "name": "Super Acrylic PVA Paint (White 20L)",
@@ -118,8 +120,8 @@ class MaterialsInventoryManager:
                 "stock_on_hand": 450,
                 "reorder_level": 80,
                 "unit_cost_usd": 68.00,
-                "supplier": "Astra Paints / Dulux"
-            }
+                "supplier": "Astra Paints / Dulux",
+            },
         }
 
         # Immutable Usage & Dispatch History
@@ -137,7 +139,7 @@ class MaterialsInventoryManager:
                 "stage": "Stage 2: Superstructure",
                 "authorized_by": "Eng. Tendai Chiweshe",
                 "foreman": "Foreman Garikai Sithole",
-                "status": "DELIVERED_ON_SITE"
+                "status": "DELIVERED_ON_SITE",
             },
             {
                 "dispatch_id": "DSP-2026-102",
@@ -152,7 +154,7 @@ class MaterialsInventoryManager:
                 "stage": "Stage 2: Superstructure",
                 "authorized_by": "Eng. Tendai Chiweshe",
                 "foreman": "Foreman Garikai Sithole",
-                "status": "DELIVERED_ON_SITE"
+                "status": "DELIVERED_ON_SITE",
             },
             {
                 "dispatch_id": "DSP-2026-103",
@@ -167,8 +169,8 @@ class MaterialsInventoryManager:
                 "stage": "Stage 1: Substructure Slab",
                 "authorized_by": "Eng. Kudzai Sithole",
                 "foreman": "Foreman Tapiwa Zhou",
-                "status": "DELIVERED_ON_SITE"
-            }
+                "status": "DELIVERED_ON_SITE",
+            },
         ]
 
     def get_stock_levels(self) -> List[Dict[str, Any]]:
@@ -178,20 +180,22 @@ class MaterialsInventoryManager:
             cost_usd = item["stock_on_hand"] * item["unit_cost_usd"]
             cost_zwg = cost_usd * self.fx_rate
             is_low = item["stock_on_hand"] <= item["reorder_level"]
-            items.append({
-                "material_id": mat_id,
-                "name": item["name"],
-                "category": item["category"],
-                "unit": item["unit"],
-                "stock_on_hand": item["stock_on_hand"],
-                "reorder_level": item["reorder_level"],
-                "unit_cost_usd": item["unit_cost_usd"],
-                "total_valuation_usd": round(cost_usd, 2),
-                "total_valuation_zwg": round(cost_zwg, 2),
-                "is_low_stock": is_low,
-                "supplier": item["supplier"],
-                "status": "LOW_STOCK_REORDER" if is_low else "IN_STOCK"
-            })
+            items.append(
+                {
+                    "material_id": mat_id,
+                    "name": item["name"],
+                    "category": item["category"],
+                    "unit": item["unit"],
+                    "stock_on_hand": item["stock_on_hand"],
+                    "reorder_level": item["reorder_level"],
+                    "unit_cost_usd": item["unit_cost_usd"],
+                    "total_valuation_usd": round(cost_usd, 2),
+                    "total_valuation_zwg": round(cost_zwg, 2),
+                    "is_low_stock": is_low,
+                    "supplier": item["supplier"],
+                    "status": "LOW_STOCK_REORDER" if is_low else "IN_STOCK",
+                }
+            )
         return items
 
     def dispatch_material_to_site(
@@ -203,20 +207,23 @@ class MaterialsInventoryManager:
         quantity: float,
         stage: str,
         authorized_by: str,
-        foreman: str
+        foreman: str,
     ) -> Dict[str, Any]:
         """
         Issues material from central warehouse to a construction site,
         deducts balance, checks reorder limits, and logs immutable audit trail.
         """
         if material_id not in self.inventory:
-            return {"success": False, "error": f"Material ID {material_id} not found in catalog"}
+            return {
+                "success": False,
+                "error": f"Material ID {material_id} not found in catalog",
+            }
 
         item = self.inventory[material_id]
         if item["stock_on_hand"] < quantity:
             return {
                 "success": False,
-                "error": f"Insufficient stock for {item['name']}. Available: {item['stock_on_hand']}, Requested: {quantity}"
+                "error": f"Insufficient stock for {item['name']}. Available: {item['stock_on_hand']}, Requested: {quantity}",
             }
 
         # Deduct stock
@@ -237,7 +244,7 @@ class MaterialsInventoryManager:
             "stage": stage,
             "authorized_by": authorized_by,
             "foreman": foreman,
-            "status": "DELIVERED_ON_SITE"
+            "status": "DELIVERED_ON_SITE",
         }
         self.usage_log.insert(0, entry)
 
@@ -251,7 +258,7 @@ class MaterialsInventoryManager:
             "quantity_dispatched": quantity,
             "remaining_stock": item["stock_on_hand"],
             "is_low_stock": is_low,
-            "dispatch_entry": entry
+            "dispatch_entry": entry,
         }
 
     def receive_stock_grn(
@@ -260,7 +267,7 @@ class MaterialsInventoryManager:
         quantity: float,
         supplier: str,
         invoice_ref: str,
-        received_by: str
+        received_by: str,
     ) -> Dict[str, Any]:
         """
         Logs a Goods Received Note (GRN) adding stock to warehouse.
@@ -279,5 +286,5 @@ class MaterialsInventoryManager:
             "new_stock_level": self.inventory[material_id]["stock_on_hand"],
             "supplier": supplier,
             "invoice_ref": invoice_ref,
-            "received_by": received_by
+            "received_by": received_by,
         }
