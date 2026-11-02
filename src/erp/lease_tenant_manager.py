@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional
 from datetime import datetime, date, timedelta
 
+
 @dataclass
 class MaintenanceTicket:
     ticket_id: str
@@ -18,8 +19,11 @@ class MaintenanceTicket:
     priority: str  # Low, Medium, High, Emergency
     status: str = "Open"  # Open, Assigned, In Progress, Resolved
     assigned_contractor: Optional[str] = None
-    created_at: str = field(default_factory=lambda: datetime.now().strftime("%Y-%m-%d %H:%M"))
+    created_at: str = field(
+        default_factory=lambda: datetime.now().strftime("%Y-%m-%d %H:%M")
+    )
     estimated_cost_usd: float = 0.0
+
 
 @dataclass
 class TenantProfile:
@@ -31,15 +35,18 @@ class TenantProfile:
     credit_score: int  # 300 - 850
     credit_status: str  # Approved, Conditional, Rejected
     screening_notes: str
-    onboarding_checklist: Dict[str, bool] = field(default_factory=lambda: {
-        "id_document_verified": True,
-        "proof_of_income_verified": True,
-        "security_deposit_paid": True,
-        "digital_lease_signed": True,
-        "move_in_inspection_completed": True,
-        "keys_and_access_issued": True
-    })
+    onboarding_checklist: Dict[str, bool] = field(
+        default_factory=lambda: {
+            "id_document_verified": True,
+            "proof_of_income_verified": True,
+            "security_deposit_paid": True,
+            "digital_lease_signed": True,
+            "move_in_inspection_completed": True,
+            "keys_and_access_issued": True,
+        }
+    )
     ledger_balance_usd: float = 0.0  # Positive = owed, Negative = credit
+
 
 @dataclass
 class LeaseAgreement:
@@ -48,7 +55,7 @@ class LeaseAgreement:
     unit_id: str
     tenant_id: str
     start_date: str  # YYYY-MM-DD
-    end_date: str    # YYYY-MM-DD
+    end_date: str  # YYYY-MM-DD
     base_rent_usd: float
     current_rent_usd: float
     deposit_held_usd: float
@@ -59,13 +66,15 @@ class LeaseAgreement:
 
     def calculate_next_escalation(self) -> Dict[str, float]:
         """Calculates next rent escalation amount based on contractual escalation percentage."""
-        escalated_rent = self.current_rent_usd * (1 + (self.escalation_rate_pct / 100.0))
+        escalated_rent = self.current_rent_usd * (
+            1 + (self.escalation_rate_pct / 100.0)
+        )
         rent_increase = escalated_rent - self.current_rent_usd
         return {
             "current_rent_usd": round(self.current_rent_usd, 2),
             "escalation_rate_pct": self.escalation_rate_pct,
             "annual_escalated_rent_usd": round(escalated_rent, 2),
-            "monthly_increase_usd": round(rent_increase, 2)
+            "monthly_increase_usd": round(rent_increase, 2),
         }
 
     def generate_lease_abstraction(self, property_name: str, tenant_name: str) -> Dict:
@@ -85,8 +94,8 @@ class LeaseAgreement:
             "statutory_compliance": "Governed by Commercial Premises (Rent) Regulations & Deeds Registries Act",
             "critical_dates": {
                 "renewal_notice_deadline": self._calculate_notice_date(60),
-                "option_to_renew": "3-year extension subject to market appraisal"
-            }
+                "option_to_renew": "3-year extension subject to market appraisal",
+            },
         }
 
     def _calculate_notice_date(self, notice_days: int) -> str:
@@ -117,7 +126,7 @@ class LeaseTenantManager:
             phone="+263 242 799000",
             credit_score=810,
             credit_status="Approved",
-            screening_notes="Tier 1 Institutional Banking tenant. AAA rating."
+            screening_notes="Tier 1 Institutional Banking tenant. AAA rating.",
         )
         t2 = TenantProfile(
             tenant_id="TEN-002",
@@ -127,7 +136,7 @@ class LeaseTenantManager:
             phone="+263 772 411890",
             credit_score=720,
             credit_status="Approved",
-            screening_notes="Established hospitality operator with 4 national branches."
+            screening_notes="Established hospitality operator with 4 national branches.",
         )
         t3 = TenantProfile(
             tenant_id="TEN-006",
@@ -137,7 +146,7 @@ class LeaseTenantManager:
             phone="+263 774 192834",
             credit_score=765,
             credit_status="Approved",
-            screening_notes="Corporate lease guarantee through Hwange Colliery."
+            screening_notes="Corporate lease guarantee through Hwange Colliery.",
         )
         self.tenants[t1.tenant_id] = t1
         self.tenants[t2.tenant_id] = t2
@@ -156,7 +165,7 @@ class LeaseTenantManager:
             current_rent_usd=3010.0,
             deposit_held_usd=5600.0,
             escalation_rate_pct=7.5,
-            critical_alerts=["Annual escalation due in 45 days"]
+            critical_alerts=["Annual escalation due in 45 days"],
         )
         l2 = LeaseAgreement(
             lease_id="LSE-002",
@@ -169,7 +178,9 @@ class LeaseTenantManager:
             current_rent_usd=1100.0,
             deposit_held_usd=2200.0,
             escalation_rate_pct=8.0,
-            critical_alerts=["Lease expiration within 60 days - Renewal Campaign Triggered"]
+            critical_alerts=[
+                "Lease expiration within 60 days - Renewal Campaign Triggered"
+            ],
         )
         self.leases[l1.lease_id] = l1
         self.leases[l2.lease_id] = l2
@@ -186,11 +197,17 @@ class LeaseTenantManager:
                 priority="High",
                 status="Assigned",
                 assigned_contractor="AquaFlow Zimbabwe Civil & Plumbing",
-                estimated_cost_usd=180.0
+                estimated_cost_usd=180.0,
             )
         )
 
-    def screen_tenant(self, full_name: str, id_reg: str, salary_or_revenue_usd: float, monthly_rent: float) -> TenantProfile:
+    def screen_tenant(
+        self,
+        full_name: str,
+        id_reg: str,
+        salary_or_revenue_usd: float,
+        monthly_rent: float,
+    ) -> TenantProfile:
         """Automated credit screening based on Debt-to-Income / Rent Coverage Ratio."""
         coverage_ratio = salary_or_revenue_usd / monthly_rent if monthly_rent > 0 else 0
         if coverage_ratio >= 3.5:
@@ -214,12 +231,20 @@ class LeaseTenantManager:
             phone="+263 770 000000",
             credit_score=score,
             credit_status=status,
-            screening_notes=notes
+            screening_notes=notes,
         )
         self.tenants[tenant.tenant_id] = tenant
         return tenant
 
-    def submit_maintenance_ticket(self, tenant_id: str, property_id: str, unit_id: str, category: str, description: str, priority: str = "Medium") -> MaintenanceTicket:
+    def submit_maintenance_ticket(
+        self,
+        tenant_id: str,
+        property_id: str,
+        unit_id: str,
+        category: str,
+        description: str,
+        priority: str = "Medium",
+    ) -> MaintenanceTicket:
         """Self-service tenant maintenance dispatch."""
         ticket = MaintenanceTicket(
             ticket_id=f"TKT-{len(self.maintenance_tickets)+801:03d}",
@@ -230,7 +255,7 @@ class LeaseTenantManager:
             description=description,
             priority=priority,
             status="Open",
-            estimated_cost_usd=120.0
+            estimated_cost_usd=120.0,
         )
         self.maintenance_tickets.append(ticket)
         return ticket
@@ -240,9 +265,11 @@ class LeaseTenantManager:
         tenant = self.tenants.get(tenant_id)
         if not tenant:
             return {"error": "Tenant not found"}
-        
+
         tenant_leases = [l for l in self.leases.values() if l.tenant_id == tenant_id]
-        tenant_tickets = [t for t in self.maintenance_tickets if t.tenant_id == tenant_id]
+        tenant_tickets = [
+            t for t in self.maintenance_tickets if t.tenant_id == tenant_id
+        ]
 
         return {
             "tenant_id": tenant.tenant_id,
@@ -255,7 +282,7 @@ class LeaseTenantManager:
                     "unit_id": l.unit_id,
                     "current_rent_usd": l.current_rent_usd,
                     "end_date": l.end_date,
-                    "critical_alerts": l.critical_alerts
+                    "critical_alerts": l.critical_alerts,
                 }
                 for l in tenant_leases
             ],
@@ -266,8 +293,8 @@ class LeaseTenantManager:
                     "description": t.description,
                     "priority": t.priority,
                     "status": t.status,
-                    "created_at": t.created_at
+                    "created_at": t.created_at,
                 }
                 for t in tenant_tickets
-            ]
+            ],
         }

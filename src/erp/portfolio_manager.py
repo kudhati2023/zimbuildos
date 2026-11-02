@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from typing import List, Dict, Optional
 from datetime import datetime
 
+
 @dataclass
 class UnitConfig:
     unit_id: str
@@ -17,6 +18,7 @@ class UnitConfig:
     is_occupied: bool = False
     tenant_id: Optional[str] = None
     lease_id: Optional[str] = None
+
 
 @dataclass
 class PropertyAsset:
@@ -77,19 +79,27 @@ class PropertyAsset:
     def cap_rate_percent(self) -> float:
         if self.current_valuation_usd <= 0:
             return 0.0
-        return round((self.net_operating_income_usd / self.current_valuation_usd) * 100, 2)
+        return round(
+            (self.net_operating_income_usd / self.current_valuation_usd) * 100, 2
+        )
 
     def calculate_annual_depreciation(self, current_year: int) -> Dict[str, float]:
         """Straight-line depreciation calculation."""
         years_held = max(0, current_year - self.acquisition_year)
-        depreciable_base = self.purchase_price_usd * 0.8  # Exclude land value (assumed 20%)
+        depreciable_base = (
+            self.purchase_price_usd * 0.8
+        )  # Exclude land value (assumed 20%)
         annual_depreciation = depreciable_base / self.useful_life_years
-        accumulated_depreciation = min(depreciable_base, annual_depreciation * years_held)
-        book_value = (self.purchase_price_usd * 0.2) + (depreciable_base - accumulated_depreciation)
+        accumulated_depreciation = min(
+            depreciable_base, annual_depreciation * years_held
+        )
+        book_value = (self.purchase_price_usd * 0.2) + (
+            depreciable_base - accumulated_depreciation
+        )
         return {
             "annual_depreciation": round(annual_depreciation, 2),
             "accumulated_depreciation": round(accumulated_depreciation, 2),
-            "net_book_value": round(book_value, 2)
+            "net_book_value": round(book_value, 2),
         }
 
 
@@ -112,13 +122,60 @@ class PortfolioManager:
             acquisition_year=2021,
             annual_operating_expenses_usd=42000.0,
             units=[
-                UnitConfig("U-PV-01", "G01-Retail", "Retail Banking Hall", 2200, 2800.0, True, "TEN-001", "LSE-001"),
-                UnitConfig("U-PV-02", "G02-Retail", "Coffee Shop & Bistro", 850, 1100.0, True, "TEN-002", "LSE-002"),
-                UnitConfig("U-PV-03", "101-Office", "Corporate Suite A", 1600, 1900.0, True, "TEN-003", "LSE-003"),
-                UnitConfig("U-PV-04", "102-Office", "Consultancy Suite B", 1200, 1450.0, False),
-                UnitConfig("U-PV-05", "201-Resi", "Penthouse Apartment", 1800, 2200.0, True, "TEN-004", "LSE-004"),
-                UnitConfig("U-PV-06", "202-Resi", "2-Bed Luxury Suite", 1100, 1300.0, True, "TEN-005", "LSE-005")
-            ]
+                UnitConfig(
+                    "U-PV-01",
+                    "G01-Retail",
+                    "Retail Banking Hall",
+                    2200,
+                    2800.0,
+                    True,
+                    "TEN-001",
+                    "LSE-001",
+                ),
+                UnitConfig(
+                    "U-PV-02",
+                    "G02-Retail",
+                    "Coffee Shop & Bistro",
+                    850,
+                    1100.0,
+                    True,
+                    "TEN-002",
+                    "LSE-002",
+                ),
+                UnitConfig(
+                    "U-PV-03",
+                    "101-Office",
+                    "Corporate Suite A",
+                    1600,
+                    1900.0,
+                    True,
+                    "TEN-003",
+                    "LSE-003",
+                ),
+                UnitConfig(
+                    "U-PV-04", "102-Office", "Consultancy Suite B", 1200, 1450.0, False
+                ),
+                UnitConfig(
+                    "U-PV-05",
+                    "201-Resi",
+                    "Penthouse Apartment",
+                    1800,
+                    2200.0,
+                    True,
+                    "TEN-004",
+                    "LSE-004",
+                ),
+                UnitConfig(
+                    "U-PV-06",
+                    "202-Resi",
+                    "2-Bed Luxury Suite",
+                    1100,
+                    1300.0,
+                    True,
+                    "TEN-005",
+                    "LSE-005",
+                ),
+            ],
         )
         # 2. Hwange HESCO Executive Estate (Residential)
         p2 = PropertyAsset(
@@ -131,12 +188,50 @@ class PortfolioManager:
             acquisition_year=2022,
             annual_operating_expenses_usd=21000.0,
             units=[
-                UnitConfig("U-HW-01", "V01-Villa", "3-Bed Executive House", 1450, 850.0, True, "TEN-006", "LSE-006"),
-                UnitConfig("U-HW-02", "V02-Villa", "3-Bed Executive House", 1450, 850.0, True, "TEN-007", "LSE-007"),
-                UnitConfig("U-HW-03", "V03-Villa", "3-Bed Executive House", 1450, 850.0, True, "TEN-008", "LSE-008"),
-                UnitConfig("U-HW-04", "V04-Villa", "3-Bed Executive House", 1450, 850.0, False),
-                UnitConfig("U-HW-05", "V05-Villa", "4-Bed Deluxe House", 1900, 1100.0, True, "TEN-009", "LSE-009")
-            ]
+                UnitConfig(
+                    "U-HW-01",
+                    "V01-Villa",
+                    "3-Bed Executive House",
+                    1450,
+                    850.0,
+                    True,
+                    "TEN-006",
+                    "LSE-006",
+                ),
+                UnitConfig(
+                    "U-HW-02",
+                    "V02-Villa",
+                    "3-Bed Executive House",
+                    1450,
+                    850.0,
+                    True,
+                    "TEN-007",
+                    "LSE-007",
+                ),
+                UnitConfig(
+                    "U-HW-03",
+                    "V03-Villa",
+                    "3-Bed Executive House",
+                    1450,
+                    850.0,
+                    True,
+                    "TEN-008",
+                    "LSE-008",
+                ),
+                UnitConfig(
+                    "U-HW-04", "V04-Villa", "3-Bed Executive House", 1450, 850.0, False
+                ),
+                UnitConfig(
+                    "U-HW-05",
+                    "V05-Villa",
+                    "4-Bed Deluxe House",
+                    1900,
+                    1100.0,
+                    True,
+                    "TEN-009",
+                    "LSE-009",
+                ),
+            ],
         )
         # 3. Kadoma West Logistics & Industrial Hub (Industrial)
         p3 = PropertyAsset(
@@ -149,10 +244,37 @@ class PortfolioManager:
             acquisition_year=2023,
             annual_operating_expenses_usd=15000.0,
             units=[
-                UnitConfig("U-KD-01", "WH-01", "Heavy Warehouse Bay A", 5000, 3200.0, True, "TEN-010", "LSE-010"),
-                UnitConfig("U-KD-02", "WH-02", "Heavy Warehouse Bay B", 5000, 3200.0, True, "TEN-011", "LSE-011"),
-                UnitConfig("U-KD-03", "WH-03", "Light Assembly Bay C", 3000, 2000.0, True, "TEN-012", "LSE-012")
-            ]
+                UnitConfig(
+                    "U-KD-01",
+                    "WH-01",
+                    "Heavy Warehouse Bay A",
+                    5000,
+                    3200.0,
+                    True,
+                    "TEN-010",
+                    "LSE-010",
+                ),
+                UnitConfig(
+                    "U-KD-02",
+                    "WH-02",
+                    "Heavy Warehouse Bay B",
+                    5000,
+                    3200.0,
+                    True,
+                    "TEN-011",
+                    "LSE-011",
+                ),
+                UnitConfig(
+                    "U-KD-03",
+                    "WH-03",
+                    "Light Assembly Bay C",
+                    3000,
+                    2000.0,
+                    True,
+                    "TEN-012",
+                    "LSE-012",
+                ),
+            ],
         )
         self.properties[p1.property_id] = p1
         self.properties[p2.property_id] = p2
@@ -164,12 +286,20 @@ class PortfolioManager:
         total_valuation = sum(p.current_valuation_usd for p in self.properties.values())
         total_units = sum(p.total_units for p in self.properties.values())
         occupied_units = sum(p.occupied_units for p in self.properties.values())
-        occupancy_rate = round((occupied_units / total_units * 100), 2) if total_units else 0.0
-        
-        annual_gross_income = sum(p.gross_annual_income for p in self.properties.values())
-        annual_opex = sum(p.annual_operating_expenses_usd for p in self.properties.values())
+        occupancy_rate = (
+            round((occupied_units / total_units * 100), 2) if total_units else 0.0
+        )
+
+        annual_gross_income = sum(
+            p.gross_annual_income for p in self.properties.values()
+        )
+        annual_opex = sum(
+            p.annual_operating_expenses_usd for p in self.properties.values()
+        )
         total_noi = sum(p.net_operating_income_usd for p in self.properties.values())
-        avg_cap_rate = round((total_noi / total_valuation * 100), 2) if total_valuation else 0.0
+        avg_cap_rate = (
+            round((total_noi / total_valuation * 100), 2) if total_valuation else 0.0
+        )
 
         return {
             "total_assets": total_assets,
@@ -193,8 +323,8 @@ class PortfolioManager:
                     "noi_usd": p.net_operating_income_usd,
                     "cap_rate_pct": p.cap_rate_percent,
                     "total_units": p.total_units,
-                    "occupied_units": p.occupied_units
+                    "occupied_units": p.occupied_units,
                 }
                 for p in self.properties.values()
-            ]
+            ],
         }

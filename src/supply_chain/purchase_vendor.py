@@ -9,16 +9,17 @@ from dataclasses import dataclass, field
 import hashlib
 import datetime
 
+
 @dataclass
 class VendorProfile:
     vendor_id: str
     company_name: str
-    tax_number: str       # ZIMRA BP / TIN
+    tax_number: str  # ZIMRA BP / TIN
     contact_person: str
     phone: str
     email: str
-    rating: float         # 1.0 to 5.0
-    payment_terms: str    # Net 30, COD, 50% Advance
+    rating: float  # 1.0 to 5.0
+    payment_terms: str  # Net 30, COD, 50% Advance
     compliance_certified: bool = True
     bank_details: str = "Stanbic Bank Zimbabwe"
 
@@ -29,11 +30,13 @@ class MaterialRequisition:
     project_site: str
     requested_by: str
     required_date: str
-    items: List[Dict[str, Any]] # [{"item_id", "item_name", "qty", "unit", "spec"}]
-    urgency: str = "NORMAL"     # NORMAL, URGENT, CRITICAL
-    status: str = "PENDING"     # PENDING, APPROVED, PO_ISSUED, REJECTED
+    items: List[Dict[str, Any]]  # [{"item_id", "item_name", "qty", "unit", "spec"}]
+    urgency: str = "NORMAL"  # NORMAL, URGENT, CRITICAL
+    status: str = "PENDING"  # PENDING, APPROVED, PO_ISSUED, REJECTED
     approved_by: Optional[str] = None
-    created_at: str = field(default_factory=lambda: datetime.datetime.now().strftime("%Y-%m-%d %H:%M"))
+    created_at: str = field(
+        default_factory=lambda: datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
+    )
 
 
 @dataclass
@@ -46,7 +49,7 @@ class VendorQuote:
     total_quote_usd: float
     delivery_lead_days: int
     warranty_terms: str
-    composite_score: float = 0.0   # weighted score on price, lead time, rating
+    composite_score: float = 0.0  # weighted score on price, lead time, rating
     selected: bool = False
 
 
@@ -57,11 +60,15 @@ class PurchaseOrder:
     vendor_id: str
     vendor_name: str
     project_site: str
-    items: List[Dict[str, Any]] # [{"item_id", "item_name", "qty", "unit", "unit_price", "line_total"}]
+    items: List[
+        Dict[str, Any]
+    ]  # [{"item_id", "item_name", "qty", "unit", "unit_price", "line_total"}]
     total_amount_usd: float
     total_amount_zwg: float
-    status: str = "ISSUED" # ISSUED, PARTIALLY_DELIVERED, DELIVERED, MATCHED, CANCELLED
-    issued_date: str = field(default_factory=lambda: datetime.datetime.now().strftime("%Y-%m-%d"))
+    status: str = "ISSUED"  # ISSUED, PARTIALLY_DELIVERED, DELIVERED, MATCHED, CANCELLED
+    issued_date: str = field(
+        default_factory=lambda: datetime.datetime.now().strftime("%Y-%m-%d")
+    )
     authorized_by: str = "Dr. Tinashe Manzungu (Group CEO)"
     grn_reference: Optional[str] = None
     delivered_qty: float = 0.0
@@ -76,9 +83,9 @@ class VendorInvoice:
     invoice_number: str
     invoice_date: str
     billed_amount_usd: float
-    tax_amount_usd: float # 15% VAT
+    tax_amount_usd: float  # 15% VAT
     total_payable_usd: float
-    three_way_match_status: str = "UNMATCHED" # MATCHED, VARIANCE_FLAGGED, REJECTED
+    three_way_match_status: str = "UNMATCHED"  # MATCHED, VARIANCE_FLAGGED, REJECTED
     variance_amount_usd: float = 0.0
     audit_notes: str = ""
 
@@ -90,7 +97,7 @@ class PurchaseVendorManager:
         self.fx_rate = fx_rate
         self.vendors: Dict[str, VendorProfile] = {}
         self.requisitions: Dict[str, MaterialRequisition] = {}
-        self.quotes: Dict[str, List[VendorQuote]] = {} # req_id -> list of quotes
+        self.quotes: Dict[str, List[VendorQuote]] = {}  # req_id -> list of quotes
         self.purchase_orders: Dict[str, PurchaseOrder] = {}
         self.invoices: Dict[str, VendorInvoice] = {}
         self._seed_procurement_data()
@@ -106,7 +113,7 @@ class PurchaseVendorManager:
             email="sales@ppc.co.zw",
             rating=4.9,
             payment_terms="Net 30 Days",
-            compliance_certified=True
+            compliance_certified=True,
         )
         v2 = VendorProfile(
             vendor_id="VND-BETA",
@@ -117,7 +124,7 @@ class PurchaseVendorManager:
             email="orders@betabricks.co.zw",
             rating=4.8,
             payment_terms="Net 15 Days",
-            compliance_certified=True
+            compliance_certified=True,
         )
         v3 = VendorProfile(
             vendor_id="VND-LANCASHIRE",
@@ -128,7 +135,7 @@ class PurchaseVendorManager:
             email="commercial@lancashire.co.zw",
             rating=4.7,
             payment_terms="30% Advance, 70% Delivery",
-            compliance_certified=True
+            compliance_certified=True,
         )
         self.vendors[v1.vendor_id] = v1
         self.vendors[v2.vendor_id] = v2
@@ -141,12 +148,22 @@ class PurchaseVendorManager:
             requested_by="Eng. Tendai Chiweshe",
             required_date="2026-10-14",
             items=[
-                {"item_id": "MAT-CEMENT-32", "item_name": "Portland Masonry Cement 32.5R", "qty": 800, "unit": "bags"},
-                {"item_id": "MAT-REBAR-Y12", "item_name": "High Tensile Rebar Y12", "qty": 2000, "unit": "kg"}
+                {
+                    "item_id": "MAT-CEMENT-32",
+                    "item_name": "Portland Masonry Cement 32.5R",
+                    "qty": 800,
+                    "unit": "bags",
+                },
+                {
+                    "item_id": "MAT-REBAR-Y12",
+                    "item_name": "High Tensile Rebar Y12",
+                    "qty": 2000,
+                    "unit": "kg",
+                },
             ],
             urgency="URGENT",
             status="APPROVED",
-            approved_by="Dr. Tinashe Manzungu"
+            approved_by="Dr. Tinashe Manzungu",
         )
         self.requisitions[req.requisition_id] = req
 
@@ -164,7 +181,7 @@ class PurchaseVendorManager:
                     "qty": 800,
                     "unit": "bags",
                     "unit_price": 10.50,
-                    "line_total": 8400.00
+                    "line_total": 8400.00,
                 }
             ],
             total_amount_usd=8400.00,
@@ -172,7 +189,7 @@ class PurchaseVendorManager:
             status="PARTIALLY_DELIVERED",
             delivered_qty=800,
             grn_reference="GRN-2026-1008-CEM",
-            photo_evidence_hash="a89f3b207e99c15d"
+            photo_evidence_hash="a89f3b207e99c15d",
         )
         self.purchase_orders[po.po_id] = po
 
@@ -182,7 +199,7 @@ class PurchaseVendorManager:
         requested_by: str,
         required_date: str,
         items: List[Dict[str, Any]],
-        urgency: str = "NORMAL"
+        urgency: str = "NORMAL",
     ) -> Dict[str, Any]:
         """Creates an official site material requisition for procurement."""
         req_id = f"REQ-2026-{len(self.requisitions) + 82:03d}"
@@ -193,25 +210,33 @@ class PurchaseVendorManager:
             required_date=required_date,
             items=items,
             urgency=urgency,
-            status="PENDING"
+            status="PENDING",
         )
         self.requisitions[req_id] = req
         return {"success": True, "requisition_id": req_id, "requisition": req}
 
-    def approve_requisition(self, requisition_id: str, approver_name: str) -> Dict[str, Any]:
+    def approve_requisition(
+        self, requisition_id: str, approver_name: str
+    ) -> Dict[str, Any]:
         """Executive or QS approval to proceed with RFQ and vendor RFQ issuance."""
         if requisition_id not in self.requisitions:
-            return {"success": False, "error": f"Requisition '{requisition_id}' not found"}
+            return {
+                "success": False,
+                "error": f"Requisition '{requisition_id}' not found",
+            }
 
         req = self.requisitions[requisition_id]
         req.status = "APPROVED"
         req.approved_by = approver_name
-        return {"success": True, "requisition_id": requisition_id, "status": "APPROVED", "approved_by": approver_name}
+        return {
+            "success": True,
+            "requisition_id": requisition_id,
+            "status": "APPROVED",
+            "approved_by": approver_name,
+        }
 
     def evaluate_vendor_quotes(
-        self,
-        requisition_id: str,
-        quotes_input: List[Dict[str, Any]]
+        self, requisition_id: str, quotes_input: List[Dict[str, Any]]
     ) -> List[Dict[str, Any]]:
         """
         Calculates multi-criteria comparison score for competing vendor quotes.
@@ -234,7 +259,9 @@ class PurchaseVendorManager:
             lead_score = (min_lead / max(1, q["delivery_lead_days"])) * 100
             rating_score = (rating / 5.0) * 100
 
-            composite = round((0.50 * price_score) + (0.30 * lead_score) + (0.20 * rating_score), 2)
+            composite = round(
+                (0.50 * price_score) + (0.30 * lead_score) + (0.20 * rating_score), 2
+            )
 
             scored = VendorQuote(
                 quote_id=f"QT-{q['vendor_id']}-{requisition_id}",
@@ -246,7 +273,7 @@ class PurchaseVendorManager:
                 delivery_lead_days=q["delivery_lead_days"],
                 warranty_terms=q.get("warranty_terms", "Standard 12 Months"),
                 composite_score=composite,
-                selected=False
+                selected=False,
             )
             scored_quotes.append(scored)
 
@@ -262,11 +289,14 @@ class PurchaseVendorManager:
         self,
         requisition_id: str,
         vendor_id: str,
-        authorized_by: str = "Dr. Tinashe Manzungu (Group CEO)"
+        authorized_by: str = "Dr. Tinashe Manzungu (Group CEO)",
     ) -> Dict[str, Any]:
         """Generates binding Purchase Order (PO) to the winning vendor."""
         if requisition_id not in self.requisitions:
-            return {"success": False, "error": f"Requisition '{requisition_id}' not found"}
+            return {
+                "success": False,
+                "error": f"Requisition '{requisition_id}' not found",
+            }
 
         req = self.requisitions[requisition_id]
         vendor = self.vendors.get(vendor_id)
@@ -281,19 +311,21 @@ class PurchaseVendorManager:
         total_usd = 0.0
 
         for itm in req.items:
-            price = 10.0 # fallback
+            price = 10.0  # fallback
             if selected_quote and itm["item_id"] in selected_quote.unit_prices:
                 price = selected_quote.unit_prices[itm["item_id"]]
             line_tot = round(itm["qty"] * price, 2)
             total_usd += line_tot
-            po_items.append({
-                "item_id": itm["item_id"],
-                "item_name": itm["item_name"],
-                "qty": itm["qty"],
-                "unit": itm["unit"],
-                "unit_price": price,
-                "line_total": line_tot
-            })
+            po_items.append(
+                {
+                    "item_id": itm["item_id"],
+                    "item_name": itm["item_name"],
+                    "qty": itm["qty"],
+                    "unit": itm["unit"],
+                    "unit_price": price,
+                    "line_total": line_tot,
+                }
+            )
 
         po_id = f"PO-2026-{len(self.purchase_orders) + 105:03d}"
         po = PurchaseOrder(
@@ -306,7 +338,7 @@ class PurchaseVendorManager:
             total_amount_usd=round(total_usd, 2),
             total_amount_zwg=round(total_usd * self.fx_rate, 2),
             status="ISSUED",
-            authorized_by=authorized_by
+            authorized_by=authorized_by,
         )
         self.purchase_orders[po_id] = po
         req.status = "PO_ISSUED"
@@ -317,7 +349,7 @@ class PurchaseVendorManager:
             "vendor_name": vendor.company_name,
             "total_usd": po.total_amount_usd,
             "total_zwg": po.total_amount_zwg,
-            "status": "ISSUED"
+            "status": "ISSUED",
         }
 
     def record_po_delivery(
@@ -325,7 +357,7 @@ class PurchaseVendorManager:
         po_id: str,
         delivered_qty: float,
         receiver_name: str,
-        photo_proof_tag: str = "site_delivery_slip.jpg"
+        photo_proof_tag: str = "site_delivery_slip.jpg",
     ) -> Dict[str, Any]:
         """Logs Goods Received Note (GRN) on site with delivery photo hash."""
         if po_id not in self.purchase_orders:
@@ -334,7 +366,9 @@ class PurchaseVendorManager:
         po = self.purchase_orders[po_id]
         po.delivered_qty = delivered_qty
         po.grn_reference = f"GRN-{po_id}-{datetime.datetime.now().strftime('%m%d')}"
-        po.photo_evidence_hash = hashlib.sha256(f"{po_id}:{receiver_name}:{photo_proof_tag}".encode()).hexdigest()[:16]
+        po.photo_evidence_hash = hashlib.sha256(
+            f"{po_id}:{receiver_name}:{photo_proof_tag}".encode()
+        ).hexdigest()[:16]
 
         total_ordered = sum(item["qty"] for item in po.items)
         if delivered_qty >= total_ordered:
@@ -349,7 +383,7 @@ class PurchaseVendorManager:
             "delivered_qty": delivered_qty,
             "ordered_qty": total_ordered,
             "photo_hash": po.photo_evidence_hash,
-            "status": po.status
+            "status": po.status,
         }
 
     def perform_three_way_match(
@@ -357,7 +391,7 @@ class PurchaseVendorManager:
         po_id: str,
         invoice_number: str,
         invoice_date: str,
-        billed_amount_usd: float
+        billed_amount_usd: float,
     ) -> Dict[str, Any]:
         """
         Automated 3-Way Invoice Matching:
@@ -376,16 +410,16 @@ class PurchaseVendorManager:
             return {
                 "success": False,
                 "three_way_match": "REJECTED_NO_DELIVERY_PROOF",
-                "message": "Invoice cannot be matched: No Goods Received Note (GRN) or photo proof found."
+                "message": "Invoice cannot be matched: No Goods Received Note (GRN) or photo proof found.",
             }
 
         variance = round(billed_amount_usd - po.total_amount_usd, 2)
-        tolerance = round(po.total_amount_usd * 0.015, 2) # 1.5% allowed tolerance
+        tolerance = round(po.total_amount_usd * 0.015, 2)  # 1.5% allowed tolerance
 
         is_matched = abs(variance) <= tolerance
         match_status = "MATCHED" if is_matched else "VARIANCE_FLAGGED"
 
-        tax_usd = round(billed_amount_usd * 0.15, 2) # ZIMRA 15% VAT
+        tax_usd = round(billed_amount_usd * 0.15, 2)  # ZIMRA 15% VAT
         total_payable = round(billed_amount_usd + tax_usd, 2)
 
         inv_record = VendorInvoice(
@@ -399,7 +433,11 @@ class PurchaseVendorManager:
             total_payable_usd=total_payable,
             three_way_match_status=match_status,
             variance_amount_usd=variance,
-            audit_notes="Perfect 3-way match across PO, GRN, and Invoice." if is_matched else f"Variance of ${variance} exceeds tolerance threshold ${tolerance}."
+            audit_notes=(
+                "Perfect 3-way match across PO, GRN, and Invoice."
+                if is_matched
+                else f"Variance of ${variance} exceeds tolerance threshold ${tolerance}."
+            ),
         )
         self.invoices[inv_record.invoice_id] = inv_record
         if is_matched:
@@ -417,5 +455,5 @@ class PurchaseVendorManager:
             "total_payable_usd": total_payable,
             "delivery_grn": po.grn_reference,
             "photo_hash": po.photo_evidence_hash,
-            "audit_notes": inv_record.audit_notes
+            "audit_notes": inv_record.audit_notes,
         }
