@@ -1,5 +1,6 @@
 import http.server
 import os
+os.environ["ZIMBUILD_HMAC_SECRET"] = "test-secret-key-do-not-use-in-production"
 import socketserver
 import threading
 import time
