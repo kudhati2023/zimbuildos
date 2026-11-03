@@ -111,14 +111,14 @@ const createOfflineCanvasGrid = () => {
   });
 };
 
-export const InteractiveLeafletMap: React.FC<InteractiveLeafletMapProps> = ({
+export const InteractiveLeafletMap = React.memo(({
   stands,
   selectedStandId,
   onSelectStand,
   onReserveClick,
   center = [-17.8925, 30.9325],
   zoom = 17
-}) => {
+}: InteractiveLeafletMapProps) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const geojsonLayerRef = useRef<L.FeatureGroup | null>(null);
@@ -497,4 +497,4 @@ export const InteractiveLeafletMap: React.FC<InteractiveLeafletMapProps> = ({
 
     </div>
   );
-};
+});
