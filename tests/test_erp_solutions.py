@@ -195,3 +195,19 @@ def test_lean_construction_toc_and_offline_sync():
     sync_result = lean.process_sync_queue()
     assert sync_result["synced_count"] >= 1
     assert evt.synced_to_cloud is True
+
+
+def test_cam_reconciliation_total_pool():
+    from src.erp.financial_tax_engine import CAMReconciliation
+    cam = CAMReconciliation(
+        property_id="PROP-TEST-001",
+        property_name="Test Property",
+        year=2026,
+        total_common_area_sqft=1000.0,
+        actual_maintenance_expenses_usd=100.123,
+        actual_security_expenses_usd=200.456,
+        actual_utilities_common_usd=300.789,
+        actual_management_fees_usd=400.001
+    )
+    # Sum: 100.123 + 200.456 + 300.789 + 400.001 = 1001.369 -> 1001.37
+    assert cam.total_cam_pool_usd == 1001.37
