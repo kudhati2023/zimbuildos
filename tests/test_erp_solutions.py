@@ -103,6 +103,18 @@ def test_site_operations_three_way_match_and_plant():
     cat = sm.equipment_fleet["PLANT-01"]
     assert cat.average_fuel_burn_liters_per_hour > 0
     assert cat.utilization_rate_pct > 0
+    assert cat.total_machine_cost_usd == 12112.5
+
+    # Edge case: zero operating hours
+    from src.erp.site_operations import PlantMachineryEquipment
+    zero_eq = PlantMachineryEquipment(
+        asset_id="TEST-ZERO",
+        equipment_name="Test Equipment",
+        ownership_type="Owned",
+        hourly_rate_usd=85.0,
+        operating_hours=0.0
+    )
+    assert zero_eq.total_machine_cost_usd == 0.0
 
 
 def test_financial_zimra_tax_and_cam_reconciliation():
