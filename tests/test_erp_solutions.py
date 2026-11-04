@@ -195,3 +195,30 @@ def test_lean_construction_toc_and_offline_sync():
     sync_result = lean.process_sync_queue()
     assert sync_result["synced_count"] >= 1
     assert evt.synced_to_cloud is True
+
+def test_qs_cost_code_margins():
+    from src.erp.job_costing_tender import QSCostCode
+
+    # 1. Zero actual cost edge case
+    code_zero = QSCostCode("00-TEST", "Zero Cost", 1000.0, 0.0, 0.0, 0.0, 50.0)
+    assert code_zero.total_actual_cost_usd == 0.0
+    assert code_zero.cost_performance_index == 1.0
+    assert code_zero.cost_variance_usd == -500.0 # 0 - 500 (Earned Value = 50% of 1000)
+
+    # 2. Favorable margin (Under budget, CPI > 1.0, CV < 0)
+    # Budget = 1000, Complete = 80%, Earned Value = 800
+    # Actual cost = 200 + 300 + 100 = 600
+    code_under = QSCostCode("01-TEST", "Under Budget", 1000.0, 200.0, 300.0, 100.0, 80.0)
+    assert code_under.total_actual_cost_usd == 600.0
+    assert code_under.cost_performance_index == round(800.0 / 600.0, 2)
+    assert code_under.cost_variance_usd == -200.0 # 600 - 800
+    assert code_under.cost_performance_index > 1.0
+
+    # 3. Unfavorable margin (Over budget, CPI < 1.0, CV > 0)
+    # Budget = 1000, Complete = 50%, Earned Value = 500
+    # Actual cost = 300 + 400 + 100 = 800
+    code_over = QSCostCode("02-TEST", "Over Budget", 1000.0, 300.0, 400.0, 100.0, 50.0)
+    assert code_over.total_actual_cost_usd == 800.0
+    assert code_over.cost_performance_index == round(500.0 / 800.0, 2)
+    assert code_over.cost_variance_usd == 300.0 # 800 - 500
+    assert code_over.cost_performance_index < 1.0
