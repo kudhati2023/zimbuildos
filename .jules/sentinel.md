@@ -1,0 +1,4 @@
+## 2024-11-23 - Hardcoded Cryptographic Key Fallbacks
+**Vulnerability:** Critical cryptographic operations (HMAC signatures for audit and transactions) fell back to hardcoded production string keys (e.g., "zimbuild-secure-erp-signing-key-2026") when the required environment variables were absent.
+**Learning:** This existed due to developer convenience, violating the "Fail Securely" principle. Silently falling back to a shared default string completely compromises the tamper-evidence of the audit logs if the environment is ever misconfigured.
+**Prevention:** Always follow the "Fail Securely" philosophy: if a critical environment variable for cryptographic secrets is missing, immediately fail fast by explicitly raising an exception (e.g., `ValueError`) during initialization rather than providing a default fallback.
