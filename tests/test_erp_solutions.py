@@ -195,3 +195,15 @@ def test_lean_construction_toc_and_offline_sync():
     sync_result = lean.process_sync_queue()
     assert sync_result["synced_count"] >= 1
     assert evt.synced_to_cloud is True
+
+def test_procurement_order_total_cost():
+    po = ProcurementOrder(
+        po_id="PO-TEST-02",
+        requisition_id="REQ-TEST",
+        supplier_name="PPC Zimbabwe",
+        item_description="Cement",
+        ordered_quantity=15.755,
+        unit_price_usd=10.50,
+        unit_of_measure="Bags"
+    )
+    assert po.po_total_usd == 165.43
