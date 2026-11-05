@@ -44,17 +44,23 @@ def test_hr_employee_lifecycle():
     assert emp.leave_balances["annual"] == 21
 
     # 2. Promotion
-    emp.promote(
+    promoted_emp = hr.promote_employee(
+        employee_id=emp.employee_id,
         new_title="Class 1 Journeyman Bricklayer",
         new_grade=NECGrade.GRADE_7.value,
         new_salary_usd=1450.0,
         notes="Passed trade test at Harare Polytechnic"
     )
-    assert emp.job_title == "Class 1 Journeyman Bricklayer"
-    assert emp.nec_grade == NECGrade.GRADE_7.value
-    assert emp.base_salary_usd == 1450.0
-    assert len(emp.history) == 1
-    assert emp.history[0]["action"] == "PROMOTION"
+    assert promoted_emp is not None
+    assert promoted_emp.job_title == "Class 1 Journeyman Bricklayer"
+    assert promoted_emp.nec_grade == NECGrade.GRADE_7.value
+    assert promoted_emp.base_salary_usd == 1450.0
+    assert len(promoted_emp.history) == 1
+    assert promoted_emp.history[0]["action"] == "PROMOTION"
+
+    # Test non-existent employee
+    invalid_promo = hr.promote_employee("INVALID-EMP", "Boss", "GRADE_1", 10000.0)
+    assert invalid_promo is None
 
     # 3. Leave Application
     res_leave = hr.request_leave(emp.employee_id, "annual", 5)
