@@ -219,6 +219,8 @@ class SalesCRMPipelineManager:
         self.communications: List[CommunicationRecord] = []
         self.deals: Dict[str, SalesDeal] = {}
         self.customers: Dict[str, CustomerProfile] = {}
+        self.customer_phone_idx: Dict[str, CustomerProfile] = {}
+        self.customer_email_idx: Dict[str, CustomerProfile] = {}
         self._seed_default_data()
 
     def _seed_default_data(self):
@@ -285,6 +287,10 @@ class SalesCRMPipelineManager:
 
         for c in [c1, c2, c3, c4]:
             self.customers[c.customer_id] = c
+            if c.phone:
+                self.customer_phone_idx[c.phone] = c
+            if c.email:
+                self.customer_email_idx[c.email.lower()] = c
 
         # 2. Inquiries across Digital Channels
         inq1 = RealEstateInquiry(
@@ -862,6 +868,10 @@ class SalesCRMPipelineManager:
                 tags=tags or ["New Lead"]
             )
             self.customers[cid] = cust
+            if cust.phone:
+                self.customer_phone_idx[cust.phone] = cust
+            if cust.email:
+                self.customer_email_idx[cust.email.lower()] = cust
         else:
             cust.full_name = full_name
             cust.national_id_or_passport = national_id_or_passport
@@ -985,9 +995,10 @@ class SalesCRMPipelineManager:
     # -----------------------------------------------------------------------
 
     def find_customer_by_phone_or_email(self, phone: str, email: str) -> Optional[CustomerProfile]:
-        for c in self.customers.values():
-            if c.phone == phone or (c.email and c.email.lower() == email.lower()):
-                return c
+        if phone and phone in self.customer_phone_idx:
+            return self.customer_phone_idx[phone]
+        if email and email.lower() in self.customer_email_idx:
+            return self.customer_email_idx[email.lower()]
         return None
 
     def find_customer_by_name(self, name: str) -> Optional[CustomerProfile]:
