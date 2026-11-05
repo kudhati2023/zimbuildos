@@ -11,7 +11,7 @@ from src.erp.hr_payroll_manager import (
     HRPayrollManager, EmployeeStatus, ContractType, NECGrade
 )
 from src.erp.fleet_appraisal_manager import (
-    FleetAppraisalManager, AssetCategory, AssetStatus, ConditionGrade
+    FleetAppraisalManager, FleetAsset, AssetCategory, AssetStatus, ConditionGrade
 )
 from src.erp.field_service_manager import (
     FieldServiceManager, ServicePriority, ServiceCategory, WorkOrderStatus
@@ -384,3 +384,48 @@ def test_mobile_field_logging_with_gps_and_photo_verification():
     assert summary["total_service_requests"] >= 2
     assert summary["available_technicians_count"] >= 1
     assert len(summary["recent_mobile_logs"]) >= 1
+
+def test_is_service_due_property():
+    """Test the is_service_due and hours_until_next_service properties of FleetAsset."""
+    asset = FleetAsset(
+
+        asset_id="EQ-TEST-001",
+        asset_name="Test Asset",
+        category=AssetCategory.HEAVY_EARTHMOVING.value,
+        reg_or_fleet_no="TEST-01",
+        vin_or_engine_no="VIN-001",
+        year=2020,
+        acquisition_cost_usd=100000.0,
+        salvage_value_usd=10000.0,
+        useful_life_years=10,
+        rated_life_hours=10000.0,
+        current_operating_hours=0.0,
+        current_odometer_km=0.0,
+        current_site_location="Site A",
+        assigned_operator="John Doe",
+    )
+
+    # Set known service intervals
+    asset.last_service_hours = 100.0
+    asset.service_interval_hours = 250.0
+    # next_service is at 350.0 hours
+
+    # Case 1: Not due (hours > 20)
+    asset.current_operating_hours = 300.0
+    assert asset.hours_until_next_service == 50.0
+    assert asset.is_service_due is False
+
+    # Case 2: Due exactly at threshold (hours == 20)
+    asset.current_operating_hours = 330.0
+    assert asset.hours_until_next_service == 20.0
+    assert asset.is_service_due is True
+
+    # Case 3: Due under threshold (hours < 20)
+    asset.current_operating_hours = 340.0
+    assert asset.hours_until_next_service == 10.0
+    assert asset.is_service_due is True
+
+    # Case 4: Overdue (hours == 0)
+    asset.current_operating_hours = 400.0
+    assert asset.hours_until_next_service == 0.0
+    assert asset.is_service_due is True
