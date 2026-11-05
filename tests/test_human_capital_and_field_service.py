@@ -384,3 +384,48 @@ def test_mobile_field_logging_with_gps_and_photo_verification():
     assert summary["total_service_requests"] >= 2
     assert summary["available_technicians_count"] >= 1
     assert len(summary["recent_mobile_logs"]) >= 1
+
+def test_fleet_is_service_due():
+    fm = FleetAppraisalManager()
+
+    # Create a fresh asset for this test
+    asset = fm.register_fleet_asset(
+        asset_name="Test Generator",
+        category=AssetCategory.SITE_AUXILIARY.value,
+        reg_or_fleet_no="GEN-01",
+        vin_or_engine_no="GEN-999",
+        year=2024,
+        acquisition_cost_usd=10000.0,
+        salvage_value_usd=1000.0,
+        useful_life_years=5,
+        rated_life_hours=10000.0,
+        current_site_location="Site 1",
+        assigned_operator="John Doe",
+        hourly_chargeout_rate_usd=10.0,
+        benchmark_fuel_burn_rate=5.0
+    )
+
+    # Set explicit test values
+    asset.last_service_hours = 1000.0
+    asset.service_interval_hours = 250.0
+    # Next service should be at 1250.0
+
+    # Case 1: Plenty of hours left
+    asset.current_operating_hours = 1000.0
+    assert asset.hours_until_next_service == 250.0
+    assert asset.is_service_due is False
+
+    # Case 2: Not yet due (21 hours left)
+    asset.current_operating_hours = 1229.0
+    assert asset.hours_until_next_service == 21.0
+    assert asset.is_service_due is False
+
+    # Case 3: Just due (20 hours left)
+    asset.current_operating_hours = 1230.0
+    assert asset.hours_until_next_service == 20.0
+    assert asset.is_service_due is True
+
+    # Case 4: Overdue (0 hours left)
+    asset.current_operating_hours = 1300.0
+    assert asset.hours_until_next_service == 0.0
+    assert asset.is_service_due is True
