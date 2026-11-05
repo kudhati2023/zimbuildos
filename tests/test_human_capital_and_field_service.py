@@ -384,3 +384,40 @@ def test_mobile_field_logging_with_gps_and_photo_verification():
     assert summary["total_service_requests"] >= 2
     assert summary["available_technicians_count"] >= 1
     assert len(summary["recent_mobile_logs"]) >= 1
+
+
+def test_asset_service_due_and_hours():
+    from src.erp.fleet_appraisal_manager import FleetAsset
+
+    asset = FleetAsset(
+        asset_id="TEST-001",
+        asset_name="Test Machine",
+        category="Test Category",
+        reg_or_fleet_no="TEST-REG",
+        vin_or_engine_no="TEST-VIN",
+        year=2020,
+        acquisition_cost_usd=100000.0,
+        salvage_value_usd=10000.0,
+        useful_life_years=10,
+        rated_life_hours=10000.0,
+        current_operating_hours=0.0,
+        current_odometer_km=0.0,
+        current_site_location="Test Site",
+        assigned_operator="Test Operator",
+        last_service_hours=3500.0,
+        service_interval_hours=250.0
+    )
+
+    # Not due yet (0.0 hours used, next service at 3750.0)
+    assert asset.hours_until_next_service == 3750.0
+    assert asset.is_service_due is False
+
+    # Just due (3735.0 hours used, 15.0 hours until next service)
+    asset.current_operating_hours = 3735.0
+    assert asset.hours_until_next_service == 15.0
+    assert asset.is_service_due is True
+
+    # Overdue (3800.0 hours used, should cap at 0.0)
+    asset.current_operating_hours = 3800.0
+    assert asset.hours_until_next_service == 0.0
+    assert asset.is_service_due is True
