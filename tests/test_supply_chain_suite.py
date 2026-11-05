@@ -7,7 +7,7 @@ Unit & Integration Tests for Supply Chain & Inventory Management Suite:
 """
 
 import pytest
-from src.supply_chain.warehouse_wms import WarehouseManagementSystem
+from src.supply_chain.warehouse_wms import WarehouseManagementSystem, StockItem
 from src.supply_chain.purchase_vendor import PurchaseVendorManager
 from src.supply_chain.manufacturing_plm import ManufacturingPLMManager
 from src.supply_chain import SupplyChainCoordinator
@@ -173,3 +173,29 @@ def test_supply_chain_coordinator_end_to_end():
     assert assembly["quantity_manufactured"] == 5
     assert assembly["qc_pass_rate_pct"] > 98.0
     assert assembly["inbound_stock"] >= 85 # previously 80 + 5
+
+
+def test_stock_item_is_low_stock():
+    # Test strictly less than threshold
+    item1 = StockItem(
+        item_id="MAT-TEST-1", name="Test Material", category="MASONRY", unit="units",
+        unit_cost_usd=10.0, reorder_threshold=100.0, central_store_qty=40.0,
+        site_allocations={"SITE-1": 50.0} # Total: 90.0
+    )
+    assert item1.is_low_stock is True
+
+    # Test exactly equal to threshold
+    item2 = StockItem(
+        item_id="MAT-TEST-2", name="Test Material 2", category="MASONRY", unit="units",
+        unit_cost_usd=10.0, reorder_threshold=100.0, central_store_qty=50.0,
+        site_allocations={"SITE-1": 50.0} # Total: 100.0
+    )
+    assert item2.is_low_stock is True
+
+    # Test strictly greater than threshold
+    item3 = StockItem(
+        item_id="MAT-TEST-3", name="Test Material 3", category="MASONRY", unit="units",
+        unit_cost_usd=10.0, reorder_threshold=100.0, central_store_qty=60.0,
+        site_allocations={"SITE-1": 50.0} # Total: 110.0
+    )
+    assert item3.is_low_stock is False
