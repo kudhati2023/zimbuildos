@@ -1,0 +1,10 @@
+I will replace the O(N) inline `.filter()` chain for `crmInquiries` with a memoized version, as it is rendered inside a large file. Or the same for `filteredGISStands` or `applications` or `stands`.
+The memory hints at: "When optimizing large React components (like App.tsx), extract expensive inline array operations (such as .filter(), .map(), or .some() calls directly inside JSX rendering blocks) into useMemo hooks to prevent unnecessary O(N) recalculations on every re-render. Precalculate related metrics and combine logic into a single pass to iterate over the data only once."
+
+I will create memoized versions of:
+- `approvedApplications`
+- `availableStands`
+- `gisStandMetrics` (mapped/unmapped)
+- `filteredCrmInquiries`
+
+Let's modify `src/App.tsx` and implement this.
