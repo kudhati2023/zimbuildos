@@ -1,3 +1,4 @@
+from src.erp.fleet_appraisal_manager import FleetAsset
 """
 Comprehensive Unit & Integration Tests for:
 4. Human Capital & Field Service
@@ -384,3 +385,39 @@ def test_mobile_field_logging_with_gps_and_photo_verification():
     assert summary["total_service_requests"] >= 2
     assert summary["available_technicians_count"] >= 1
     assert len(summary["recent_mobile_logs"]) >= 1
+
+def test_fleet_is_service_due():
+    asset = FleetAsset(
+        asset_id="EQ-TEST-001",
+        asset_name="Test Asset",
+        category=AssetCategory.HEAVY_EARTHMOVING.value,
+        reg_or_fleet_no="TEST-01",
+        vin_or_engine_no="VIN-001",
+        year=2020,
+        acquisition_cost_usd=50000.0,
+        salvage_value_usd=5000.0,
+        useful_life_years=10,
+        rated_life_hours=10000.0,
+        current_operating_hours=4000.0,
+        current_odometer_km=0.0,
+        current_site_location="Site A",
+        assigned_operator="John Doe",
+        status=AssetStatus.OPERATIONAL.value,
+        last_service_hours=3800.0,
+        service_interval_hours=250.0
+    )
+
+    # Next service expected at 3800 + 250 = 4050
+    # Current hours: 4000 -> 50 hours remaining -> > 20 -> Not due
+    assert asset.hours_until_next_service == 50.0
+    assert asset.is_service_due is False
+
+    # Current hours: 4030 -> 20 hours remaining -> <= 20 -> Due
+    asset.current_operating_hours = 4030.0
+    assert asset.hours_until_next_service == 20.0
+    assert asset.is_service_due is True
+
+    # Current hours: 4100 -> -50 hours remaining -> max(0, -50) = 0 -> Due (overdue)
+    asset.current_operating_hours = 4100.0
+    assert asset.hours_until_next_service == 0.0
+    assert asset.is_service_due is True
