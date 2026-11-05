@@ -1,3 +1,8 @@
+import os
+os.environ["ZIMBUILD_HMAC_SECRET"] = "test-hmac-secret-123"
+os.environ["ZIMBUILD_LEDGER_SECRET"] = "test-ledger-secret-123"
+os.environ["PAYMENT_GATEWAY_API_KEY"] = "test-api-key-123"
+
 import http.server
 import os
 import socketserver
