@@ -173,3 +173,19 @@ def test_supply_chain_coordinator_end_to_end():
     assert assembly["quantity_manufactured"] == 5
     assert assembly["qc_pass_rate_pct"] > 98.0
     assert assembly["inbound_stock"] >= 85 # previously 80 + 5
+
+def test_bom_machine_overhead_cost_usd():
+    from src.supply_chain.manufacturing_plm import BillOfMaterials
+    bom = BillOfMaterials(
+        bom_id="TEST-1",
+        product_code="TEST-PROD",
+        product_name="Test Product",
+        revision="Rev A",
+        components=[],
+        labor_hours_required=0,
+        labor_rate_hourly_usd=0,
+        machine_hours_required=1.23,
+        machine_rate_hourly_usd=45.67,
+    )
+    # Expected: round(1.23 * 45.67, 2) = round(56.1741, 2) = 56.17
+    assert bom.machine_overhead_cost_usd == 56.17
