@@ -86,6 +86,22 @@ def test_site_operations_three_way_match_and_plant():
         unit_price_usd=10.0,
         unit_of_measure="Bags"
     )
+
+    # Test po_total_usd cost calculation
+    assert po.po_total_usd == 1000.0
+
+    # Test rounding in po_total_usd
+    po_fractional = ProcurementOrder(
+        po_id="PO-TEST-02",
+        requisition_id="REQ-TEST-02",
+        supplier_name="Test Supplier",
+        item_description="Test Item",
+        ordered_quantity=100.123,
+        unit_price_usd=10.0,
+        unit_of_measure="Bags"
+    )
+    assert po_fractional.po_total_usd == 1001.23
+
     # 1. Verify site delivery with photo & receiver
     po.verify_delivery(100.0, "Site Foreman J. Moyo", "sample_photo_bytes")
     assert po.delivery_status == "Delivered"
