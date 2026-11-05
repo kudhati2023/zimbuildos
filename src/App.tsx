@@ -144,6 +144,22 @@ export default function AntigravityEnterpriseDesktop() {
     return gisStands.find(s => s.id === selectedStandId) ?? gisStands[0] ?? null;
   }, [gisStands, selectedStandId]);
 
+
+  // ⚡ Bolt Performance Optimization:
+  // Memoized available stands to prevent array filtering on every render
+  // when navigating to or interacting with the reservation form.
+  const availableStands = useMemo(() => {
+    return stands.filter(s => s.status === 'AVAILABLE');
+  }, [stands]);
+
+
+  // ⚡ Bolt Performance Optimization:
+  // Memoized approved applications to prevent array filtering on every render
+  // when navigating to or interacting with the reservation form.
+  const approvedApplications = useMemo(() => {
+    return applications.filter(a => a.status === 'APPROVED');
+  }, [applications]);
+
   const filteredGISStands = useMemo(() => {
     const q = standSearch.toLowerCase();
     return gisStands.filter(s => {
@@ -1584,7 +1600,7 @@ export default function AntigravityEnterpriseDesktop() {
                   className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-100"
                 >
                   <option value="">-- Choose Approved Applicant --</option>
-                  {applications.filter(a => a.status === 'APPROVED').map(a => (
+                  {approvedApplications.map(a => (
                     <option key={a.application_id} value={a.application_id}>
                       {a.first_name} {a.last_name} ({a.national_id}) · {a.quota_category} · Queued {new Date(a.first_submitted_at).toLocaleDateString()}
                     </option>
@@ -1600,7 +1616,7 @@ export default function AntigravityEnterpriseDesktop() {
                   className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-100"
                 >
                   <option value="">-- Choose Available Stand --</option>
-                  {stands.filter(s => s.status === 'AVAILABLE').map(s => (
+                  {availableStands.map(s => (
                     <option key={s.parcel_id} value={s.parcel_id}>
                       {s.stand_number} · {s.scheme_name} ({s.area_sqm} m² - ${parseFloat(s.price_usd).toLocaleString()} USD){s.quota_category !== 'GENERAL' ? ` · ${s.quota_category} quota` : ''}
                     </option>
