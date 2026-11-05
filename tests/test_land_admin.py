@@ -28,3 +28,18 @@ def test_civil_infrastructure_boq():
     assert len(boq) == 6
     total_boq_usd = sum(item["total_usd"] for item in boq)
     assert total_boq_usd > 50000.0
+
+def test_civil_stormwater_drain_design():
+    engine = CivilEngine()
+
+    # Test scouring flow
+    res = engine.design_stormwater_drain(bottom_width_m=1.0, water_depth_m=0.5, side_slope=2.0, bed_slope=0.01)
+    assert res == {'flow_capacity_m3_s': 3.047, 'flow_velocity_m_s': 3.05, 'cross_section_area_m2': 1.0, 'is_non_scouring': False}
+
+    # Test non-scouring flow
+    res = engine.design_stormwater_drain(bottom_width_m=1.0, water_depth_m=0.5, side_slope=2.0, bed_slope=0.001)
+    assert res == {'flow_capacity_m3_s': 0.964, 'flow_velocity_m_s': 0.96, 'cross_section_area_m2': 1.0, 'is_non_scouring': True}
+
+    # Test zero depth
+    res = engine.design_stormwater_drain(bottom_width_m=1.0, water_depth_m=0.0, side_slope=2.0, bed_slope=0.01)
+    assert res == {'flow_capacity_m3_s': 0.0, 'flow_velocity_m_s': 0, 'cross_section_area_m2': 0.0, 'is_non_scouring': True}
