@@ -9,7 +9,7 @@ Unit & Integration Tests for Supply Chain & Inventory Management Suite:
 import pytest
 from src.supply_chain.warehouse_wms import WarehouseManagementSystem
 from src.supply_chain.purchase_vendor import PurchaseVendorManager
-from src.supply_chain.manufacturing_plm import ManufacturingPLMManager
+from src.supply_chain.manufacturing_plm import ManufacturingPLMManager, BOMComponent
 from src.supply_chain import SupplyChainCoordinator
 
 
@@ -173,3 +173,26 @@ def test_supply_chain_coordinator_end_to_end():
     assert assembly["quantity_manufactured"] == 5
     assert assembly["qc_pass_rate_pct"] > 98.0
     assert assembly["inbound_stock"] >= 85 # previously 80 + 5
+
+def test_bom_component_total_cost_usd():
+    # Test with default scrap allowance (3.0%)
+    component = BOMComponent(
+        raw_material_id="MAT-1",
+        material_name="Steel",
+        required_quantity=10,
+        unit_of_measure="kg",
+        unit_cost_usd=100.0,
+        scrap_allowance_pct=3.0
+    )
+    assert component.total_component_cost_usd == 1030.0
+
+    # Test with zero scrap allowance
+    component_zero_scrap = BOMComponent(
+        raw_material_id="MAT-2",
+        material_name="Wood",
+        required_quantity=10,
+        unit_of_measure="kg",
+        unit_cost_usd=100.0,
+        scrap_allowance_pct=0.0
+    )
+    assert component_zero_scrap.total_component_cost_usd == 1000.0
