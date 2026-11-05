@@ -129,6 +129,7 @@ def test_manufacturing_mrp_bom_and_cost_rollup():
     assert bom_details["raw_materials_cost_usd"] > 0
     assert bom_details["direct_labor_cost_usd"] > 0
     assert bom_details["unit_production_cost_usd"] > 100.0
+    assert bom_details["machine_overhead_usd"] == 45.0
 
     # Explode requirements for 100 wall panels
     explosion = mrp.explode_mrp_requirements("PREFAB-WALL-STD", target_quantity=100)
