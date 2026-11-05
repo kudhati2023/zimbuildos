@@ -1,0 +1,1 @@
+⚡ Bolt: memoize approved applications and available stands filter in Reserve tab [skip ci]
