@@ -9,7 +9,7 @@ Unit & Integration Tests for Supply Chain & Inventory Management Suite:
 import pytest
 from src.supply_chain.warehouse_wms import WarehouseManagementSystem
 from src.supply_chain.purchase_vendor import PurchaseVendorManager
-from src.supply_chain.manufacturing_plm import ManufacturingPLMManager
+from src.supply_chain.manufacturing_plm import ManufacturingPLMManager, BillOfMaterials
 from src.supply_chain import SupplyChainCoordinator
 
 
@@ -128,6 +128,7 @@ def test_manufacturing_mrp_bom_and_cost_rollup():
     assert bom_details["product_code"] == "PREFAB-WALL-STD"
     assert bom_details["raw_materials_cost_usd"] > 0
     assert bom_details["direct_labor_cost_usd"] > 0
+    assert bom_details["machine_overhead_usd"] > 0
     assert bom_details["unit_production_cost_usd"] > 100.0
 
     # Explode requirements for 100 wall panels
@@ -173,3 +174,18 @@ def test_supply_chain_coordinator_end_to_end():
     assert assembly["quantity_manufactured"] == 5
     assert assembly["qc_pass_rate_pct"] > 98.0
     assert assembly["inbound_stock"] >= 85 # previously 80 + 5
+
+
+def test_bom_machine_overhead_cost_usd():
+    bom = BillOfMaterials(
+        bom_id="TEST-BOM-1",
+        product_code="TEST-PROD-1",
+        product_name="Test Product",
+        revision="Rev A",
+        components=[],
+        labor_hours_required=1.0,
+        labor_rate_hourly_usd=10.0,
+        machine_hours_required=2.5,
+        machine_rate_hourly_usd=15.0
+    )
+    assert bom.machine_overhead_cost_usd == 37.5
