@@ -121,6 +121,23 @@ def test_purchase_order_and_three_way_invoice_match():
     assert match_res["vat_15_pct_usd"] > 0
 
 
+
+def test_bom_machine_overhead_cost():
+    from src.supply_chain.manufacturing_plm import BillOfMaterials
+    bom = BillOfMaterials(
+        bom_id="TEST-BOM-1",
+        product_code="TEST-PROD-1",
+        product_name="Test Product",
+        revision="Rev A",
+        components=[],
+        labor_hours_required=1.0,
+        labor_rate_hourly_usd=10.0,
+        machine_hours_required=2.5,
+        machine_rate_hourly_usd=30.0,
+        lifecycle_phase="PRODUCTION_READY"
+    )
+    assert bom.machine_overhead_cost_usd == 75.0
+
 def test_manufacturing_mrp_bom_and_cost_rollup():
     mrp = ManufacturingPLMManager(fx_rate=26.50)
     bom_details = mrp.get_bom_details("BOM-WALL-2026-A")
@@ -128,6 +145,7 @@ def test_manufacturing_mrp_bom_and_cost_rollup():
     assert bom_details["product_code"] == "PREFAB-WALL-STD"
     assert bom_details["raw_materials_cost_usd"] > 0
     assert bom_details["direct_labor_cost_usd"] > 0
+    assert bom_details["machine_overhead_usd"] == 45.0
     assert bom_details["unit_production_cost_usd"] > 100.0
 
     # Explode requirements for 100 wall panels
