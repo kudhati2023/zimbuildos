@@ -62,6 +62,22 @@ def test_wms_insufficient_stock_guard():
     assert res["success"] is False
     assert "Insufficient stock" in res["error"]
 
+def test_wms_is_low_stock():
+    from src.supply_chain.warehouse_wms import StockItem
+
+    # Test not low stock
+    item1 = StockItem(item_id="MAT-TEST-1", name="Test1", category="TEST", unit="units", unit_cost_usd=1.0, reorder_threshold=100.0, central_store_qty=150.0)
+    assert item1.is_low_stock is False
+
+    # Test exactly at threshold
+    item2 = StockItem(item_id="MAT-TEST-2", name="Test2", category="TEST", unit="units", unit_cost_usd=1.0, reorder_threshold=100.0, central_store_qty=100.0)
+    assert item2.is_low_stock is True
+
+    # Test below threshold
+    item3 = StockItem(item_id="MAT-TEST-3", name="Test3", category="TEST", unit="units", unit_cost_usd=1.0, reorder_threshold=100.0, central_store_qty=50.0)
+    assert item3.is_low_stock is True
+
+
 
 def test_purchase_vendor_quote_comparison():
     pvm = PurchaseVendorManager(fx_rate=26.50)
