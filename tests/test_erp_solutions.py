@@ -3,6 +3,7 @@ Unit tests for Zimbuild Real Estate & Construction ERP Core Functions & Optimiza
 """
 
 import pytest
+from src.erp.fleet_appraisal_manager import FleetAsset
 from src.erp.portfolio_manager import PortfolioManager, PropertyAsset, UnitConfig
 from src.erp.lease_tenant_manager import LeaseTenantManager
 from src.erp.job_costing_tender import JobCostingTenderManager, SubcontractorBid
@@ -195,3 +196,43 @@ def test_lean_construction_toc_and_offline_sync():
     sync_result = lean.process_sync_queue()
     assert sync_result["synced_count"] >= 1
     assert evt.synced_to_cloud is True
+
+def test_fleet_asset_is_service_due():
+    # Test for the property is_service_due in FleetAsset
+    asset = FleetAsset(
+        asset_id="EQ-HEAV-001",
+        asset_name="CAT 320 Excavator",
+        category="Heavy Earthmoving Machinery",
+        reg_or_fleet_no="EX-01",
+        vin_or_engine_no="CAT32012345",
+        year=2020,
+        acquisition_cost_usd=150000.0,
+        salvage_value_usd=30000.0,
+        useful_life_years=10,
+        rated_life_hours=12000.0,
+        current_operating_hours=3700.0,
+        current_odometer_km=0.0,
+        current_site_location="Site A",
+        assigned_operator="John Doe",
+        last_service_hours=3500.0,
+        service_interval_hours=250.0
+    )
+
+    # Next service at 3500 + 250 = 3750 hours.
+    # Hours until next service: 3750 - 3700 = 50 hours.
+    # is_service_due (<= 20 hours) should be False
+    assert asset.is_service_due is False
+
+    # Current hours: 3730
+    # Next service at 3750.
+    # Hours until next service: 3750 - 3730 = 20 hours.
+    # is_service_due should be True
+    asset.current_operating_hours = 3730.0
+    assert asset.is_service_due is True
+
+    # Current hours: 3760 (overdue)
+    # Next service at 3750.
+    # Hours until next service: max(0.0, 3750 - 3760) = 0.0 hours.
+    # is_service_due should be True
+    asset.current_operating_hours = 3760.0
+    assert asset.is_service_due is True
