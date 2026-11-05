@@ -871,9 +871,11 @@ class SalesCRMPipelineManager:
                 cust.diaspora_country = diaspora_country
             cust.lead_score = max(cust.lead_score, self.calculate_lead_score(is_diaspora, bool(phone and email), budget_usd))
             if tags:
+                existing_tags = set(cust.tags)
                 for t in tags:
-                    if t not in cust.tags:
+                    if t not in existing_tags:
                         cust.tags.append(t)
+                        existing_tags.add(t)
         return cust
 
     def get_customer_360(self, customer_id: str) -> Dict[str, Any]:
