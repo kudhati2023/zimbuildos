@@ -5,7 +5,13 @@ import threading
 import time
 import urllib.request
 import pytest
+
+os.environ["ZIMBUILD_HMAC_SECRET"] = "mock_hmac_secret_for_testing_purposes"
+os.environ["ZIMBUILD_LEDGER_SECRET"] = "mock_ledger_secret_for_testing_purposes"
+os.environ["PAYMENT_GATEWAY_API_KEY"] = "mock_payment_gateway_api_key_for_testing"
+
 from server import SecureERPRequestHandler
+
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
     allow_reuse_address = True
