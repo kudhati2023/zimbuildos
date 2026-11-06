@@ -1,5 +1,10 @@
 import http.server
 import os
+
+os.environ["ZIMBUILD_HMAC_SECRET"] = "mock-hmac-secret"
+os.environ["ZIMBUILD_LEDGER_SECRET"] = "mock-ledger-secret"
+os.environ["PAYMENT_GATEWAY_API_KEY"] = "mock-gateway-key"
+
 import socketserver
 import threading
 import time
