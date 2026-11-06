@@ -37,7 +37,7 @@ export function PlantPanel({ projectId, ctx }: { projectId?: string; ctx: Ctx })
       downtime: totalDowntime,
       maintenanceCost: totalMaintenanceCost
     };
-  }, [fleet, summary?.equipment]);
+  }, [fleet, summary]);
 
   const machine = fleet.find((e) => e.equipment_id === selected) ?? null;
 
