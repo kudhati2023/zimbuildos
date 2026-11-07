@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import * as api from '../../api';
 import type { Equipment, FleetSummary, MaintenanceLog, MaintenanceType } from '../../types';
 import {
@@ -14,8 +14,15 @@ export function PlantPanel({ projectId, ctx }: { projectId?: string; ctx: Ctx })
   const [summary, reloadSummary] = useLoader<FleetSummary | null>(() => api.fetchFleetSummary(), [], ctx, null);
   const [selected, setSelected] = useState<string | null>(null);
   const refresh = async () => { await Promise.all([reload(), reloadSummary()]); };
-  const down = fleet.filter((e) => e.status !== 'AVAILABLE').length;
-  const due = fleet.filter((e) => e.service_due).length;
+  const { down, due, dueSoon } = useMemo(() => {
+    let down = 0, due = 0, dueSoon = 0;
+    for (const e of fleet) {
+      if (e.status !== 'AVAILABLE') down++;
+      if (e.service_due) due++;
+      if (e.service_due_soon) dueSoon++;
+    }
+    return { down, due, dueSoon };
+  }, [fleet]);
   const machine = fleet.find((e) => e.equipment_id === selected) ?? null;
 
   return (
@@ -23,7 +30,7 @@ export function PlantPanel({ projectId, ctx }: { projectId?: string; ctx: Ctx })
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Stat label="Machines" value={fleet.length} hint={`${fleet.length - down} available`} />
         <Stat label="Out of use" value={down} tone={down ? 'amber' : 'green'} hint="In workshop or out of service" />
-        <Stat label="Service overdue" value={due} tone={due ? 'red' : 'green'} hint={`${fleet.filter((e) => e.service_due_soon).length} due soon`} />
+        <Stat label="Service overdue" value={due} tone={due ? 'red' : 'green'} hint={`${dueSoon} due soon`} />
         <Stat label={`Downtime (${summary?.windowDays ?? 90} days)`} value={`${num(summary?.equipment.reduce((s, e) => s + e.downtime_hours, 0) ?? 0)} h`}
           hint={usd(summary?.equipment.reduce((s, e) => s + e.maintenance_cost_usd, 0) ?? 0) + ' maintenance spend'} />
       </div>
