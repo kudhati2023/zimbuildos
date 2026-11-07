@@ -1,3 +1,4 @@
+import * as crypto from 'node:crypto';
 import express from 'express';
 import cors from 'cors';
 import path from 'path';
@@ -179,7 +180,7 @@ app.post('/api/v1/public/youth-registration', (req, res) => {
     roles: ['APPLICANT'],
     exp: Math.floor(Date.now() / 1000) + 86400 * 30,
   };
-  const token = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${Buffer.from(JSON.stringify(tokenPayload)).toString('base64url')}.sig`;
+  const token = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${Buffer.from(JSON.stringify(tokenPayload)).toString('base64url')}.${crypto.randomBytes(32).toString('hex')}`;
 
   res.status(201).json({
     application: newApp,
@@ -318,6 +319,7 @@ app.get('/api/v1/allocations/:id/statement', (req, res) => {
 });
 
 app.post('/api/v1/allocations/:id/sign-agreement', (req, res) => {
+  const token = crypto.randomBytes(24).toString('hex');
   res.json({
     document_id: `DOC-AGR-${req.params.id}`,
     allocation_id: req.params.id,
@@ -325,12 +327,13 @@ app.post('/api/v1/allocations/:id/sign-agreement', (req, res) => {
     status: 'EXECUTED',
     signed_by: 'Dr. Tinashe Manzungu (Group CEO)',
     signed_at: new Date().toISOString(),
-    verification_token: 'a1b2c3d4e5f60718293a4b5c6d7e8f90123456789abcdef0',
-    verification_url: `/api/v1/verify/a1b2c3d4e5f60718293a4b5c6d7e8f90123456789abcdef0`,
+    verification_token: token,
+    verification_url: `/api/v1/verify/${token}`,
   });
 });
 
 app.post('/api/v1/allocations/:id/sign-deed', (req, res) => {
+  const token = crypto.randomBytes(24).toString('hex');
   res.json({
     document_id: `DOC-DEED-${req.params.id}`,
     allocation_id: req.params.id,
@@ -339,7 +342,7 @@ app.post('/api/v1/allocations/:id/sign-deed', (req, res) => {
     deed_number: `TD-${Math.floor(Math.random() * 9000 + 1000)}/2026`,
     signed_by: 'Registrar of Deeds / Dr. T. Manzungu',
     signed_at: new Date().toISOString(),
-    verification_token: 'b2c3d4e5f6a10718293a4b5c6d7e8f90123456789abcdef0',
+    verification_token: token,
   });
 });
 
