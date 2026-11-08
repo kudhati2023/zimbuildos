@@ -1,3 +1,9 @@
+
+import os
+os.environ["ZIMBUILD_HMAC_SECRET"] = "mock_test_hmac_secret"
+os.environ["ZIMBUILD_LEDGER_SECRET"] = "mock_test_ledger_secret"
+os.environ["PAYMENT_GATEWAY_API_KEY"] = "mock_test_payment_api_key"
+
 import http.server
 import os
 import socketserver
