@@ -144,15 +144,23 @@ export default function AntigravityEnterpriseDesktop() {
     return gisStands.find(s => s.id === selectedStandId) ?? gisStands[0] ?? null;
   }, [gisStands, selectedStandId]);
 
-  const filteredGISStands = useMemo(() => {
+  const { filteredGISStands, mappedCount, unmappedCount } = useMemo(() => {
     const q = standSearch.toLowerCase();
-    return gisStands.filter(s => {
+    let mappedCount = 0;
+    let unmappedCount = 0;
+    const filteredGISStands = gisStands.filter(s => {
       const matchesSearch = s.stand_number.toLowerCase().includes(q) ||
                             (s.holder_name ?? '').toLowerCase().includes(q) ||
                             s.parcel_id.toLowerCase().includes(q);
       const matchesStatus = statusFilter === 'ALL' || s.status === statusFilter;
-      return matchesSearch && matchesStatus;
+      const keep = matchesSearch && matchesStatus;
+      if (keep) {
+        if (s.geometry) mappedCount++;
+        else unmappedCount++;
+      }
+      return keep;
     });
+    return { filteredGISStands, mappedCount, unmappedCount };
   }, [gisStands, standSearch, statusFilter]);
 
   // ⚡ Bolt Performance Optimization:
@@ -804,8 +812,8 @@ export default function AntigravityEnterpriseDesktop() {
                     <div className="absolute bottom-14 left-3 z-[400] bg-slate-950/85 backdrop-blur-md border border-slate-800 px-3 py-1.5 rounded-xl text-[10px] font-mono text-slate-300 flex items-center space-x-2">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                       <span>
-                        {activeDev ? activeDev.name : 'No development'} • {filteredGISStands.filter(s => s.geometry).length} mapped
-                        {filteredGISStands.some(s => !s.geometry) && ` • ${filteredGISStands.filter(s => !s.geometry).length} without survey boundary (see Data Grid)`}
+                        {activeDev ? activeDev.name : 'No development'} • {mappedCount} mapped
+                        {unmappedCount > 0 && ` • ${unmappedCount} without survey boundary (see Data Grid)`}
                       </span>
                     </div>
                   </div>
