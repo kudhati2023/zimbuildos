@@ -64,6 +64,8 @@ export default function AntigravityEnterpriseDesktop() {
   const [crmSubTab, setCrmSubTab] = useState<'PIPELINE' | 'INQUIRIES' | 'COMMUNICATIONS' | 'ANALYTICS'>('PIPELINE');
   const [inquiryChannelFilter, setInquiryChannelFilter] = useState<string>('ALL');
 
+  // ⚡ Bolt Performance Optimization:
+  // Memoized filtered inquiries to prevent O(N) recalculation on every render
   const filteredInquiries = useMemo(() => {
     return crmInquiries.filter(i => inquiryChannelFilter === 'ALL' || i.source_channel === inquiryChannelFilter);
   }, [crmInquiries, inquiryChannelFilter]);
@@ -141,6 +143,8 @@ export default function AntigravityEnterpriseDesktop() {
   const [servicingDraft, setServicingDraft] = useState<StandServicing | null>(null);
   const [certificateRef, setCertificateRef] = useState('');
 
+  // ⚡ Bolt Performance Optimization:
+  // Cached filtered arrays to avoid recalculating on each render cycle
   const approvedApplications = useMemo(() => applications.filter(a => a.status === 'APPROVED'), [applications]);
   const availableStands = useMemo(() => stands.filter(s => s.status === 'AVAILABLE'), [stands]);
 
@@ -163,6 +167,8 @@ export default function AntigravityEnterpriseDesktop() {
     });
   }, [gisStands, standSearch, statusFilter]);
 
+  // ⚡ Bolt Performance Optimization:
+  // Replaced multiple .some() and .filter() passes with a single O(N) loop
   const gisMappedMetrics = useMemo(() => {
     let mapped = 0;
     let unmapped = 0;
