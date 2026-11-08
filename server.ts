@@ -1,4 +1,7 @@
 import express from 'express';
+import * as crypto from 'node:crypto';
+
+const FALLBACK_JWT_SECRET = crypto.randomBytes(32).toString('hex');
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -179,7 +182,13 @@ app.post('/api/v1/public/youth-registration', (req, res) => {
     roles: ['APPLICANT'],
     exp: Math.floor(Date.now() / 1000) + 86400 * 30,
   };
-  const token = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${Buffer.from(JSON.stringify(tokenPayload)).toString('base64url')}.sig`;
+  const secret = process.env.JWT_SECRET || FALLBACK_JWT_SECRET;
+  const headerB64 = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+  const payloadB64 = Buffer.from(JSON.stringify(tokenPayload)).toString('base64url');
+  const hmac = crypto.createHmac('sha256', secret);
+  hmac.update(`${headerB64}.${payloadB64}`);
+  const sig = hmac.digest('base64url');
+  const token = `${headerB64}.${payloadB64}.${sig}`;
 
   res.status(201).json({
     application: newApp,
@@ -318,6 +327,7 @@ app.get('/api/v1/allocations/:id/statement', (req, res) => {
 });
 
 app.post('/api/v1/allocations/:id/sign-agreement', (req, res) => {
+  const token = crypto.randomBytes(24).toString('hex');
   res.json({
     document_id: `DOC-AGR-${req.params.id}`,
     allocation_id: req.params.id,
@@ -325,12 +335,13 @@ app.post('/api/v1/allocations/:id/sign-agreement', (req, res) => {
     status: 'EXECUTED',
     signed_by: 'Dr. Tinashe Manzungu (Group CEO)',
     signed_at: new Date().toISOString(),
-    verification_token: 'a1b2c3d4e5f60718293a4b5c6d7e8f90123456789abcdef0',
-    verification_url: `/api/v1/verify/a1b2c3d4e5f60718293a4b5c6d7e8f90123456789abcdef0`,
+    verification_token: token,
+    verification_url: `/api/v1/verify/${token}`,
   });
 });
 
 app.post('/api/v1/allocations/:id/sign-deed', (req, res) => {
+  const token = crypto.randomBytes(24).toString('hex');
   res.json({
     document_id: `DOC-DEED-${req.params.id}`,
     allocation_id: req.params.id,
@@ -339,7 +350,7 @@ app.post('/api/v1/allocations/:id/sign-deed', (req, res) => {
     deed_number: `TD-${Math.floor(Math.random() * 9000 + 1000)}/2026`,
     signed_by: 'Registrar of Deeds / Dr. T. Manzungu',
     signed_at: new Date().toISOString(),
-    verification_token: 'b2c3d4e5f6a10718293a4b5c6d7e8f90123456789abcdef0',
+    verification_token: token,
   });
 });
 
