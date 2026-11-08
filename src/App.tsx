@@ -58,10 +58,17 @@ export default function AntigravityEnterpriseDesktop() {
   // CRM & Sales Pipeline State
   const [crmPipeline, setCrmPipeline] = useState<PipelineSummary | null>(null);
   const [crmInquiries, setCrmInquiries] = useState<RealEstateInquiry[]>([]);
+
   const [crmComms, setCrmComms] = useState<CommunicationRecord[]>([]);
   const [crmMetrics, setCrmMetrics] = useState<DigitalChannelMetrics | null>(null);
   const [crmSubTab, setCrmSubTab] = useState<'PIPELINE' | 'INQUIRIES' | 'COMMUNICATIONS' | 'ANALYTICS'>('PIPELINE');
   const [inquiryChannelFilter, setInquiryChannelFilter] = useState<string>('ALL');
+
+  // ⚡ Bolt Performance Optimization:
+  // Memoized filtered inquiries to prevent O(N) recalculation on every render
+  const filteredInquiries = useMemo(() => {
+    return crmInquiries.filter(i => inquiryChannelFilter === 'ALL' || i.source_channel === inquiryChannelFilter);
+  }, [crmInquiries, inquiryChannelFilter]);
   const [crmLoading, setCrmLoading] = useState(false);
 
   // CRM Inquiry Form
@@ -136,6 +143,11 @@ export default function AntigravityEnterpriseDesktop() {
   const [servicingDraft, setServicingDraft] = useState<StandServicing | null>(null);
   const [certificateRef, setCertificateRef] = useState('');
 
+  // ⚡ Bolt Performance Optimization:
+  // Cached filtered arrays to avoid recalculating on each render cycle
+  const approvedApplications = useMemo(() => applications.filter(a => a.status === 'APPROVED'), [applications]);
+  const availableStands = useMemo(() => stands.filter(s => s.status === 'AVAILABLE'), [stands]);
+
   const activeDev = useMemo(() => {
     return developments.find(d => d.id === selectedDevId) ?? developments[0] ?? null;
   }, [developments, selectedDevId]);
@@ -154,6 +166,18 @@ export default function AntigravityEnterpriseDesktop() {
       return matchesSearch && matchesStatus;
     });
   }, [gisStands, standSearch, statusFilter]);
+
+  // ⚡ Bolt Performance Optimization:
+  // Replaced multiple .some() and .filter() passes with a single O(N) loop
+  const gisMappedMetrics = useMemo(() => {
+    let mapped = 0;
+    let unmapped = 0;
+    for (const s of filteredGISStands) {
+      if (s.geometry) mapped++;
+      else unmapped++;
+    }
+    return { mapped, unmapped };
+  }, [filteredGISStands]);
 
   // ⚡ Bolt Performance Optimization:
   // Replaced multiple inline array `.filter()` chains on `publicStands` with a single O(N) loop
@@ -804,8 +828,8 @@ export default function AntigravityEnterpriseDesktop() {
                     <div className="absolute bottom-14 left-3 z-[400] bg-slate-950/85 backdrop-blur-md border border-slate-800 px-3 py-1.5 rounded-xl text-[10px] font-mono text-slate-300 flex items-center space-x-2">
                       <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                       <span>
-                        {activeDev ? activeDev.name : 'No development'} • {filteredGISStands.filter(s => s.geometry).length} mapped
-                        {filteredGISStands.some(s => !s.geometry) && ` • ${filteredGISStands.filter(s => !s.geometry).length} without survey boundary (see Data Grid)`}
+                        {activeDev ? activeDev.name : 'No development'} • {gisMappedMetrics.mapped} mapped
+                        {gisMappedMetrics.unmapped > 0 && ` • ${gisMappedMetrics.unmapped} without survey boundary (see Data Grid)`}
                       </span>
                     </div>
                   </div>
@@ -1584,7 +1608,7 @@ export default function AntigravityEnterpriseDesktop() {
                   className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-100"
                 >
                   <option value="">-- Choose Approved Applicant --</option>
-                  {applications.filter(a => a.status === 'APPROVED').map(a => (
+                  {approvedApplications.map(a => (
                     <option key={a.application_id} value={a.application_id}>
                       {a.first_name} {a.last_name} ({a.national_id}) · {a.quota_category} · Queued {new Date(a.first_submitted_at).toLocaleDateString()}
                     </option>
@@ -1600,7 +1624,7 @@ export default function AntigravityEnterpriseDesktop() {
                   className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-100"
                 >
                   <option value="">-- Choose Available Stand --</option>
-                  {stands.filter(s => s.status === 'AVAILABLE').map(s => (
+                  {availableStands.map(s => (
                     <option key={s.parcel_id} value={s.parcel_id}>
                       {s.stand_number} · {s.scheme_name} ({s.area_sqm} m² - ${parseFloat(s.price_usd).toLocaleString()} USD){s.quota_category !== 'GENERAL' ? ` · ${s.quota_category} quota` : ''}
                     </option>
@@ -2627,7 +2651,7 @@ export default function AntigravityEnterpriseDesktop() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-800/60 font-mono text-[11px]">
-                          {(crmInquiries.filter(i => inquiryChannelFilter === 'ALL' || i.source_channel === inquiryChannelFilter)).map(inq => (
+                          {filteredInquiries.map(inq => (
                             <tr key={inq.inquiry_id} className="hover:bg-slate-800/40 transition">
                               <td className="p-2.5 text-amber-400 font-bold">{inq.inquiry_id}</td>
                               <td className="p-2.5 font-sans font-semibold text-white">
