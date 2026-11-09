@@ -5,6 +5,9 @@ import threading
 import time
 import urllib.request
 import pytest
+
+# Mock required secrets for tests
+os.environ["ZIMBUILD_LEDGER_SECRET"] = "test_ledger_secret"
 from server import SecureERPRequestHandler
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
