@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import * as api from '../../api';
 import type { Equipment, FleetSummary, MaintenanceLog, MaintenanceType } from '../../types';
 import {
@@ -14,18 +14,35 @@ export function PlantPanel({ projectId, ctx }: { projectId?: string; ctx: Ctx })
   const [summary, reloadSummary] = useLoader<FleetSummary | null>(() => api.fetchFleetSummary(), [], ctx, null);
   const [selected, setSelected] = useState<string | null>(null);
   const refresh = async () => { await Promise.all([reload(), reloadSummary()]); };
-  const down = fleet.filter((e) => e.status !== 'AVAILABLE').length;
-  const due = fleet.filter((e) => e.service_due).length;
+
+  // ⚡ Bolt: Single-pass optimization to prevent O(4N) array traversals on render
+  const stats = useMemo<{ down: number; due: number; dueSoon: number; downtime: number; cost: number; }>(() => {
+    let down = 0, due = 0, dueSoon = 0;
+    for (const e of fleet) {
+      if (e.status !== 'AVAILABLE') down++;
+      if (e.service_due) due++;
+      if (e.service_due_soon) dueSoon++;
+    }
+    let downtime = 0, cost = 0;
+    if (summary?.equipment) {
+      for (const e of summary.equipment) {
+        downtime += e.downtime_hours;
+        cost += e.maintenance_cost_usd;
+      }
+    }
+    return { down, due, dueSoon, downtime, cost };
+  }, [fleet, summary]);
+
   const machine = fleet.find((e) => e.equipment_id === selected) ?? null;
 
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Stat label="Machines" value={fleet.length} hint={`${fleet.length - down} available`} />
-        <Stat label="Out of use" value={down} tone={down ? 'amber' : 'green'} hint="In workshop or out of service" />
-        <Stat label="Service overdue" value={due} tone={due ? 'red' : 'green'} hint={`${fleet.filter((e) => e.service_due_soon).length} due soon`} />
-        <Stat label={`Downtime (${summary?.windowDays ?? 90} days)`} value={`${num(summary?.equipment.reduce((s, e) => s + e.downtime_hours, 0) ?? 0)} h`}
-          hint={usd(summary?.equipment.reduce((s, e) => s + e.maintenance_cost_usd, 0) ?? 0) + ' maintenance spend'} />
+        <Stat label="Machines" value={fleet.length} hint={`${fleet.length - stats.down} available`} />
+        <Stat label="Out of use" value={stats.down} tone={stats.down ? 'amber' : 'green'} hint="In workshop or out of service" />
+        <Stat label="Service overdue" value={stats.due} tone={stats.due ? 'red' : 'green'} hint={`${stats.dueSoon} due soon`} />
+        <Stat label={`Downtime (${summary?.windowDays ?? 90} days)`} value={`${num(stats.downtime)} h`}
+          hint={usd(stats.cost) + ' maintenance spend'} />
       </div>
 
       <Card title="Plant register" subtitle="Hours booked to projects run the hour meter; the service bar fills towards the next service interval"
