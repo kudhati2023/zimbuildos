@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import * as api from '../../api';
 import type { BudgetLine, Subcontract, SubcontractDetail, Subcontractor, Tender, TenderDetail } from '../../types';
 import {
@@ -90,6 +90,10 @@ function IssueTender({ projectId, ctx, onIssued }: { projectId: string; ctx: Ctx
   const [lines, setLines] = useState<BudgetLine[]>([]);
   const f = useForm({ reference: '', title: '', scope: '', lineId: '', estimateUsd: '', priceWeight: '70', minTechnicalScore: '60', closingAt: '' });
   const { busy, run } = useAction(ctx);
+
+  const subcontractLines = useMemo(() => {
+    return lines.filter((l) => l.category === 'SUBCONTRACT');
+  }, [lines]);
   useEffect(() => { if (open) api.fetchBudgetLines(projectId).then(setLines).catch(ctx.fail); }, [open, projectId]);
   if (!ctx.hasRole('PROJECT_MANAGER', 'QUANTITY_SURVEYOR')) return null;
   if (!open) return <Button onClick={() => setOpen(true)}>+ Issue tender</Button>;
@@ -106,7 +110,7 @@ function IssueTender({ projectId, ctx, onIssued }: { projectId: string; ctx: Ctx
       <Field label="Subcontract cost line">
         <select {...f.bind('lineId')} required className={inputCls}>
           <option value="">Select…</option>
-          {lines.filter((l) => l.category === 'SUBCONTRACT').map((l) => <option key={l.line_id} value={l.line_id}>{l.cost_code} — {l.description}</option>)}
+          {subcontractLines.map((l) => <option key={l.line_id} value={l.line_id}>{l.cost_code} — {l.description}</option>)}
         </select>
       </Field>
       <Field label="Title" wide><input {...f.bind('title')} required className={inputCls} /></Field>

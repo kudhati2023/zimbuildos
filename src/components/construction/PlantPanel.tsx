@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import * as api from '../../api';
 import type { Equipment, FleetSummary, MaintenanceLog, MaintenanceType } from '../../types';
 import {
@@ -14,8 +14,15 @@ export function PlantPanel({ projectId, ctx }: { projectId?: string; ctx: Ctx })
   const [summary, reloadSummary] = useLoader<FleetSummary | null>(() => api.fetchFleetSummary(), [], ctx, null);
   const [selected, setSelected] = useState<string | null>(null);
   const refresh = async () => { await Promise.all([reload(), reloadSummary()]); };
-  const down = fleet.filter((e) => e.status !== 'AVAILABLE').length;
-  const due = fleet.filter((e) => e.service_due).length;
+  const { down, due } = useMemo(() => {
+    let downCount = 0;
+    let dueCount = 0;
+    for (const e of fleet) {
+      if (e.status !== 'AVAILABLE') downCount++;
+      if (e.service_due) dueCount++;
+    }
+    return { down: downCount, due: dueCount };
+  }, [fleet]);
   const machine = fleet.find((e) => e.equipment_id === selected) ?? null;
 
   return (
