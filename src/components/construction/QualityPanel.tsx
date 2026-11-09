@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import * as api from '../../api';
 import type { ChecklistItem, Inspection, Milestone, NonConformance, QualitySummary, Severity } from '../../types';
 import {
@@ -109,7 +109,7 @@ export function QualityPanel({ projectId, ctx }: { projectId: string; ctx: Ctx }
 
 function InspectionRow({ inspection: i }: { inspection: Inspection }) {
   const [open, setOpen] = useState(false);
-  const failed = i.checklist.filter((c) => !c.passed).length;
+  const failed = useMemo(() => i.checklist.filter((c) => !c.passed).length, [i.checklist]);
   return (
     <>
       <tr className="hover:bg-slate-800/30 cursor-pointer" onClick={() => setOpen(!open)}>
@@ -141,7 +141,7 @@ function InspectionForm({ projectId, milestones, ctx, onRecorded }: { projectId:
   const [items, setItems] = useState<ChecklistItem[]>(fromTemplate('CONCRETE_POUR'));
   const { busy, run } = useAction(ctx);
   const update = (k: number, patch: Partial<ChecklistItem>) => setItems((xs) => xs.map((x, i) => (i === k ? { ...x, ...patch } : x)));
-  const failed = items.filter((c) => !c.passed).length;
+  const failed = useMemo(() => items.filter((c) => !c.passed).length, [items]);
   if (!ctx.hasRole('QA_INSPECTOR', 'ENGINEER')) {
     return <Card title="Record inspection" className="xl:col-span-2"><RoleNote roles={['QA_INSPECTOR', 'ENGINEER']} /></Card>;
   }

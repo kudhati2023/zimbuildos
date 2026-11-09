@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import * as api from '../../api';
 import type { BudgetLine, CostCategory, CostEntry, Equipment, JobCostReport, Material } from '../../types';
 import {
@@ -199,7 +199,7 @@ function PostCostCard({ projectId, lines, materials, equipment, ctx, onPosted }:
   const f = useForm({ lineId: '', materialCode: '', equipmentId: '', workerRef: '', trade: '', unit: 'DAY', quantity: '', unitRateUsd: '', amountUsd: '', description: '', entryDate: todayHarare() });
   const { busy, run } = useAction(ctx);
   const allowed = kind === 'overhead' ? ctx.hasRole('QUANTITY_SURVEYOR') : ctx.hasRole('QUANTITY_SURVEYOR', 'SITE_SUPERVISOR');
-  const eligible = lines.filter((l) => l.category === KIND_CATEGORY[kind]);
+  const eligible = useMemo(() => lines.filter((l: BudgetLine) => l.category === KIND_CATEGORY[kind]), [lines, kind]);
   const v = f.values;
   const material = materials.find((m) => m.material_code === v.materialCode);
   const machine = equipment.find((e) => e.equipment_id === v.equipmentId);
