@@ -180,9 +180,6 @@ export default function AntigravityEnterpriseDesktop() {
   }, [publicStands]);
 
   // ⚡ Bolt Performance Optimization:
-  // Combines scheme filtering and search string matching into a single loop,
-  // memoized to prevent re-execution unless dependent values change.
-  // ⚡ Bolt Performance Optimization:
   // Pre-calculate mapped vs unmapped stand counts in a single pass O(N) loop
   // wrapped in a useMemo. Prevents multiple O(N) filter and some checks on every render.
   const gisStandMetrics = useMemo(() => {
@@ -195,6 +192,9 @@ export default function AntigravityEnterpriseDesktop() {
     return { mapped, unmapped };
   }, [filteredGISStands]);
 
+  // ⚡ Bolt Performance Optimization:
+  // Combines scheme filtering and search string matching into a single loop,
+  // memoized to prevent re-execution unless dependent values change.
   const filteredPublicStands = useMemo(() => {
     const searchLow = (publicStandSearch || '').toLowerCase();
     return publicStands.filter(s => {
