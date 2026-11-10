@@ -5,6 +5,9 @@ import threading
 import time
 import urllib.request
 import pytest
+import os
+os.environ["ZIMBUILD_HMAC_SECRET"] = "zimbuild-secure-erp-signing-key-2026"
+
 from server import SecureERPRequestHandler
 
 class ThreadedTCPServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
