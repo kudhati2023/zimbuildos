@@ -2,6 +2,10 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import * as crypto from 'node:crypto';
+
+const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(32).toString('hex');
+
 import {
   developments,
   stands,
@@ -179,7 +183,10 @@ app.post('/api/v1/public/youth-registration', (req, res) => {
     roles: ['APPLICANT'],
     exp: Math.floor(Date.now() / 1000) + 86400 * 30,
   };
-  const token = `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.${Buffer.from(JSON.stringify(tokenPayload)).toString('base64url')}.sig`;
+  const headerB64 = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9';
+  const payloadB64 = Buffer.from(JSON.stringify(tokenPayload)).toString('base64url');
+  const signature = crypto.createHmac('sha256', JWT_SECRET).update(`${headerB64}.${payloadB64}`).digest('base64url');
+  const token = `${headerB64}.${payloadB64}.${signature}`;
 
   res.status(201).json({
     application: newApp,
