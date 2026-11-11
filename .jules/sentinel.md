@@ -1,0 +1,4 @@
+## 2025-02-12 - Fix insecure JWT generation in server.ts
+**Vulnerability:** The application was generating a JWT for youth applicants by hardcoding the JWT header and appending a fake signature (".sig") instead of properly signing it with HMAC SHA256 and a secret.
+**Learning:** This bypassing of cryptography effectively allowed spoofed JWTs since validation would just decode base64 fields if the system (or another system) checked tokens by trying to decode them, or the system falsely assumed it had issued valid cryptographic tokens.
+**Prevention:** When generating a JWT manually, adhere strictly to RFC 7519 by hashing the `base64url(header) + '.' + base64url(payload)`. Ensure `crypto` is imported properly (e.g., `import * as crypto from 'node:crypto'`) and fallback secrets are defined outside of route handlers so they don't rotate on every request.
